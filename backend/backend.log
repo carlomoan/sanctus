@@ -1,0 +1,10 @@
+nohup: ignoring input
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.74s
+warning: the following packages contain code that will be rejected by a future version of Rust: sqlx-postgres v0.7.4
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running `target/debug/sanctus_backend`
+[2m2026-02-09T10:12:03.655702Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Connecting to database...
+[2m2026-02-09T10:12:04.567725Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Database connection established
+[2m2026-02-09T10:12:04.571617Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Running database migrations...
+[2m2026-02-09T10:12:04.609200Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Migrations applied successfully
+[2m2026-02-09T10:12:04.617074Z[0m [34mDEBUG[0m [2msanctus_backend[0m[2m:[0m listening on 127.0.0.1:3000

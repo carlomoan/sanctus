@@ -1,0 +1,28 @@
+name: sanctus_mobile
+description: Sanctus Mobile App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  http: ^1.1.0
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  uuid: ^4.2.1
+  connectivity_plus: ^5.0.2
+  shared_preferences: ^2.2.2
+  provider: ^6.1.1
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

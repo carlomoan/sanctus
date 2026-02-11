@@ -1,0 +1,11 @@
+pub mod parish;
+pub mod member;
+pub mod transaction;
+pub mod sacrament;
+pub mod diocese;
+pub mod dashboard;
+pub mod auth;
+pub mod user;
+pub mod budget;
+pub mod report;
+pub mod import;

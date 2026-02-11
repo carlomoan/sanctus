@@ -1,0 +1,30 @@
+[package]
+name = "sanctus_backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7", features = ["multipart"] }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "migrate", "rust_decimal"] }
+dotenvy = "0.15"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower-http = { version = "0.5", features = ["cors"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["serde", "v4"] }
+rust_decimal = { version = "1.0", features = ["db-postgres"] }
+jsonwebtoken = "10.3.0"
+bcrypt = "0.18.0"
+pbkdf2 = { version = "0.12.2", features = ["sha2"] }
+sha2 = "0.10.8"
+hex = "0.4.3"
+base64 = "0.22.1"
+validator = "0.20.0"
+serde_with = "3.16.1"
+argon2 = "0.5.3"
+csv = "1.4.0"
+calamine = "0.33.0"
+axum-extra = { version = "0.9", features = ["multipart"] }
