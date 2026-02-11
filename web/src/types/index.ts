@@ -399,3 +399,8 @@ export interface CreateExpenseRequest {
   reference_number?: string;
   requested_by: UUID;
 }
+
+export interface ImportResponse {
+  success_count: number;
+  errors: string[];
+}

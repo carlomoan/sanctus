@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form';
-import { CreateIncomeRequest, TransactionCategory, PaymentMethod, Parish, Member } from '../types';
+import { CreateIncomeRequest, TransactionCategory, PaymentMethod, Member } from '../types';
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 
@@ -10,7 +10,7 @@ interface IncomeFormProps {
 }
 
 const IncomeForm = ({ onSubmit, onCancel, parishId }: IncomeFormProps) => {
-  const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm<CreateIncomeRequest>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<CreateIncomeRequest>({
     defaultValues: {
       parish_id: parishId,
       amount: 0,

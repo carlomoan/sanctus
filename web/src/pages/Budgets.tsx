@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Budget, Parish, TransactionCategory } from '../types';
+import { Budget, Parish } from '../types';
 import { Plus, Filter, Calendar, Target, Edit, Trash2 } from 'lucide-react';
 import Modal from '../components/Modal';
 import BudgetForm from '../components/BudgetForm';
@@ -131,7 +131,7 @@ const Budgets = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {budget.fiscal_month 
+                    {budget.fiscal_month
                       ? `${new Date(0, budget.fiscal_month - 1).toLocaleString('default', { month: 'long' })} ${budget.fiscal_year}`
                       : `Full Year ${budget.fiscal_year}`}
                   </td>

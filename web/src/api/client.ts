@@ -176,6 +176,10 @@ export class ApiClient {
     return this.request<ExpenseVoucher>('GET', `/transactions/expense/${id}`);
   }
 
+  async createExpenseVoucher(data: CreateExpenseRequest): Promise<ExpenseVoucher> {
+    return this.request<ExpenseVoucher>('POST', '/transactions/expense', data);
+  }
+
   // Users
   async listUsers(): Promise<User[]> {
     return this.request<User[]>('GET', '/users');
@@ -183,6 +187,10 @@ export class ApiClient {
 
   async createUser(data: any): Promise<User> {
     return this.request<User>('POST', '/users', data);
+  }
+
+  async deleteUser(id: UUID): Promise<void> {
+    return this.request<void>('DELETE', `/users/${id}`);
   }
 
   // Budgets
@@ -211,15 +219,21 @@ export class ApiClient {
   }
 
   // Import
-  async importMembers(file: File): Promise<ImportResponse> {
+  async importMembers(file: File, parishId?: UUID): Promise<ImportResponse> {
     const formData = new FormData();
     formData.append('file', file);
+    if (parishId) {
+      formData.append('parish_id', parishId);
+    }
     return this.requestMultipart<ImportResponse>('POST', '/import/members', formData);
   }
 
-  async importTransactions(file: File): Promise<ImportResponse> {
+  async importTransactions(file: File, parishId?: UUID): Promise<ImportResponse> {
     const formData = new FormData();
     formData.append('file', file);
+    if (parishId) {
+      formData.append('parish_id', parishId);
+    }
     return this.requestMultipart<ImportResponse>('POST', '/import/transactions', formData);
   }
 

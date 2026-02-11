@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { Parish, IncomeTransaction, ExpenseVoucher, CreateIncomeRequest, CreateExpenseRequest } from '../types';
-import { Plus, Search, Filter, TrendingUp, TrendingDown, Calendar, FileText } from 'lucide-react';
+import { Plus, Filter, TrendingUp, TrendingDown, Calendar, FileText } from 'lucide-react';
 import Modal from '../components/Modal';
 import IncomeForm from '../components/IncomeForm';
 import ExpenseForm from '../components/ExpenseForm';

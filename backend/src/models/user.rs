@@ -5,6 +5,7 @@ use sqlx::FromRow;
 
 #[derive(Debug, Serialize, Deserialize, sqlx::Type, Clone, Copy, PartialEq)]
 #[sqlx(type_name = "user_role", rename_all = "SCREAMING_SNAKE_CASE")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum UserRole {
     SuperAdmin,
     ParishAdmin,

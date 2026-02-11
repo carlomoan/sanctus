@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { User, UserRole, Parish } from '../types';
-import { Plus, User as UserIcon, Shield, Trash2, Mail, Phone, Church } from 'lucide-react';
+import { Plus, Shield, Trash2, Mail, Phone, Church } from 'lucide-react';
 import Modal from '../components/Modal';
 import UserForm from '../components/UserForm';
 import { useAuth } from '../context/AuthContext';
@@ -103,9 +103,8 @@ const Users = () => {
                     <p className="text-sm text-gray-500">@{user.username}</p>
                   </div>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  user.role === UserRole.SUPER_ADMIN ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                }`}>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.role === UserRole.SUPER_ADMIN ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
                   {user.role.replace('_', ' ')}
                 </span>
               </div>

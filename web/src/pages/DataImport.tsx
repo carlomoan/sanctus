@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Info } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Info, Filter } from 'lucide-react';
+import { Parish } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 const DataImport = () => {
   const [importType, setReportType] = useState<'members' | 'transactions'>('members');
@@ -8,6 +10,26 @@ const DataImport = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success_count: number; errors: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const { user } = useAuth();
+  const [parishes, setParishes] = useState<Parish[]>([]);
+  const [selectedParishId, setSelectedParishId] = useState<string>('');
+
+  useEffect(() => {
+    const fetchParishes = async () => {
+      try {
+        const data = await api.listParishes();
+        setParishes(data);
+        if (data.length > 0 && !selectedParishId) {
+          // Default to user's parish if available, otherwise first in list (or empty if forcing selection)
+          setSelectedParishId(user?.parish_id || data[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to load parishes:', err);
+      }
+    };
+    fetchParishes();
+  }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -20,6 +42,10 @@ const DataImport = () => {
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return;
+    if (!selectedParishId && !user?.parish_id) {
+      setError("Please select a parish for import.");
+      return;
+    }
 
     setLoading(true);
     setResult(null);
@@ -27,12 +53,16 @@ const DataImport = () => {
 
     try {
       let response;
+      const targetParishId = selectedParishId || user?.parish_id;
       if (importType === 'members') {
-        response = await api.importMembers(file);
+        response = await api.importMembers(file, targetParishId);
       } else {
-        response = await api.importTransactions(file);
+        response = await api.importTransactions(file, targetParishId);
       }
-      setResult(response);
+      setResult({
+        success_count: response.success_count,
+        errors: response.errors || []
+      });
     } catch (err: any) {
       console.error('Import failed:', err);
       setError(err.message || 'Import failed. Please check your file format and try again.');
@@ -51,24 +81,43 @@ const DataImport = () => {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
             <form onSubmit={handleImport} className="space-y-6">
+              {/* Parish Selector for Admins */}
+              {(!user?.parish_id || user?.role === 'SUPER_ADMIN') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Target Parish</label>
+                  <div className="flex items-center gap-2">
+                    <Filter size={20} className="text-gray-400" />
+                    <select
+                      value={selectedParishId}
+                      onChange={(e) => setSelectedParishId(e.target.value)}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+                      required
+                    >
+                      <option value="" disabled>Select Parish</option>
+                      {parishes.map(parish => (
+                        <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Import Type</label>
                 <div className="flex bg-gray-100 p-1 rounded-lg w-max">
                   <button
                     type="button"
                     onClick={() => setReportType('members')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      importType === 'members' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${importType === 'members' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                      }`}
                   >
                     Members
                   </button>
                   <button
                     type="button"
                     onClick={() => setReportType('transactions')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      importType === 'transactions' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${importType === 'transactions' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                      }`}
                   >
                     Transactions
                   </button>
@@ -112,9 +161,9 @@ const DataImport = () => {
           </div>
 
           {result && (
-            <div className={`p-6 rounded-lg shadow-sm border ${result.errors.length === 0 ? 'bg-green-50 border-green-100' : 'bg-orange-50 border-orange-100'}`}>
+            <div className={`p-6 rounded-lg shadow-sm border ${result.errors && result.errors.length === 0 ? 'bg-green-50 border-green-100' : 'bg-orange-50 border-orange-100'}`}>
               <div className="flex items-center gap-3 mb-4">
-                {result.errors.length === 0 ? (
+                {result.errors && result.errors.length === 0 ? (
                   <CheckCircle2 className="text-green-600 h-6 w-6" />
                 ) : (
                   <AlertCircle className="text-orange-600 h-6 w-6" />
@@ -122,8 +171,8 @@ const DataImport = () => {
                 <h3 className="text-lg font-semibold text-gray-900">Import Result</h3>
               </div>
               <p className="text-gray-700">Successfully imported <span className="font-bold text-gray-900">{result.success_count}</span> {importType}.</p>
-              
-              {result.errors.length > 0 && (
+
+              {result.errors && result.errors.length > 0 && (
                 <div className="mt-4">
                   <p className="text-sm font-medium text-orange-800 mb-2">Errors encountered:</p>
                   <ul className="list-disc pl-5 space-y-1">
@@ -152,7 +201,7 @@ const DataImport = () => {
             </div>
             <div className="space-y-4 text-sm text-gray-600">
               <p>To ensure a successful import, please follow these guidelines:</p>
-              
+
               {importType === 'members' ? (
                 <div className="space-y-2">
                   <p className="font-medium text-gray-900">Expected CSV/Excel Columns:</p>
@@ -176,7 +225,7 @@ const DataImport = () => {
                   </ul>
                 </div>
               )}
-              
+
               <div className="pt-4">
                 <button className="text-primary-600 font-medium hover:text-primary-700 flex items-center gap-1">
                   <FileText size={16} />

@@ -16,7 +16,7 @@ tower-http = { version = "0.5", features = ["cors"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["serde", "v4"] }
 rust_decimal = { version = "1.0", features = ["db-postgres"] }
-jsonwebtoken = "10.3.0"
+jsonwebtoken = { version = "9.3", features = ["use_pem"] }
 bcrypt = "0.18.0"
 pbkdf2 = { version = "0.12.2", features = ["sha2"] }
 sha2 = "0.10.8"

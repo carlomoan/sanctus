@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { TrialBalance, IncomeExpenditureStatement, Parish } from '../types';
-import { Filter, Calendar, FileText, Download, TrendingUp, TrendingDown, Scale } from 'lucide-react';
+import { Filter, Calendar, FileText, Download, TrendingUp, TrendingDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Reports = () => {
@@ -101,17 +101,15 @@ const Reports = () => {
         <div className="flex bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => setReportType('income-expenditure')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              reportType === 'income-expenditure' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${reportType === 'income-expenditure' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
           >
             Income & Expenditure
           </button>
           <button
             onClick={() => setReportType('trial-balance')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              reportType === 'trial-balance' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${reportType === 'trial-balance' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
           >
             Trial Balance
           </button>
@@ -126,7 +124,7 @@ const Reports = () => {
             <h2 className="text-lg font-semibold text-gray-900">Income & Expenditure Statement</h2>
             <p className="text-sm text-gray-500">For the period {startDate} to {endDate}</p>
           </div>
-          
+
           <div className="p-6 space-y-8">
             {/* Income Section */}
             <div>
@@ -181,13 +179,11 @@ const Reports = () => {
             </div>
 
             {/* Net Surplus/Deficit */}
-            <div className={`p-4 rounded-lg flex justify-between items-center ${
-              incomeExpenditure.net_surplus_deficit >= 0 ? 'bg-green-50 border border-green-100' : 'bg-red-50 border border-red-100'
-            }`}>
-              <span className="font-bold text-gray-900">NET SURPLUS / (DEFICIT)</span>
-              <span className={`text-xl font-bold ${
-                incomeExpenditure.net_surplus_deficit >= 0 ? 'text-green-700' : 'text-red-700'
+            <div className={`p-4 rounded-lg flex justify-between items-center ${incomeExpenditure.net_surplus_deficit >= 0 ? 'bg-green-50 border border-green-100' : 'bg-red-50 border border-red-100'
               }`}>
+              <span className="font-bold text-gray-900">NET SURPLUS / (DEFICIT)</span>
+              <span className={`text-xl font-bold ${incomeExpenditure.net_surplus_deficit >= 0 ? 'text-green-700' : 'text-red-700'
+                }`}>
                 {incomeExpenditure.net_surplus_deficit.toLocaleString('en-TZ', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -199,7 +195,7 @@ const Reports = () => {
             <h2 className="text-lg font-semibold text-gray-900 text-center uppercase tracking-widest">Trial Balance</h2>
             <p className="text-sm text-gray-500 text-center">As at {endDate}</p>
           </div>
-          
+
           <table className="min-w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>

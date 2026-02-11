@@ -30,6 +30,7 @@ pub async fn import_members(
     let mut errors = Vec::new();
     let mut data = Vec::new();
     let mut file_name = String::new();
+    let mut target_parish_id = auth.parish_id;
 
     while let Ok(Some(field)) = multipart.next_field().await {
         let name = field.name().unwrap_or_default().to_string();
@@ -37,6 +38,11 @@ pub async fn import_members(
             file_name = field.file_name().unwrap_or_default().to_string();
             let bytes = field.bytes().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
             data = bytes.to_vec();
+        } else if name == "parish_id" {
+            let text = field.text().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+            if let Ok(id) = uuid::Uuid::parse_str(&text) {
+                target_parish_id = Some(id);
+            }
         }
     }
 
@@ -44,7 +50,7 @@ pub async fn import_members(
         return Err((StatusCode::BAD_REQUEST, "No file uploaded".to_string()));
     }
 
-    let parish_id = auth.parish_id.ok_or((StatusCode::BAD_REQUEST, "User must be assigned to a parish to import members".to_string()))?;
+    let parish_id = target_parish_id.ok_or((StatusCode::BAD_REQUEST, "User must be assigned to a parish or specify parish_id to import members".to_string()))?;
 
     if file_name.ends_with(".csv") {
         let mut rdr = ReaderBuilder::new()
@@ -150,6 +156,7 @@ pub async fn import_transactions(
     let mut errors = Vec::new();
     let mut data = Vec::new();
     let mut file_name = String::new();
+    let mut target_parish_id = auth.parish_id;
 
     while let Ok(Some(field)) = multipart.next_field().await {
         let name = field.name().unwrap_or_default().to_string();
@@ -157,6 +164,11 @@ pub async fn import_transactions(
             file_name = field.file_name().unwrap_or_default().to_string();
             let bytes = field.bytes().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
             data = bytes.to_vec();
+        } else if name == "parish_id" {
+            let text = field.text().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+            if let Ok(id) = uuid::Uuid::parse_str(&text) {
+                target_parish_id = Some(id);
+            }
         }
     }
 
@@ -164,7 +176,7 @@ pub async fn import_transactions(
         return Err((StatusCode::BAD_REQUEST, "No file uploaded".to_string()));
     }
 
-    let parish_id = auth.parish_id.ok_or((StatusCode::BAD_REQUEST, "User must be assigned to a parish to import transactions".to_string()))?;
+    let parish_id = target_parish_id.ok_or((StatusCode::BAD_REQUEST, "User must be assigned to a parish or specify parish_id to import transactions".to_string()))?;
 
     if file_name.ends_with(".csv") {
         let mut rdr = ReaderBuilder::new()

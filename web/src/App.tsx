@@ -45,17 +45,15 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="parishes" element={<Parishes />} />
-              <Route path="members" element={<Members />} />
-              <Route path="sacraments" element={<Sacraments />} />
-              <Route path="finance" element={<Finance />} />
-              <Route path="budgets" element={<Budgets />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="import" element={<DataImport />} />
-              <Route path="users" element={<Users />} />
-            </Route>
+            <Route index element={<Dashboard />} />
+            <Route path="parishes" element={<Parishes />} />
+            <Route path="members" element={<Members />} />
+            <Route path="sacraments" element={<Sacraments />} />
+            <Route path="finance" element={<Finance />} />
+            <Route path="budgets" element={<Budgets />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="import" element={<DataImport />} />
+            <Route path="users" element={<Users />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

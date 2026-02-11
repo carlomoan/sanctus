@@ -2,12 +2,13 @@ use axum::{
     extract::State,
     routing::{get, post, delete, put},
     Router,
+    http::{Method, header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT}},
 };
 use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use dotenvy::dotenv;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{CorsLayer, Any};
 
 mod models;
 mod sync;
@@ -76,7 +77,12 @@ async fn main() {
         .route("/transactions/expense/:id", get(handlers::transaction::get_expense_voucher))
         .route("/sacraments", get(handlers::sacrament::list_sacraments).post(handlers::sacrament::create_sacrament))
         .route("/sacraments/:id", get(handlers::sacrament::get_sacrament).put(handlers::sacrament::update_sacrament).delete(handlers::sacrament::delete_sacrament))
-        .layer(CorsLayer::permissive())
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
+                .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT]),
+        )
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));

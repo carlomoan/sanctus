@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, Mail, Lock, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
@@ -8,6 +9,7 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,6 +18,7 @@ const Login = () => {
 
     try {
       await login({ username_or_email: usernameOrEmail, password });
+      navigate('/');
     } catch (err: any) {
       console.error('Login failed:', err);
       setError(err.message || 'Invalid credentials. Please try again.');
@@ -41,7 +44,7 @@ const Login = () => {
                 {error}
               </div>
             )}
-            
+
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700">
                 Username or Email
