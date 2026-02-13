@@ -49,10 +49,10 @@ pub async fn create_parish(
         r#"
         INSERT INTO parish (
             diocese_id, parish_code, parish_name, patron_saint, 
-            priest_name, established_date, physical_address, 
+            priest_name, priest_id, established_date, physical_address, 
             contact_email, contact_phone
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
         "#
     )
@@ -61,6 +61,7 @@ pub async fn create_parish(
     .bind(payload.parish_name)
     .bind(payload.patron_saint)
     .bind(payload.priest_name)
+    .bind(payload.priest_id)
     .bind(payload.established_date)
     .bind(payload.physical_address)
     .bind(payload.contact_email)
@@ -93,6 +94,7 @@ pub async fn update_parish(
     if let Some(name) = payload.parish_name { parish.parish_name = name; }
     if let Some(saint) = payload.patron_saint { parish.patron_saint = Some(saint); }
     if let Some(priest) = payload.priest_name { parish.priest_name = Some(priest); }
+    if let Some(pid) = payload.priest_id { parish.priest_id = Some(pid); }
     if let Some(addr) = payload.physical_address { parish.physical_address = Some(addr); }
     if let Some(email) = payload.contact_email { parish.contact_email = Some(email); }
     if let Some(phone) = payload.contact_phone { parish.contact_phone = Some(phone); }
@@ -105,18 +107,20 @@ pub async fn update_parish(
             parish_name = $1,
             patron_saint = $2,
             priest_name = $3,
-            physical_address = $4,
-            contact_email = $5,
-            contact_phone = $6,
-            is_active = $7,
+            priest_id = $4,
+            physical_address = $5,
+            contact_email = $6,
+            contact_phone = $7,
+            is_active = $8,
             updated_at = NOW()
-        WHERE id = $8
+        WHERE id = $9
         RETURNING *
         "#
     )
     .bind(parish.parish_name)
     .bind(parish.patron_saint)
     .bind(parish.priest_name)
+    .bind(parish.priest_id)
     .bind(parish.physical_address)
     .bind(parish.contact_email)
     .bind(parish.contact_phone)

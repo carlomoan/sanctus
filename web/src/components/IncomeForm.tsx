@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form';
-import { CreateIncomeRequest, TransactionCategory, PaymentMethod, Member } from '../types';
+import { CreateIncomeRequest, TransactionCategory, PaymentMethod, Member, Family } from '../types';
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 
@@ -21,17 +21,22 @@ const IncomeForm = ({ onSubmit, onCancel, parishId }: IncomeFormProps) => {
   });
 
   const [members, setMembers] = useState<Member[]>([]);
+  const [families, setFamilies] = useState<Family[]>([]);
 
   useEffect(() => {
-    const fetchMembers = async () => {
+    const fetchData = async () => {
       try {
-        const data = await api.listMembers(parishId);
-        setMembers(data);
+        const [mems, fams] = await Promise.all([
+          api.listMembers(parishId),
+          api.listFamilies(parishId),
+        ]);
+        setMembers(mems);
+        setFamilies(fams);
       } catch (err) {
-        console.error('Failed to load members:', err);
+        console.error('Failed to load data:', err);
       }
     };
-    fetchMembers();
+    fetchData();
   }, [parishId]);
 
   const incomeCategories = [
@@ -100,19 +105,36 @@ const IncomeForm = ({ onSubmit, onCancel, parishId }: IncomeFormProps) => {
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Member (Optional)</label>
-        <select
-          {...register('member_id')}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
-        >
-          <option value="">Select Member</option>
-          {members.map((member) => (
-            <option key={member.id} value={member.id}>
-              {member.first_name} {member.last_name} ({member.member_code})
-            </option>
-          ))}
-        </select>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Member (Optional)</label>
+          <select
+            {...register('member_id')}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+          >
+            <option value="">Select Member</option>
+            {members.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.first_name} {member.last_name} ({member.member_code})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Family (Optional)</label>
+          <select
+            {...register('family_id')}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+          >
+            <option value="">Select Family</option>
+            {families.map((fam) => (
+              <option key={fam.id} value={fam.id}>
+                {fam.family_name} ({fam.family_code})
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div>

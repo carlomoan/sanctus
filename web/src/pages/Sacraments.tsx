@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { SacramentRecord, Parish, CreateSacramentRequest, UpdateSacramentRequest } from '../types';
+import { SacramentRecord, Parish, CreateSacramentRequest, UpdateSacramentRequest, UserRole } from '../types';
 import { Plus, Search, Filter, Calendar, Edit, Trash2, Scroll } from 'lucide-react';
 import Modal from '../components/Modal';
 import SacramentForm from '../components/SacramentForm';
+import { useAuth } from '../context/AuthContext';
 
 const Sacraments = () => {
+  const { user } = useAuth();
+  const isDioceseAdmin = user?.role === UserRole.SUPER_ADMIN;
+  const isViewer = user?.role === UserRole.VIEWER;
+  const userParishId = user?.parish_id;
+
   const [sacraments, setSacraments] = useState<SacramentRecord[]>([]);
   const [parishes, setParishes] = useState<Parish[]>([]);
   const [selectedParishId, setSelectedParishId] = useState<string>('');
@@ -17,6 +23,11 @@ const Sacraments = () => {
   useEffect(() => {
     const fetchParishes = async () => {
       try {
+        if (!isDioceseAdmin && userParishId) {
+          setSelectedParishId(userParishId);
+          setParishes([]);
+          return;
+        }
         const data = await api.listParishes();
         setParishes(data);
         if (data.length > 0 && !selectedParishId) {
@@ -31,7 +42,7 @@ const Sacraments = () => {
 
   const fetchSacraments = async () => {
     if (!selectedParishId) return;
-    
+
     setLoading(true);
     try {
       const data = await api.listSacraments(undefined, selectedParishId);
@@ -93,14 +104,16 @@ const Sacraments = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Sacraments</h1>
-        <button 
-          onClick={handleCreate}
-          disabled={!selectedParishId}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Plus size={20} />
-          Record Sacrament
-        </button>
+        {!isViewer && (
+          <button
+            onClick={handleCreate}
+            disabled={!selectedParishId}
+            className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Plus size={20} />
+            Record Sacrament
+          </button>
+        )}
       </div>
 
       {/* Search and Filter */}
@@ -113,20 +126,22 @@ const Sacraments = () => {
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
-        
-        <div className="flex items-center gap-2">
-          <Filter size={20} className="text-gray-400" />
-          <select 
-            value={selectedParishId}
-            onChange={(e) => setSelectedParishId(e.target.value)}
-            className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-          >
-            <option value="" disabled>Select Parish</option>
-            {parishes.map(parish => (
-              <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
-            ))}
-          </select>
-        </div>
+
+        {isDioceseAdmin && parishes.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Filter size={20} className="text-gray-400" />
+            <select
+              value={selectedParishId}
+              onChange={(e) => setSelectedParishId(e.target.value)}
+              className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+            >
+              <option value="" disabled>Select Parish</option>
+              {parishes.map(parish => (
+                <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Sacrament List */}
@@ -190,18 +205,22 @@ const Sacraments = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button 
-                      onClick={() => handleEdit(record)}
-                      className="text-primary-600 hover:text-primary-900 mr-3"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(record.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    {!isViewer && (
+                      <>
+                        <button
+                          onClick={() => handleEdit(record)}
+                          className="text-primary-600 hover:text-primary-900 mr-3"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(record.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -4,7 +4,7 @@ use axum::{
     Json,
 };
 use uuid::Uuid;
-use crate::{AppState, models::member::{Member, GenderType, MaritalStatus}, handlers::auth::AuthUser};
+use crate::{AppState, models::member::{Member, GenderType, MaritalStatus, FamilyRole}, handlers::auth::AuthUser, handlers::rbac};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -19,6 +19,7 @@ pub struct CreateMemberRequest {
     pub parish_id: Uuid,
     pub family_id: Option<Uuid>,
     pub scc_id: Option<Uuid>,
+    pub family_role: Option<FamilyRole>,
     pub member_code: String,
     pub first_name: String,
     pub middle_name: Option<String>,
@@ -32,38 +33,28 @@ pub struct CreateMemberRequest {
     pub phone_number: Option<String>,
     pub physical_address: Option<String>,
     pub photo_url: Option<String>,
-    pub is_head_of_family: Option<bool>,
     pub notes: Option<String>,
 }
 
 pub async fn list_members(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Query(query): Query<ListMembersQuery>,
 ) -> Result<Json<Vec<Member>>, (StatusCode, String)> {
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
-    let members = if let Some(parish_id) = query.parish_id {
-        sqlx::query_as::<_, Member>(
-            "SELECT * FROM member WHERE parish_id = $1 AND deleted_at IS NULL ORDER BY last_name, first_name LIMIT $2 OFFSET $3"
-        )
-        .bind(parish_id)
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&state.db)
-        .await
-    } else {
-        sqlx::query_as::<_, Member>(
-            "SELECT * FROM member WHERE deleted_at IS NULL ORDER BY last_name, first_name LIMIT $1 OFFSET $2"
-        )
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&state.db)
-        .await
-    };
+    let parish_id = rbac::resolve_parish_id(&auth, query.parish_id)?;
 
-    let members = members.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let members = sqlx::query_as::<_, Member>(
+        "SELECT * FROM member WHERE parish_id = $1 AND deleted_at IS NULL ORDER BY last_name, first_name LIMIT $2 OFFSET $3"
+    )
+    .bind(parish_id)
+    .bind(limit)
+    .bind(offset)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(members))
 }
@@ -86,24 +77,28 @@ pub async fn get_member(
 }
 
 pub async fn create_member(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Json(payload): Json<CreateMemberRequest>,
 ) -> Result<Json<Member>, (StatusCode, String)> {
+    rbac::require_write(&auth)?;
+    let parish_id = rbac::resolve_parish_id(&auth, Some(payload.parish_id))?;
+
     let member = sqlx::query_as::<_, Member>(
         r#"
         INSERT INTO member (
-            parish_id, family_id, scc_id, member_code, first_name, middle_name, last_name,
+            parish_id, family_id, scc_id, family_role, member_code, first_name, middle_name, last_name,
             date_of_birth, gender, marital_status, national_id, occupation,
-            email, phone_number, physical_address, photo_url, is_head_of_family, notes
+            email, phone_number, physical_address, photo_url, notes
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
         RETURNING *
         "#
     )
-    .bind(payload.parish_id)
+    .bind(parish_id)
     .bind(payload.family_id)
     .bind(payload.scc_id)
+    .bind(payload.family_role)
     .bind(payload.member_code)
     .bind(payload.first_name)
     .bind(payload.middle_name)
@@ -117,7 +112,6 @@ pub async fn create_member(
     .bind(payload.phone_number)
     .bind(payload.physical_address)
     .bind(payload.photo_url)
-    .bind(payload.is_head_of_family)
     .bind(payload.notes)
     .fetch_one(&state.db)
     .await
@@ -128,6 +122,9 @@ pub async fn create_member(
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateMemberRequest {
+    pub family_id: Option<Uuid>,
+    pub scc_id: Option<Uuid>,
+    pub family_role: Option<FamilyRole>,
     pub first_name: Option<String>,
     pub middle_name: Option<String>,
     pub last_name: Option<String>,
@@ -140,17 +137,17 @@ pub struct UpdateMemberRequest {
     pub phone_number: Option<String>,
     pub physical_address: Option<String>,
     pub photo_url: Option<String>,
-    pub is_head_of_family: Option<bool>,
     pub notes: Option<String>,
     pub is_active: Option<bool>,
 }
 
 pub async fn update_member(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateMemberRequest>,
 ) -> Result<Json<Member>, (StatusCode, String)> {
+    rbac::require_write(&auth)?;
     let mut member = sqlx::query_as::<_, Member>(
         "SELECT * FROM member WHERE id = $1 AND deleted_at IS NULL"
     )
@@ -161,6 +158,9 @@ pub async fn update_member(
     .ok_or((StatusCode::NOT_FOUND, "Member not found".to_string()))?;
 
     // In a real app, we might use a helper or macro to avoid this boilerplate
+    if let Some(val) = payload.family_id { member.family_id = Some(val); }
+    if let Some(val) = payload.scc_id { member.scc_id = Some(val); }
+    if let Some(val) = payload.family_role { member.family_role = Some(val); }
     if let Some(val) = payload.first_name { member.first_name = val; }
     if let Some(val) = payload.middle_name { member.middle_name = Some(val); }
     if let Some(val) = payload.last_name { member.last_name = val; }
@@ -173,7 +173,6 @@ pub async fn update_member(
     if let Some(val) = payload.phone_number { member.phone_number = Some(val); }
     if let Some(val) = payload.physical_address { member.physical_address = Some(val); }
     if let Some(val) = payload.photo_url { member.photo_url = Some(val); }
-    if let Some(val) = payload.is_head_of_family { member.is_head_of_family = Some(val); }
     if let Some(val) = payload.notes { member.notes = Some(val); }
     if let Some(val) = payload.is_active { member.is_active = Some(val); }
 
@@ -181,16 +180,20 @@ pub async fn update_member(
         r#"
         UPDATE member
         SET 
-            first_name = $1, middle_name = $2, last_name = $3,
-            date_of_birth = $4, gender = $5, marital_status = $6,
-            national_id = $7, occupation = $8, email = $9,
-            phone_number = $10, physical_address = $11, photo_url = $12,
-            is_head_of_family = $13, notes = $14, is_active = $15,
+            family_id = $1, scc_id = $2, family_role = $3,
+            first_name = $4, middle_name = $5, last_name = $6,
+            date_of_birth = $7, gender = $8, marital_status = $9,
+            national_id = $10, occupation = $11, email = $12,
+            phone_number = $13, physical_address = $14, photo_url = $15,
+            notes = $16, is_active = $17,
             updated_at = NOW()
-        WHERE id = $16
+        WHERE id = $18
         RETURNING *
         "#
     )
+    .bind(member.family_id)
+    .bind(member.scc_id)
+    .bind(member.family_role)
     .bind(member.first_name)
     .bind(member.middle_name)
     .bind(member.last_name)
@@ -203,7 +206,6 @@ pub async fn update_member(
     .bind(member.phone_number)
     .bind(member.physical_address)
     .bind(member.photo_url)
-    .bind(member.is_head_of_family)
     .bind(member.notes)
     .bind(member.is_active)
     .bind(id)

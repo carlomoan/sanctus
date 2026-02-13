@@ -4,6 +4,7 @@ import { api } from '../api/client';
 
 interface AuthContextType {
   user: User | null;
+  setUser: (user: User | null) => void;
   login: (data: LoginRequest) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
@@ -21,6 +22,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(savedUser);
     }
     setIsLoading(false);
+
+    api.setOnUnauthorized(() => {
+      setUser(null);
+    });
   }, []);
 
   const login = async (data: LoginRequest) => {
@@ -34,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,13 +1,21 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Parish, IncomeTransaction, ExpenseVoucher, CreateIncomeRequest, CreateExpenseRequest } from '../types';
-import { Plus, Filter, TrendingUp, TrendingDown, Calendar, FileText } from 'lucide-react';
+import { Parish, IncomeTransaction, ExpenseVoucher, CreateIncomeRequest, CreateExpenseRequest, Member, UserRole } from '../types';
+import { Plus, Filter, TrendingUp, TrendingDown, Calendar, FileText, Download, Printer } from 'lucide-react';
 import Modal from '../components/Modal';
 import IncomeForm from '../components/IncomeForm';
 import ExpenseForm from '../components/ExpenseForm';
 import classNames from 'classnames';
+import { downloadReceipt, printReceipt, ReceiptFormat } from '../utils/receiptPdf';
+import { useAuth } from '../context/AuthContext';
 
 const Finance = () => {
+  const { user } = useAuth();
+  const isDioceseAdmin = user?.role === UserRole.SUPER_ADMIN;
+  const isViewer = user?.role === UserRole.VIEWER;
+  const canCreateFinance = !isViewer;
+  const userParishId = user?.parish_id;
+
   const [parishes, setParishes] = useState<Parish[]>([]);
   const [selectedParishId, setSelectedParishId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'income' | 'expense'>('income');
@@ -17,10 +25,57 @@ const Finance = () => {
 
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [receiptFormat, setReceiptFormat] = useState<ReceiptFormat>('a4');
+  const [generatingReceipt, setGeneratingReceipt] = useState<string | null>(null);
+
+  const getSelectedParish = (): Parish | undefined => {
+    return parishes.find(p => p.id === selectedParishId);
+  };
+
+  const handleDownloadReceipt = async (income: IncomeTransaction) => {
+    const parish = getSelectedParish();
+    if (!parish) return;
+    setGeneratingReceipt(income.id);
+    try {
+      let member: Member | null = null;
+      if (income.member_id) {
+        try { member = await api.getMember(income.member_id); } catch { /* skip */ }
+      }
+      await downloadReceipt({ transaction: income, parish, member, format: receiptFormat });
+    } catch (err) {
+      console.error('Failed to generate receipt:', err);
+      alert('Failed to generate receipt');
+    } finally {
+      setGeneratingReceipt(null);
+    }
+  };
+
+  const handlePrintReceipt = async (income: IncomeTransaction) => {
+    const parish = getSelectedParish();
+    if (!parish) return;
+    setGeneratingReceipt(income.id);
+    try {
+      let member: Member | null = null;
+      if (income.member_id) {
+        try { member = await api.getMember(income.member_id); } catch { /* skip */ }
+      }
+      await printReceipt({ transaction: income, parish, member, format: receiptFormat });
+    } catch (err) {
+      console.error('Failed to print receipt:', err);
+      alert('Failed to print receipt');
+    } finally {
+      setGeneratingReceipt(null);
+    }
+  };
 
   useEffect(() => {
     const fetchParishes = async () => {
       try {
+        if (!isDioceseAdmin && userParishId) {
+          setSelectedParishId(userParishId);
+          setParishes([]);
+          return;
+        }
         const data = await api.listParishes();
         setParishes(data);
         if (data.length > 0 && !selectedParishId) {
@@ -81,17 +136,19 @@ const Finance = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Finance</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          disabled={!selectedParishId}
-          className={classNames(
-            "text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-            activeTab === 'income' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
-          )}
-        >
-          <Plus size={20} />
-          {activeTab === 'income' ? 'Record Income' : 'Create Voucher'}
-        </button>
+        {canCreateFinance && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            disabled={!selectedParishId}
+            className={classNames(
+              "text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+              activeTab === 'income' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+            )}
+          >
+            <Plus size={20} />
+            {activeTab === 'income' ? 'Record Income' : 'Create Voucher'}
+          </button>
+        )}
       </div>
 
       {/* Filters and Tabs */}
@@ -123,18 +180,36 @@ const Finance = () => {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <Filter size={20} className="text-gray-400" />
-          <select
-            value={selectedParishId}
-            onChange={(e) => setSelectedParishId(e.target.value)}
-            className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white w-full md:w-64"
-          >
-            <option value="" disabled>Select Parish</option>
-            {parishes.map(parish => (
-              <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
-            ))}
-          </select>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {isDioceseAdmin && parishes.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Filter size={20} className="text-gray-400" />
+              <select
+                value={selectedParishId}
+                onChange={(e) => setSelectedParishId(e.target.value)}
+                className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white w-full md:w-64"
+              >
+                <option value="" disabled>Select Parish</option>
+                {parishes.map(parish => (
+                  <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {activeTab === 'income' && (
+            <div className="flex items-center gap-2">
+              <Printer size={16} className="text-gray-400" />
+              <select
+                value={receiptFormat}
+                onChange={(e) => setReceiptFormat(e.target.value as ReceiptFormat)}
+                className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              >
+                <option value="a4">A4 Paper</option>
+                <option value="thermal-80">Thermal 80mm</option>
+                <option value="thermal-58">Thermal 58mm</option>
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -155,12 +230,15 @@ const Finance = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                {activeTab === 'income' && (
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt</th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {activeTab === 'income' ? (
                 incomes.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">No income records found</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No income records found</td></tr>
                 ) : (
                   incomes.map((income) => (
                     <tr key={income.id} className="hover:bg-gray-50">
@@ -184,6 +262,26 @@ const Finance = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-gray-900">
                         {Number(income.amount).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS' })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => handleDownloadReceipt(income)}
+                            disabled={generatingReceipt === income.id}
+                            className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-md transition-colors disabled:opacity-50"
+                            title="Download Receipt PDF"
+                          >
+                            <Download size={16} />
+                          </button>
+                          <button
+                            onClick={() => handlePrintReceipt(income)}
+                            disabled={generatingReceipt === income.id}
+                            className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+                            title="Print Receipt"
+                          >
+                            <Printer size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

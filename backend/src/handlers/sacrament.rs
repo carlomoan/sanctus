@@ -4,7 +4,7 @@ use axum::{
     Json,
 };
 use uuid::Uuid;
-use crate::{AppState, models::member::{SacramentRecord, SacramentType}, handlers::auth::AuthUser};
+use crate::{AppState, models::member::{SacramentRecord, SacramentType}, handlers::auth::AuthUser, handlers::rbac};
 use serde::Deserialize;
 use chrono::NaiveDate;
 
@@ -49,14 +49,13 @@ pub struct UpdateSacramentRequest {
 }
 
 pub async fn list_sacraments(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Query(query): Query<ListSacramentsQuery>,
 ) -> Result<Json<Vec<SacramentRecord>>, (StatusCode, String)> {
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
-    // Dynamic query building would be better, but we'll use simple branches for common cases
     let sacraments = if let Some(member_id) = query.member_id {
         sqlx::query_as::<_, SacramentRecord>(
             "SELECT * FROM sacrament_record WHERE member_id = $1 AND deleted_at IS NULL ORDER BY sacrament_date DESC"
@@ -64,19 +63,12 @@ pub async fn list_sacraments(
         .bind(member_id)
         .fetch_all(&state.db)
         .await
-    } else if let Some(parish_id) = query.parish_id {
+    } else {
+        let parish_id = rbac::resolve_parish_id(&auth, query.parish_id)?;
         sqlx::query_as::<_, SacramentRecord>(
             "SELECT * FROM sacrament_record WHERE parish_id = $1 AND deleted_at IS NULL ORDER BY sacrament_date DESC LIMIT $2 OFFSET $3"
         )
         .bind(parish_id)
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&state.db)
-        .await
-    } else {
-        sqlx::query_as::<_, SacramentRecord>(
-            "SELECT * FROM sacrament_record WHERE deleted_at IS NULL ORDER BY sacrament_date DESC LIMIT $1 OFFSET $2"
-        )
         .bind(limit)
         .bind(offset)
         .fetch_all(&state.db)
@@ -106,10 +98,13 @@ pub async fn get_sacrament(
 }
 
 pub async fn create_sacrament(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Json(payload): Json<CreateSacramentRequest>,
 ) -> Result<Json<SacramentRecord>, (StatusCode, String)> {
+    rbac::require_write(&auth)?;
+    let parish_id = rbac::resolve_parish_id(&auth, Some(payload.parish_id))?;
+
     let sacrament = sqlx::query_as::<_, SacramentRecord>(
         r#"
         INSERT INTO sacrament_record (
@@ -125,7 +120,7 @@ pub async fn create_sacrament(
     .bind(payload.sacrament_type)
     .bind(payload.sacrament_date)
     .bind(payload.officiating_minister)
-    .bind(payload.parish_id)
+    .bind(parish_id)
     .bind(payload.church_name)
     .bind(payload.certificate_number)
     .bind(payload.godparent_1_name)
@@ -142,11 +137,12 @@ pub async fn create_sacrament(
 }
 
 pub async fn update_sacrament(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateSacramentRequest>,
 ) -> Result<Json<SacramentRecord>, (StatusCode, String)> {
+    rbac::require_write(&auth)?;
     let mut sacrament = sqlx::query_as::<_, SacramentRecord>(
         "SELECT * FROM sacrament_record WHERE id = $1 AND deleted_at IS NULL"
     )
@@ -198,10 +194,11 @@ pub async fn update_sacrament(
 }
 
 pub async fn delete_sacrament(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
+    rbac::require_write(&auth)?;
     let result = sqlx::query(
         "UPDATE sacrament_record SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL"
     )

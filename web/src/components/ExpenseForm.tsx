@@ -15,7 +15,6 @@ const ExpenseForm = ({ onSubmit, onCancel, parishId }: ExpenseFormProps) => {
       payment_method: PaymentMethod.CASH,
       expense_date: new Date().toISOString().split('T')[0],
       category: TransactionCategory.SALARY_EXPENSE,
-      requested_by: '00000000-0000-0000-0000-000000000000', // Placeholder
     }
   });
 
@@ -119,7 +118,6 @@ const ExpenseForm = ({ onSubmit, onCancel, parishId }: ExpenseFormProps) => {
       </div>
 
       <input type="hidden" {...register('parish_id')} />
-      <input type="hidden" {...register('requested_by')} />
 
       <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
         <button

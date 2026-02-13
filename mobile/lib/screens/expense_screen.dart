@@ -20,7 +20,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   final _payeeNameController = TextEditingController();
   final _payeePhoneController = TextEditingController();
   
-  TransactionCategory _category = TransactionCategory.UTILITIES;
+  TransactionCategory _category = TransactionCategory.UTILITIES_EXPENSE;
   PaymentMethod _paymentMethod = PaymentMethod.CASH;
   
   bool _isSaving = false;

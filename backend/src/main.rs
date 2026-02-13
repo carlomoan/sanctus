@@ -9,6 +9,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use dotenvy::dotenv;
 use tower_http::cors::{CorsLayer, Any};
+use tower_http::services::ServeDir;
 
 mod models;
 mod sync;
@@ -62,8 +63,14 @@ async fn main() {
         .route("/budgets/:id", put(handlers::budget::update_budget))
         .route("/reports/trial-balance", get(handlers::report::get_trial_balance))
         .route("/reports/income-expenditure", get(handlers::report::get_income_expenditure))
+        .route("/reports/budget-vs-actual", get(handlers::report::get_budget_vs_actual))
+        .route("/reports/balance-sheet", get(handlers::report::get_balance_sheet))
+        .route("/reports/cash-flow", get(handlers::report::get_cash_flow))
         .route("/import/members", post(handlers::import::import_members))
         .route("/import/transactions", post(handlers::import::import_transactions))
+        .route("/import/clusters", post(handlers::import::import_clusters))
+        .route("/import/sccs", post(handlers::import::import_sccs))
+        .route("/import/families", post(handlers::import::import_families))
         .route("/sync", post(sync::sync_handler))
         .route("/dashboard", get(handlers::dashboard::get_dashboard_stats))
         .route("/dioceses", get(handlers::diocese::list_dioceses))
@@ -77,6 +84,26 @@ async fn main() {
         .route("/transactions/expense/:id", get(handlers::transaction::get_expense_voucher))
         .route("/sacraments", get(handlers::sacrament::list_sacraments).post(handlers::sacrament::create_sacrament))
         .route("/sacraments/:id", get(handlers::sacrament::get_sacrament).put(handlers::sacrament::update_sacrament).delete(handlers::sacrament::delete_sacrament))
+        .route("/clusters", get(handlers::cluster::list_clusters).post(handlers::cluster::create_cluster))
+        .route("/clusters/:id", get(handlers::cluster::get_cluster).put(handlers::cluster::update_cluster).delete(handlers::cluster::delete_cluster))
+        .route("/sccs", get(handlers::scc::list_sccs).post(handlers::scc::create_scc))
+        .route("/sccs/:id", get(handlers::scc::get_scc).put(handlers::scc::update_scc).delete(handlers::scc::delete_scc))
+        .route("/families", get(handlers::family::list_families).post(handlers::family::create_family))
+        .route("/families/:id", get(handlers::family::get_family).put(handlers::family::update_family).delete(handlers::family::delete_family))
+        .route("/settings", get(handlers::setting::list_settings).post(handlers::setting::upsert_setting))
+        .route("/settings/bulk", post(handlers::setting::bulk_upsert_settings))
+        // Permissions & Roles
+        .route("/permissions", get(handlers::permission::list_permissions))
+        .route("/roles", get(handlers::permission::list_roles).post(handlers::permission::create_role))
+        .route("/roles/:id", get(handlers::permission::get_role).put(handlers::permission::update_role).delete(handlers::permission::delete_role))
+        .route("/roles/:id/permissions", put(handlers::permission::set_role_permissions))
+        .route("/user-overrides", get(handlers::permission::list_user_overrides).post(handlers::permission::grant_user_overrides))
+        .route("/user-overrides/revoke", post(handlers::permission::revoke_user_overrides))
+        .route("/user-overrides/:id", delete(handlers::permission::revoke_single_override))
+        .route("/upload/parish/:id/logo", post(handlers::upload::upload_parish_logo))
+        .route("/upload/member/:id/photo", post(handlers::upload::upload_member_photo))
+        .route("/upload/user/photo", post(handlers::upload::upload_user_photo))
+        .nest_service("/uploads", ServeDir::new("uploads"))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)

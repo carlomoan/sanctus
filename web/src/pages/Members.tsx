@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import { Member, Parish, CreateMemberRequest, UpdateMemberRequest } from '../types';
-import { Plus, Search, User, MapPin, Filter, Edit, Trash2 } from 'lucide-react';
+import { Member, Parish, CreateMemberRequest, UpdateMemberRequest, UserRole } from '../types';
+import { Plus, Search, User, MapPin, Edit, Trash2, Filter, X } from 'lucide-react';
 import Modal from '../components/Modal';
 import MemberForm from '../components/MemberForm';
+import { useAuth } from '../context/AuthContext';
 
 const Members = () => {
+  const { user } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [parishes, setParishes] = useState<Parish[]>([]);
   const [selectedParishId, setSelectedParishId] = useState<string>('');
@@ -13,10 +16,23 @@ const Members = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterGender, setFilterGender] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
+
+  const isDioceseAdmin = user?.role === UserRole.SUPER_ADMIN;
+  const isViewer = user?.role === UserRole.VIEWER;
+  const userParishId = user?.parish_id;
 
   useEffect(() => {
     const fetchParishes = async () => {
       try {
+        if (!isDioceseAdmin && userParishId) {
+          setSelectedParishId(userParishId);
+          setParishes([]);
+          return;
+        }
         const data = await api.listParishes();
         setParishes(data);
         if (data.length > 0 && !selectedParishId) {
@@ -48,6 +64,27 @@ const Members = () => {
   useEffect(() => {
     fetchMembers();
   }, [selectedParishId]);
+
+  const filteredMembers = members.filter(member => {
+    const matchesSearch =
+      member.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.member_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (member.phone_number && member.phone_number.includes(searchQuery));
+
+    const matchesGender = !filterGender || member.gender === filterGender;
+    const matchesStatus = !filterStatus || (filterStatus === 'active' ? member.is_active : !member.is_active);
+
+    return matchesSearch && matchesGender && matchesStatus;
+  });
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterGender('');
+    setFilterStatus('');
+  };
+
+  const hasActiveFilters = searchQuery || filterGender || filterStatus;
 
   const handleCreate = () => {
     setSelectedMember(undefined);
@@ -90,39 +127,100 @@ const Members = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Members</h1>
-        <button
-          onClick={handleCreate}
-          disabled={!selectedParishId}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Plus size={20} />
-          Add Member
-        </button>
+        {!isViewer && (
+          <button
+            onClick={handleCreate}
+            disabled={!selectedParishId}
+            className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Plus size={20} />
+            Add Member
+          </button>
+        )}
       </div>
 
       {/* Search and Filter */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search members..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 space-y-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search members by name, code, or phone..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          {isDioceseAdmin && parishes.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Filter size={20} className="text-gray-400" />
+              <select
+                value={selectedParishId}
+                onChange={(e) => setSelectedParishId(e.target.value)}
+                className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              >
+                <option value="" disabled>Select Parish</option>
+                {parishes.map(parish => (
+                  <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Filter size={20} className="text-gray-400" />
-          <select
-            value={selectedParishId}
-            onChange={(e) => setSelectedParishId(e.target.value)}
-            className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+        {showFilters && (
+          <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Gender:</label>
+              <select
+                value={filterGender}
+                onChange={e => setFilterGender(e.target.value)}
+                className="border border-gray-200 rounded-lg py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              >
+                <option value="">All</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Status:</label>
+              <select
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+                className="border border-gray-200 rounded-lg py-1.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+              >
+                <option value="">All</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+              >
+                <X size={14} /> Clear filters
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between text-sm">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-1 text-gray-600 hover:text-gray-900"
           >
-            <option value="" disabled>Select Parish</option>
-            {parishes.map(parish => (
-              <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
-            ))}
-          </select>
+            <Filter size={14} />
+            {showFilters ? 'Hide' : 'Show'} Filters
+          </button>
+          <span className="text-gray-500">
+            Showing {filteredMembers.length} of {members.length} members
+            {hasActiveFilters && ' (filtered)'}
+          </span>
         </div>
       </div>
 
@@ -135,7 +233,7 @@ const Members = () => {
         <div className="text-center py-12 text-gray-500">Loading members...</div>
       ) : error ? (
         <div className="text-center py-12 text-red-500">{error}</div>
-      ) : members.length === 0 ? (
+      ) : filteredMembers.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg border border-gray-100">
           <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <User className="text-gray-400" size={24} />
@@ -148,37 +246,36 @@ const Members = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Member
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Details
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Member</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gender</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {members.map((member) => (
+              {filteredMembers.map((member) => (
                 <tr key={member.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold">
-                        {member.first_name[0]}{member.last_name[0]}
+                      <div className="h-10 w-10 flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                          {member.photo_url ? (
+                            <img src={member.photo_url.startsWith('http') ? member.photo_url : `http://localhost:3000${member.photo_url}`} alt="" className="h-10 w-10 rounded-full object-cover" />
+                          ) : (
+                            member.first_name[0]
+                          )}
+                        </div>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{member.first_name} {member.last_name}</div>
+                        <Link to={`/members/${member.id}`} className="text-sm font-medium text-gray-900 hover:text-primary-600 hover:underline">
+                          {member.first_name} {member.middle_name} {member.last_name}
+                        </Link>
                         <div className="text-sm text-gray-500">{member.member_code}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{member.gender}</div>
-                    <div className="text-sm text-gray-500">{member.marital_status}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{member.phone_number}</div>
@@ -190,18 +287,22 @@ const Members = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleEdit(member)}
-                      className="text-primary-600 hover:text-primary-900 mr-3"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(member.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    {!isViewer && (
+                      <>
+                        <button
+                          onClick={() => handleEdit(member)}
+                          className="text-primary-600 hover:text-primary-900 mr-3"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(member.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -213,13 +314,13 @@ const Members = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={selectedMember ? 'Edit Member' : 'Add New Member'}
+        title={selectedMember ? 'Edit Member' : 'Add Member'}
       >
         <MemberForm
           initialData={selectedMember}
-          onSubmit={handleSubmit}
-          onCancel={() => setIsModalOpen(false)}
           parishId={selectedParishId}
+          onCancel={() => setIsModalOpen(false)}
+          onSubmit={handleSubmit}
         />
       </Modal>
     </div>

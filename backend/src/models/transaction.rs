@@ -61,6 +61,7 @@ pub struct IncomeTransaction {
     pub id: Uuid,
     pub parish_id: Uuid,
     pub member_id: Option<Uuid>,
+    pub family_id: Option<Uuid>,
     pub transaction_number: String,
     pub category: TransactionCategory,
     pub amount: Decimal,

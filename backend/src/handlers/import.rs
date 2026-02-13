@@ -143,6 +143,276 @@ pub async fn import_members(
     Ok(Json(ImportResponse { success_count, errors }))
 }
 
+pub async fn import_clusters(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    mut multipart: Multipart,
+) -> Result<Json<ImportResponse>, (StatusCode, String)> {
+    if auth.role == UserRole::Viewer {
+        return Err((StatusCode::FORBIDDEN, "Unauthorized to import data".to_string()));
+    }
+
+    let mut success_count = 0;
+    let mut errors = Vec::new();
+    let mut data = Vec::new();
+    let mut file_name = String::new();
+    let mut target_parish_id = auth.parish_id;
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        let name = field.name().unwrap_or_default().to_string();
+        if name == "file" {
+            file_name = field.file_name().unwrap_or_default().to_string();
+            let bytes = field.bytes().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+            data = bytes.to_vec();
+        } else if name == "parish_id" {
+            let text = field.text().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+            if let Ok(id) = uuid::Uuid::parse_str(&text) {
+                target_parish_id = Some(id);
+            }
+        }
+    }
+
+    if data.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "No file uploaded".to_string()));
+    }
+
+    let parish_id = target_parish_id.ok_or((StatusCode::BAD_REQUEST, "parish_id is required".to_string()))?;
+
+    // CSV columns: cluster_code, cluster_name, location_description, leader_name
+    let rows = parse_file_rows(&data, &file_name)?;
+
+    for (i, row) in rows.iter().enumerate() {
+        let cluster_code = row.get(0).cloned().unwrap_or_default();
+        let cluster_name = row.get(1).cloned().unwrap_or_default();
+        let location_description = row.get(2).cloned().unwrap_or_default();
+        let leader_name = row.get(3).cloned().unwrap_or_default();
+
+        if cluster_name.is_empty() {
+            errors.push(format!("Row {}: Missing cluster_name", i + 2));
+            continue;
+        }
+
+        let res = sqlx::query(
+            r#"INSERT INTO cluster (parish_id, cluster_code, cluster_name, location_description, leader_name)
+               VALUES ($1, $2, $3, NULLIF($4,''), NULLIF($5,''))
+               ON CONFLICT DO NOTHING"#
+        )
+        .bind(parish_id).bind(&cluster_code).bind(&cluster_name)
+        .bind(&location_description).bind(&leader_name)
+        .execute(&state.db).await;
+
+        match res {
+            Ok(_) => success_count += 1,
+            Err(e) => errors.push(format!("Row {}: DB Error: {}", i + 2, e)),
+        }
+    }
+
+    Ok(Json(ImportResponse { success_count, errors }))
+}
+
+pub async fn import_sccs(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    mut multipart: Multipart,
+) -> Result<Json<ImportResponse>, (StatusCode, String)> {
+    if auth.role == UserRole::Viewer {
+        return Err((StatusCode::FORBIDDEN, "Unauthorized to import data".to_string()));
+    }
+
+    let mut success_count = 0;
+    let mut errors = Vec::new();
+    let mut data = Vec::new();
+    let mut file_name = String::new();
+    let mut target_parish_id = auth.parish_id;
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        let name = field.name().unwrap_or_default().to_string();
+        if name == "file" {
+            file_name = field.file_name().unwrap_or_default().to_string();
+            let bytes = field.bytes().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+            data = bytes.to_vec();
+        } else if name == "parish_id" {
+            let text = field.text().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+            if let Ok(id) = uuid::Uuid::parse_str(&text) {
+                target_parish_id = Some(id);
+            }
+        }
+    }
+
+    if data.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "No file uploaded".to_string()));
+    }
+
+    let parish_id = target_parish_id.ok_or((StatusCode::BAD_REQUEST, "parish_id is required".to_string()))?;
+
+    // CSV columns: scc_code, scc_name, cluster_code (optional lookup), patron_saint, leader_name, location_description, meeting_day, meeting_time
+    let rows = parse_file_rows(&data, &file_name)?;
+
+    for (i, row) in rows.iter().enumerate() {
+        let scc_code = row.get(0).cloned().unwrap_or_default();
+        let scc_name = row.get(1).cloned().unwrap_or_default();
+        let cluster_code = row.get(2).cloned().unwrap_or_default();
+        let patron_saint = row.get(3).cloned().unwrap_or_default();
+        let leader_name = row.get(4).cloned().unwrap_or_default();
+        let location_description = row.get(5).cloned().unwrap_or_default();
+        let meeting_day = row.get(6).cloned().unwrap_or_default();
+        let meeting_time = row.get(7).cloned().unwrap_or_default();
+
+        if scc_name.is_empty() {
+            errors.push(format!("Row {}: Missing scc_name", i + 2));
+            continue;
+        }
+
+        // Resolve cluster_id from cluster_code if provided
+        let cluster_id: Option<uuid::Uuid> = if !cluster_code.is_empty() {
+            sqlx::query_scalar::<_, uuid::Uuid>(
+                "SELECT id FROM cluster WHERE parish_id = $1 AND cluster_code = $2 AND deleted_at IS NULL"
+            )
+            .bind(parish_id).bind(&cluster_code)
+            .fetch_optional(&state.db).await.unwrap_or(None)
+        } else {
+            None
+        };
+
+        let res = sqlx::query(
+            r#"INSERT INTO scc (parish_id, cluster_id, scc_code, scc_name, patron_saint, leader_name, location_description, meeting_day, meeting_time)
+               VALUES ($1, $2, $3, $4, NULLIF($5,''), NULLIF($6,''), NULLIF($7,''), NULLIF($8,''), NULLIF($9,''))
+               ON CONFLICT DO NOTHING"#
+        )
+        .bind(parish_id).bind(cluster_id).bind(&scc_code).bind(&scc_name)
+        .bind(&patron_saint).bind(&leader_name).bind(&location_description)
+        .bind(&meeting_day).bind(&meeting_time)
+        .execute(&state.db).await;
+
+        match res {
+            Ok(_) => success_count += 1,
+            Err(e) => errors.push(format!("Row {}: DB Error: {}", i + 2, e)),
+        }
+    }
+
+    Ok(Json(ImportResponse { success_count, errors }))
+}
+
+pub async fn import_families(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    mut multipart: Multipart,
+) -> Result<Json<ImportResponse>, (StatusCode, String)> {
+    if auth.role == UserRole::Viewer {
+        return Err((StatusCode::FORBIDDEN, "Unauthorized to import data".to_string()));
+    }
+
+    let mut success_count = 0;
+    let mut errors = Vec::new();
+    let mut data = Vec::new();
+    let mut file_name = String::new();
+    let mut target_parish_id = auth.parish_id;
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        let name = field.name().unwrap_or_default().to_string();
+        if name == "file" {
+            file_name = field.file_name().unwrap_or_default().to_string();
+            let bytes = field.bytes().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+            data = bytes.to_vec();
+        } else if name == "parish_id" {
+            let text = field.text().await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+            if let Ok(id) = uuid::Uuid::parse_str(&text) {
+                target_parish_id = Some(id);
+            }
+        }
+    }
+
+    if data.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "No file uploaded".to_string()));
+    }
+
+    let parish_id = target_parish_id.ok_or((StatusCode::BAD_REQUEST, "parish_id is required".to_string()))?;
+
+    // CSV columns: family_code, family_name, scc_code (optional lookup), physical_address, primary_phone, email, notes
+    let rows = parse_file_rows(&data, &file_name)?;
+
+    for (i, row) in rows.iter().enumerate() {
+        let family_code = row.get(0).cloned().unwrap_or_default();
+        let family_name = row.get(1).cloned().unwrap_or_default();
+        let scc_code = row.get(2).cloned().unwrap_or_default();
+        let physical_address = row.get(3).cloned().unwrap_or_default();
+        let primary_phone = row.get(4).cloned().unwrap_or_default();
+        let email = row.get(5).cloned().unwrap_or_default();
+        let notes = row.get(6).cloned().unwrap_or_default();
+
+        if family_name.is_empty() {
+            errors.push(format!("Row {}: Missing family_name", i + 2));
+            continue;
+        }
+
+        // Resolve scc_id from scc_code if provided
+        let scc_id: Option<uuid::Uuid> = if !scc_code.is_empty() {
+            sqlx::query_scalar::<_, uuid::Uuid>(
+                "SELECT id FROM scc WHERE parish_id = $1 AND scc_code = $2 AND deleted_at IS NULL"
+            )
+            .bind(parish_id).bind(&scc_code)
+            .fetch_optional(&state.db).await.unwrap_or(None)
+        } else {
+            None
+        };
+
+        let res = sqlx::query(
+            r#"INSERT INTO family (parish_id, scc_id, family_code, family_name, physical_address, primary_phone, email, notes)
+               VALUES ($1, $2, $3, $4, NULLIF($5,''), NULLIF($6,''), NULLIF($7,''), NULLIF($8,''))
+               ON CONFLICT DO NOTHING"#
+        )
+        .bind(parish_id).bind(scc_id).bind(&family_code).bind(&family_name)
+        .bind(&physical_address).bind(&primary_phone).bind(&email).bind(&notes)
+        .execute(&state.db).await;
+
+        match res {
+            Ok(_) => success_count += 1,
+            Err(e) => errors.push(format!("Row {}: DB Error: {}", i + 2, e)),
+        }
+    }
+
+    Ok(Json(ImportResponse { success_count, errors }))
+}
+
+/// Helper: parse CSV or XLSX file into Vec of rows (each row is Vec<String>)
+fn parse_file_rows(data: &[u8], file_name: &str) -> Result<Vec<Vec<String>>, (StatusCode, String)> {
+    let mut rows = Vec::new();
+
+    if file_name.ends_with(".csv") {
+        let mut rdr = ReaderBuilder::new()
+            .has_headers(true)
+            .from_reader(Cursor::new(data));
+
+        for result in rdr.records() {
+            let record = result.map_err(|e| (StatusCode::BAD_REQUEST, format!("CSV parse error: {}", e)))?;
+            let row: Vec<String> = record.iter().map(|s| s.to_string()).collect();
+            rows.push(row);
+        }
+    } else if file_name.ends_with(".xlsx") {
+        let cursor = Cursor::new(data);
+        let mut workbook: Xlsx<_> = open_workbook_from_rs(cursor).map_err(|e: XlsxError| (StatusCode::BAD_REQUEST, e.to_string()))?;
+
+        if let Some(Ok(range)) = workbook.worksheet_range_at(0) {
+            let get_str = |d: &Data| -> String {
+                match d {
+                    Data::String(s) => s.clone(),
+                    Data::Float(f) => f.to_string(),
+                    Data::Int(i) => i.to_string(),
+                    _ => String::new(),
+                }
+            };
+            for row in range.rows().skip(1) {
+                let r: Vec<String> = row.iter().map(get_str).collect();
+                rows.push(r);
+            }
+        }
+    } else {
+        return Err((StatusCode::BAD_REQUEST, "Unsupported file format. Use .csv or .xlsx".to_string()));
+    }
+
+    Ok(rows)
+}
+
 pub async fn import_transactions(
     auth: AuthUser,
     State(state): State<AppState>,

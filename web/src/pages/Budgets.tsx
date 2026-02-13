@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Budget, Parish } from '../types';
+import { Budget, Parish, UserRole } from '../types';
 import { Plus, Filter, Calendar, Target, Edit, Trash2 } from 'lucide-react';
 import Modal from '../components/Modal';
 import BudgetForm from '../components/BudgetForm';
@@ -14,13 +14,21 @@ const Budgets = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
+  const isDioceseAdmin = user?.role === UserRole.SUPER_ADMIN;
+  const isViewer = user?.role === UserRole.VIEWER;
+  const userParishId = user?.parish_id;
 
   const fetchParishes = async () => {
     try {
+      if (!isDioceseAdmin && userParishId) {
+        setSelectedParishId(userParishId);
+        setParishes([]);
+        return;
+      }
       const data = await api.listParishes();
       setParishes(data);
       if (data.length > 0 && !selectedParishId) {
-        setSelectedParishId(user?.parish_id || data[0].id);
+        setSelectedParishId(userParishId || data[0].id);
       }
     } catch (err) {
       console.error('Failed to load parishes:', err);
@@ -63,31 +71,35 @@ const Budgets = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Budget Management</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          disabled={!selectedParishId}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-50"
-        >
-          <Plus size={20} />
-          Set Budget
-        </button>
+        {!isViewer && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            disabled={!selectedParishId}
+            className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-50"
+          >
+            <Plus size={20} />
+            Set Budget
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-100 items-center justify-between">
         <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="flex items-center gap-2">
-            <Filter size={20} className="text-gray-400" />
-            <select
-              value={selectedParishId}
-              onChange={(e) => setSelectedParishId(e.target.value)}
-              className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white min-w-[200px]"
-            >
-              <option value="" disabled>Select Parish</option>
-              {parishes.map(parish => (
-                <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
-              ))}
-            </select>
-          </div>
+          {isDioceseAdmin && parishes.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Filter size={20} className="text-gray-400" />
+              <select
+                value={selectedParishId}
+                onChange={(e) => setSelectedParishId(e.target.value)}
+                className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white min-w-[200px]"
+              >
+                <option value="" disabled>Select Parish</option>
+                {parishes.map(parish => (
+                  <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Calendar size={20} className="text-gray-400" />
             <select
@@ -139,12 +151,16 @@ const Budgets = () => {
                     {Number(budget.amount).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS' })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-gray-400 hover:text-primary-600 mr-3">
-                      <Edit size={18} />
-                    </button>
-                    <button className="text-gray-400 hover:text-red-600">
-                      <Trash2 size={18} />
-                    </button>
+                    {!isViewer && (
+                      <>
+                        <button className="text-gray-400 hover:text-primary-600 mr-3">
+                          <Edit size={18} />
+                        </button>
+                        <button className="text-gray-400 hover:text-red-600">
+                          <Trash2 size={18} />
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}

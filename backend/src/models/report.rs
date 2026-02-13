@@ -16,6 +16,12 @@ pub struct TrialBalance {
 }
 
 #[derive(Debug, Serialize)]
+pub struct ReportEntry {
+    pub category: String,
+    pub amount: Decimal,
+}
+
+#[derive(Debug, Serialize)]
 pub struct IncomeExpenditureStatement {
     pub income_entries: Vec<ReportEntry>,
     pub expenditure_entries: Vec<ReportEntry>,
@@ -25,7 +31,59 @@ pub struct IncomeExpenditureStatement {
 }
 
 #[derive(Debug, Serialize)]
-pub struct ReportEntry {
+pub struct BudgetVsActualEntry {
     pub category: String,
+    pub budget: Decimal,
+    pub actual: Decimal,
+    pub variance: Decimal,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BudgetVsActualReport {
+    pub entries: Vec<BudgetVsActualEntry>,
+    pub total_budget: Decimal,
+    pub total_actual: Decimal,
+    pub total_variance: Decimal,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BalanceSheetEntry {
+    pub name: String,
     pub amount: Decimal,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BalanceSheetSection {
+    pub section_name: String,
+    pub entries: Vec<BalanceSheetEntry>,
+    pub total: Decimal,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BalanceSheet {
+    pub assets: BalanceSheetSection,
+    pub liabilities: BalanceSheetSection,
+    pub equity: BalanceSheetSection,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CashFlowEntry {
+    pub description: String,
+    pub amount: Decimal,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CashFlowSection {
+    pub section_name: String,
+    pub entries: Vec<CashFlowEntry>,
+    pub total: Decimal,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CashFlowStatement {
+    pub sections: Vec<CashFlowSection>,
+    pub net_cash_flow: Decimal,
+    // For now we might assume opening balance is 0 or calculated elsewhere
+    pub opening_balance: Decimal,
+    pub closing_balance: Decimal,
 }

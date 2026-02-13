@@ -18,7 +18,7 @@ class Member {
   final String? phoneNumber;
   final String? physicalAddress;
   final String? photoUrl;
-  final bool? isHeadOfFamily;
+  final String? familyRole;
   final String? notes;
   final bool? isActive;
   final String? createdAt;
@@ -42,7 +42,7 @@ class Member {
     this.phoneNumber,
     this.physicalAddress,
     this.photoUrl,
-    this.isHeadOfFamily,
+    this.familyRole,
     this.notes,
     this.isActive,
     this.createdAt,
@@ -72,7 +72,7 @@ class Member {
       phoneNumber: json['phone_number'],
       physicalAddress: json['physical_address'],
       photoUrl: json['photo_url'],
-      isHeadOfFamily: json['is_head_of_family'],
+      familyRole: json['family_role'],
       notes: json['notes'],
       isActive: json['is_active'],
       createdAt: json['created_at'],
@@ -99,7 +99,7 @@ class Member {
       'phone_number': phoneNumber,
       'physical_address': physicalAddress,
       'photo_url': photoUrl,
-      'is_head_of_family': isHeadOfFamily,
+      'family_role': familyRole,
       'notes': notes,
       'is_active': isActive,
       'created_at': createdAt,

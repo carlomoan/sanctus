@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
-import { CreateMemberRequest, Member, UpdateMemberRequest, GenderType, MaritalStatus } from '../types';
-import { useEffect } from 'react';
+import { CreateMemberRequest, Member, UpdateMemberRequest, GenderType, MaritalStatus, Family, Scc, FamilyRole } from '../types';
+import { useEffect, useState } from 'react';
+import { api } from '../api/client';
 
 interface MemberFormProps {
   initialData?: Member;
@@ -13,6 +14,8 @@ const MemberForm = ({ initialData, onSubmit, onCancel, parishId }: MemberFormPro
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<CreateMemberRequest>({
     defaultValues: {
       parish_id: parishId,
+      family_id: '',
+      scc_id: '',
       member_code: '',
       first_name: '',
       last_name: '',
@@ -22,10 +25,31 @@ const MemberForm = ({ initialData, onSubmit, onCancel, parishId }: MemberFormPro
     }
   });
 
+  const [families, setFamilies] = useState<Family[]>([]);
+  const [sccs, setSccs] = useState<Scc[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [fams, sccList] = await Promise.all([
+          api.listFamilies(parishId),
+          api.listSccs(parishId),
+        ]);
+        setFamilies(fams);
+        setSccs(sccList);
+      } catch (err) {
+        console.error('Failed to load form data:', err);
+      }
+    };
+    fetchData();
+  }, [parishId]);
+
   useEffect(() => {
     if (initialData) {
       reset({
         parish_id: initialData.parish_id,
+        family_id: initialData.family_id || '',
+        scc_id: initialData.scc_id || '',
         member_code: initialData.member_code,
         first_name: initialData.first_name,
         middle_name: initialData.middle_name || '',
@@ -38,7 +62,7 @@ const MemberForm = ({ initialData, onSubmit, onCancel, parishId }: MemberFormPro
         email: initialData.email || '',
         phone_number: initialData.phone_number || '',
         physical_address: initialData.physical_address || '',
-        is_head_of_family: initialData.is_head_of_family || false,
+        family_role: initialData.family_role || FamilyRole.MEMBER,
       });
     }
   }, [initialData, reset]);
@@ -79,6 +103,37 @@ const MemberForm = ({ initialData, onSubmit, onCancel, parishId }: MemberFormPro
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2 disabled:bg-gray-100"
         />
         {errors.member_code && <p className="text-red-500 text-xs mt-1">{errors.member_code.message}</p>}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Family (Optional)</label>
+          <select
+            {...register('family_id', {
+              setValueAs: v => v === "" ? undefined : v
+            })}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+          >
+            <option value="">Select Family</option>
+            {families.map(f => (
+              <option key={f.id} value={f.id}>{f.family_name} ({f.family_code})</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">SCC (Optional)</label>
+          <select
+            {...register('scc_id', {
+              setValueAs: v => v === "" ? undefined : v
+            })}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+          >
+            <option value="">Select SCC</option>
+            {sccs.map(s => (
+              <option key={s.id} value={s.id}>{s.scc_name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -141,16 +196,17 @@ const MemberForm = ({ initialData, onSubmit, onCancel, parishId }: MemberFormPro
         />
       </div>
 
-      <div className="flex items-center">
-        <input
-          id="is_head_of_family"
-          type="checkbox"
-          {...register('is_head_of_family')}
-          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-        />
-        <label htmlFor="is_head_of_family" className="ml-2 block text-sm text-gray-900">
-          Is Head of Family
-        </label>
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Family Role</label>
+        <select
+          {...register('family_role')}
+          defaultValue={FamilyRole.MEMBER}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+        >
+          {Object.values(FamilyRole).map((role) => (
+            <option key={role} value={role}>{role}</option>
+          ))}
+        </select>
       </div>
 
       <input type="hidden" {...register('parish_id')} />

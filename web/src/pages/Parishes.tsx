@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import { Parish, CreateParishRequest, UpdateParishRequest } from '../types';
-import { Plus, Search, MapPin, Phone, Mail, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, MapPin, Phone, Mail, Edit, Trash2, Upload, Church } from 'lucide-react';
 import Modal from '../components/Modal';
 import ParishForm from '../components/ParishForm';
+
+const API_BASE_URL = 'http://localhost:3000';
 
 const Parishes = () => {
   const [parishes, setParishes] = useState<Parish[]>([]);
@@ -11,6 +13,39 @@ const Parishes = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedParish, setSelectedParish] = useState<Parish | undefined>(undefined);
+  const [uploadingLogoId, setUploadingLogoId] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const logoTargetId = useRef<string>('');
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const parishId = logoTargetId.current;
+    if (!file || !parishId) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File too large. Maximum size is 5MB.');
+      return;
+    }
+
+    setUploadingLogoId(parishId);
+    try {
+      const result = await api.uploadParishLogo(parishId, file);
+      setParishes(prev => prev.map(p =>
+        p.id === parishId ? { ...p, logo_url: result.url } : p
+      ));
+    } catch (err) {
+      console.error('Failed to upload logo:', err);
+      alert('Failed to upload logo');
+    } finally {
+      setUploadingLogoId(null);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
+
+  const triggerLogoUpload = (parishId: string) => {
+    logoTargetId.current = parishId;
+    logoInputRef.current?.click();
+  };
 
   const fetchParishes = async () => {
     try {
@@ -105,12 +140,39 @@ const Parishes = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleLogoUpload}
+            className="hidden"
+          />
           {parishes.map((parish) => (
             <div key={parish.id} className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{parish.parish_name}</h3>
-                  <p className="text-sm text-gray-500">{parish.parish_code}</p>
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 group relative cursor-pointer"
+                    onClick={() => triggerLogoUpload(parish.id)}
+                    title="Upload logo"
+                  >
+                    {parish.logo_url ? (
+                      <img src={`${API_BASE_URL}${parish.logo_url}`} alt="Logo" className="h-12 w-12 object-cover rounded-lg" />
+                    ) : (
+                      <Church size={24} className="text-gray-400" />
+                    )}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center transition-all rounded-lg">
+                      <Upload size={14} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    {uploadingLogoId === parish.id && (
+                      <div className="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center rounded-lg">
+                        <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{parish.parish_name}</h3>
+                    <p className="text-sm text-gray-500">{parish.parish_code}</p>
+                  </div>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${parish.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                   {parish.is_active ? 'Active' : 'Inactive'}

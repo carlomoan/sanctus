@@ -9,7 +9,13 @@ import Reports from './pages/Reports';
 import DataImport from './pages/DataImport';
 import Sacraments from './pages/Sacraments';
 import Users from './pages/Users';
+import Clusters from './pages/Clusters';
+import Families from './pages/Families';
 import Login from './pages/Login';
+import MemberProfile from './pages/MemberProfile';
+import UserProfile from './pages/UserProfile';
+import Settings from './pages/Settings';
+import RoleManagement from './pages/RoleManagement';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css'
 
@@ -47,13 +53,19 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="parishes" element={<Parishes />} />
+            <Route path="clusters" element={<Clusters />} />
+            <Route path="families" element={<Families />} />
             <Route path="members" element={<Members />} />
+            <Route path="members/:id" element={<MemberProfile />} />
             <Route path="sacraments" element={<Sacraments />} />
             <Route path="finance" element={<Finance />} />
             <Route path="budgets" element={<Budgets />} />
             <Route path="reports" element={<Reports />} />
             <Route path="import" element={<DataImport />} />
             <Route path="users" element={<Users />} />
+            <Route path="profile" element={<UserProfile />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="roles" element={<RoleManagement />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

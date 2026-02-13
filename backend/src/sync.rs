@@ -274,7 +274,7 @@ async fn handle_member(pool: &PgPool, change: &ChangeRecord) -> Result<(), Strin
                 INSERT INTO member (
                     id, parish_id, family_id, scc_id, member_code, first_name, middle_name, last_name,
                     date_of_birth, gender, marital_status, national_id, occupation, email, phone_number,
-                    physical_address, photo_url, is_head_of_family, notes, is_active, created_at, updated_at
+                    physical_address, photo_url, family_role, notes, is_active, created_at, updated_at
                 )
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
                 ON CONFLICT (id) DO NOTHING
@@ -297,7 +297,7 @@ async fn handle_member(pool: &PgPool, change: &ChangeRecord) -> Result<(), Strin
             .bind(item.phone_number)
             .bind(item.physical_address)
             .bind(item.photo_url)
-            .bind(item.is_head_of_family)
+            .bind(item.family_role)
             .bind(item.notes)
             .bind(item.is_active)
             .bind(item.created_at)
@@ -317,7 +317,7 @@ async fn handle_member(pool: &PgPool, change: &ChangeRecord) -> Result<(), Strin
                     middle_name = $7, last_name = $8, date_of_birth = $9, gender = $10,
                     marital_status = $11, national_id = $12, occupation = $13, email = $14,
                     phone_number = $15, physical_address = $16, photo_url = $17,
-                    is_head_of_family = $18, notes = $19, is_active = $20, updated_at = $21
+                    family_role = $18, notes = $19, is_active = $20, updated_at = $21
                 WHERE id = $1
                 "#
             )
@@ -338,7 +338,7 @@ async fn handle_member(pool: &PgPool, change: &ChangeRecord) -> Result<(), Strin
             .bind(item.phone_number)
             .bind(item.physical_address)
             .bind(item.photo_url)
-            .bind(item.is_head_of_family)
+            .bind(item.family_role)
             .bind(item.notes)
             .bind(item.is_active)
             .bind(item.updated_at)

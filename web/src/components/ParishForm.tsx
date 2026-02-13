@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
-import { CreateParishRequest, Parish, UpdateParishRequest } from '../types';
-import { useEffect } from 'react';
+import { CreateParishRequest, Parish, UpdateParishRequest, Member, SacramentRecord, SacramentType, Diocese } from '../types';
+import { useEffect, useState } from 'react';
+import { api } from '../api/client';
 
 interface ParishFormProps {
   initialData?: Parish;
@@ -9,14 +10,31 @@ interface ParishFormProps {
 }
 
 const ParishForm = ({ initialData, onSubmit, onCancel }: ParishFormProps) => {
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<CreateParishRequest>({
-    defaultValues: {
-      parish_name: '',
-      parish_code: '',
-      diocese_id: '00000000-0000-0000-0000-000000000000', // Placeholder, needs actual ID in real app
-      // Other defaults...
-    }
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue } = useForm<CreateParishRequest>({
+    defaultValues: { parish_name: '', parish_code: '', diocese_id: '' }
   });
+
+  const [ordainedMembers, setOrdainedMembers] = useState<Member[]>([]);
+  const [dioceses, setDioceses] = useState<Diocese[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [dios, members, sacraments] = await Promise.all([
+          api.listDioceses(),
+          api.listMembers(),
+          api.listSacraments(),
+        ]);
+        setDioceses(dios);
+        if (dios.length > 0 && !initialData) setValue('diocese_id', dios[0].id);
+        const ordainedIds = new Set(
+          sacraments.filter((s: SacramentRecord) => s.sacrament_type === SacramentType.HOLY_ORDERS).map((s: SacramentRecord) => s.member_id)
+        );
+        setOrdainedMembers(members.filter((m: Member) => ordainedIds.has(m.id)));
+      } catch (err) { console.error('Failed to load form data:', err); }
+    };
+    load();
+  }, [initialData, setValue]);
 
   useEffect(() => {
     if (initialData) {
@@ -26,6 +44,7 @@ const ParishForm = ({ initialData, onSubmit, onCancel }: ParishFormProps) => {
         diocese_id: initialData.diocese_id,
         patron_saint: initialData.patron_saint || '',
         priest_name: initialData.priest_name || '',
+        priest_id: initialData.priest_id || undefined,
         physical_address: initialData.physical_address || '',
         contact_email: initialData.contact_email || '',
         contact_phone: initialData.contact_phone || '',
@@ -56,17 +75,44 @@ const ParishForm = ({ initialData, onSubmit, onCancel }: ParishFormProps) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
+          <label className="block text-sm font-medium text-gray-700">Diocese</label>
+          <select
+            {...register('diocese_id', { required: 'Diocese is required' })}
+            disabled={!!initialData}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2 disabled:bg-gray-100"
+          >
+            <option value="">Select Diocese</option>
+            {dioceses.map(d => <option key={d.id} value={d.id}>{d.diocese_name}</option>)}
+          </select>
+        </div>
+        <div>
           <label className="block text-sm font-medium text-gray-700">Patron Saint</label>
           <input
             {...register('patron_saint')}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
           />
         </div>
+      </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Priest Name</label>
+          <label className="block text-sm font-medium text-gray-700">Parish Priest (Ordained)</label>
+          <select
+            {...register('priest_id')}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+          >
+            <option value="">-- Select Priest --</option>
+            {ordainedMembers.map(m => (
+              <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">Only members with Holy Orders sacrament</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Priest Name (Manual)</label>
           <input
             {...register('priest_name')}
+            placeholder="If priest is not a registered member"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
           />
         </div>
@@ -99,11 +145,6 @@ const ParishForm = ({ initialData, onSubmit, onCancel }: ParishFormProps) => {
           />
         </div>
       </div>
-
-      {/* Hidden Diocese ID for creation */}
-      {!initialData && (
-        <input type="hidden" {...register('diocese_id', { required: true })} value="00000000-0000-0000-0000-000000000000" />
-      )}
 
       <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
         <button

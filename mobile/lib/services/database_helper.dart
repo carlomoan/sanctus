@@ -77,6 +77,7 @@ class DatabaseHelper {
         updated_at TEXT,
         data_json TEXT
       )
+    ''');
 
     // Expense Vouchers
     await db.execute('''
@@ -127,7 +128,6 @@ class DatabaseHelper {
         updated_at TEXT
       )
     ''');
-    ''');
   }
 
   // --- Sync Queue Methods ---
@@ -138,6 +138,59 @@ class DatabaseHelper {
       'table_name': tableName,
       'operation': operation,
       'record_id': recordId,
+      'data': data,
+      'created_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getSyncQueue() async {
+    final db = await instance.database;
+    return await db.query('sync_queue', orderBy: 'created_at ASC');
+  }
+
+  Future<int> removeFromSyncQueue(int id) async {
+    final db = await instance.database;
+    return await db.delete('sync_queue', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- Transaction Methods ---
+
+  Future<int> insertIncomeTransaction(IncomeTransaction transaction) async {
+    final db = await instance.database;
+    
+    // Create map for API (Sync Queue) - keeps booleans
+    final apiJson = transaction.toJson();
+    
+    // Create map for SQLite - converts booleans to ints
+    final sqliteJson = Map<String, dynamic>.from(apiJson);
+    sqliteJson['receipt_printed'] = transaction.receiptPrinted == true ? 1 : 0;
+    sqliteJson['is_synced'] = 0;
+
+    // Add to sync queue
+    await addToSyncQueue(
+      'income_transaction',
+      'insert',
+      transaction.id,
+      jsonEncode(apiJson),
+    );
+
+    return await db.insert('income_transaction', sqliteJson);
+  }
+
+  Future<List<IncomeTransaction>> getIncomeTransactions() async {
+    final db = await instance.database;
+    final result = await db.query('income_transaction', orderBy: 'created_at DESC');
+    
+    return result.map((json) {
+      final map = Map<String, dynamic>.from(json);
+      map['receipt_printed'] = json['receipt_printed'] == 1;
+      map['is_synced'] = json['is_synced'] == 1;
+      return IncomeTransaction.fromJson(map);
+    }).toList();
+  }
+
+  // --- Expense Voucher Methods ---
+
   Future<int> insertExpenseVoucher(ExpenseVoucher voucher) async {
     final db = await instance.database;
     
@@ -171,6 +224,8 @@ class DatabaseHelper {
     }).toList();
   }
 
+  // --- Sacrament Methods ---
+
   Future<int> insertSacrament(SacramentRecord sacrament) async {
     final db = await instance.database;
     final json = sacrament.toJson();
@@ -196,57 +251,6 @@ class DatabaseHelper {
     );
     
     return result.map((json) => SacramentRecord.fromJson(json)).toList();
-  }
-
-      'data': data,
-      'created_at': DateTime.now().toIso8601String(),
-    });
-  }
-
-  Future<List<Map<String, dynamic>>> getSyncQueue() async {
-    final db = await instance.database;
-    return await db.query('sync_queue', orderBy: 'created_at ASC');
-  }
-
-  Future<int> removeFromSyncQueue(int id) async {
-    final db = await instance.database;
-    return await db.delete('sync_queue', where: 'id = ?', whereArgs: [id]);
-  }
-
-  // --- Transaction Methods ---
-
-  Future<int> insertIncomeTransaction(IncomeTransaction transaction) async {
-    final db = await instance.database;
-    
-    // Create map for API (Sync Queue) - keeps booleans
-    final apiJson = transaction.toJson();
-    
-    // Create map for SQLite - converts booleans to ints
-    final sqliteJson = Map<String, dynamic>.from(apiJson);
-    sqliteJson['receipt_printed'] = transaction.receiptPrinted == true ? 1 : 0;
-    sqliteJson['is_synced'] = 0; // New local records are unsynced by default
-
-    // Add to sync queue
-    await addToSyncQueue(
-      'income_transaction',
-      'insert',
-      transaction.id,
-      jsonEncode(apiJson), // Proper JSON encoding
-    );
-
-    return await db.insert('income_transaction', sqliteJson);
-  }
-
-  Future<List<IncomeTransaction>> getIncomeTransactions() async {
-    final db = await instance.database;
-    final result = await db.query('income_transaction', orderBy: 'created_at DESC');
-    
-    return result.map((json) {
-      final map = Map<String, dynamic>.from(json);
-      map['receipt_printed'] = json['receipt_printed'] == 1;
-      map['is_synced'] = json['is_synced'] == 1;
-      return IncomeTransaction.fromJson(map);
-    }).toList();
   }
 
   // --- Member Methods ---

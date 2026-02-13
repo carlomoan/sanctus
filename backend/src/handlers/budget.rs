@@ -4,7 +4,7 @@ use axum::{
     Json,
 };
 use uuid::Uuid;
-use crate::{AppState, models::budget::{Budget, CreateBudgetRequest, UpdateBudgetRequest}, handlers::auth::AuthUser, models::user::UserRole};
+use crate::{AppState, models::budget::{Budget, CreateBudgetRequest, UpdateBudgetRequest}, handlers::auth::AuthUser, handlers::rbac};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -18,17 +18,15 @@ pub async fn list_budgets(
     State(state): State<AppState>,
     Query(query): Query<ListBudgetQuery>,
 ) -> Result<Json<Vec<Budget>>, (StatusCode, String)> {
-    // Basic RBAC check
-    if auth.role != UserRole::SuperAdmin && auth.role != UserRole::ParishAdmin && auth.role != UserRole::Accountant {
-        return Err((StatusCode::FORBIDDEN, "Unauthorized to view budgets".to_string()));
-    }
+    rbac::require_finance(&auth)?;
+    let parish_id = rbac::resolve_parish_id(&auth, Some(query.parish_id))?;
 
     let year = query.fiscal_year.unwrap_or(chrono::Utc::now().format("%Y").to_string().parse().unwrap());
 
     let budgets = sqlx::query_as::<_, Budget>(
         "SELECT * FROM budget WHERE parish_id = $1 AND fiscal_year = $2 AND deleted_at IS NULL ORDER BY category"
     )
-    .bind(query.parish_id)
+    .bind(parish_id)
     .bind(year)
     .fetch_all(&state.db)
     .await
@@ -42,9 +40,8 @@ pub async fn create_budget(
     State(state): State<AppState>,
     Json(payload): Json<CreateBudgetRequest>,
 ) -> Result<Json<Budget>, (StatusCode, String)> {
-    if auth.role != UserRole::SuperAdmin && auth.role != UserRole::ParishAdmin && auth.role != UserRole::Accountant {
-        return Err((StatusCode::FORBIDDEN, "Unauthorized to create budgets".to_string()));
-    }
+    rbac::require_finance(&auth)?;
+    let parish_id = rbac::resolve_parish_id(&auth, Some(payload.parish_id))?;
 
     let budget = sqlx::query_as::<_, Budget>(
         r#"
@@ -55,7 +52,7 @@ pub async fn create_budget(
         RETURNING *
         "#
     )
-    .bind(payload.parish_id)
+    .bind(parish_id)
     .bind(payload.category)
     .bind(payload.amount)
     .bind(payload.fiscal_year)
@@ -75,9 +72,7 @@ pub async fn update_budget(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateBudgetRequest>,
 ) -> Result<Json<Budget>, (StatusCode, String)> {
-    if auth.role != UserRole::SuperAdmin && auth.role != UserRole::ParishAdmin && auth.role != UserRole::Accountant {
-        return Err((StatusCode::FORBIDDEN, "Unauthorized to update budgets".to_string()));
-    }
+    rbac::require_finance(&auth)?;
 
     let mut budget = sqlx::query_as::<_, Budget>(
         "SELECT * FROM budget WHERE id = $1 AND deleted_at IS NULL"

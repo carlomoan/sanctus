@@ -70,6 +70,24 @@ export enum ApprovalStatus {
 
 // Models
 
+export interface Diocese {
+  id: UUID;
+  diocese_code: string;
+  diocese_name: string;
+  bishop_name?: string;
+  established_date?: ISODateString;
+  headquarters_address?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  country?: string;
+  currency_code?: string;
+  logo_url?: string;
+  is_active?: boolean;
+  created_at?: ISODateTimeString;
+  updated_at?: ISODateTimeString;
+  deleted_at?: ISODateTimeString;
+}
+
 export interface Parish {
   id: UUID;
   diocese_id: UUID;
@@ -77,6 +95,7 @@ export interface Parish {
   parish_name: string;
   patron_saint?: string;
   priest_name?: string;
+  priest_id?: UUID;
   established_date?: ISODateString;
   physical_address?: string;
   postal_address?: string;
@@ -92,10 +111,17 @@ export interface Parish {
   latitude?: number; // Decimal in Rust, number in TS
   longitude?: number;
   timezone?: string;
+  logo_url?: string;
   is_active?: boolean;
   created_at?: ISODateTimeString;
   updated_at?: ISODateTimeString;
   deleted_at?: ISODateTimeString;
+}
+
+export enum FamilyRole {
+  HEAD = "HEAD",
+  SPOUSE = "SPOUSE",
+  MEMBER = "MEMBER",
 }
 
 export interface Member {
@@ -116,7 +142,7 @@ export interface Member {
   phone_number?: string;
   physical_address?: string;
   photo_url?: string;
-  is_head_of_family?: boolean;
+  family_role?: FamilyRole;
   notes?: string;
   is_active?: boolean;
   created_at?: ISODateTimeString;
@@ -148,6 +174,7 @@ export interface IncomeTransaction {
   id: UUID;
   parish_id: UUID;
   member_id?: UUID;
+  family_id?: UUID;
   transaction_number: string;
   category: TransactionCategory;
   amount: number; // Decimal in Rust, number in TS
@@ -208,6 +235,7 @@ export interface User {
   full_name: string;
   phone_number?: string;
   role: UserRole;
+  profile_photo_url?: string;
   is_active: boolean;
   created_at: ISODateTimeString;
 }
@@ -291,6 +319,7 @@ export interface CreateParishRequest {
   parish_name: string;
   patron_saint?: string;
   priest_name?: string;
+  priest_id?: UUID;
   established_date?: ISODateString;
   physical_address?: string;
   contact_email?: string;
@@ -301,6 +330,7 @@ export interface UpdateParishRequest {
   parish_name?: string;
   patron_saint?: string;
   priest_name?: string;
+  priest_id?: UUID;
   physical_address?: string;
   contact_email?: string;
   contact_phone?: string;
@@ -324,11 +354,13 @@ export interface CreateMemberRequest {
   phone_number?: string;
   physical_address?: string;
   photo_url?: string;
-  is_head_of_family?: boolean;
+  family_role?: FamilyRole;
   notes?: string;
 }
 
 export interface UpdateMemberRequest {
+  family_id?: UUID;
+  scc_id?: UUID;
   first_name?: string;
   middle_name?: string;
   last_name?: string;
@@ -341,7 +373,7 @@ export interface UpdateMemberRequest {
   phone_number?: string;
   physical_address?: string;
   photo_url?: string;
-  is_head_of_family?: boolean;
+  family_role?: FamilyRole;
   notes?: string;
   is_active?: boolean;
 }
@@ -378,6 +410,7 @@ export interface UpdateSacramentRequest {
 export interface CreateIncomeRequest {
   parish_id: UUID;
   member_id?: UUID;
+  family_id?: UUID;
   category: TransactionCategory;
   amount: number;
   payment_method: PaymentMethod;
@@ -397,10 +430,197 @@ export interface CreateExpenseRequest {
   expense_date: ISODateString;
   description: string;
   reference_number?: string;
-  requested_by: UUID;
 }
 
 export interface ImportResponse {
   success_count: number;
   errors: string[];
+}
+
+// Cluster (collection of SCCs in a geographic area)
+export interface Cluster {
+  id: UUID;
+  parish_id: UUID;
+  cluster_code: string;
+  cluster_name: string;
+  location_description?: string;
+  leader_name?: string;
+  is_active?: boolean;
+  created_at?: ISODateTimeString;
+  updated_at?: ISODateTimeString;
+  deleted_at?: ISODateTimeString;
+}
+
+export interface CreateClusterRequest {
+  parish_id: UUID;
+  cluster_code: string;
+  cluster_name: string;
+  location_description?: string;
+  leader_name?: string;
+}
+
+export interface UpdateClusterRequest {
+  cluster_name?: string;
+  location_description?: string;
+  leader_name?: string;
+  is_active?: boolean;
+}
+
+// Small Christian Community (SCC)
+export interface Scc {
+  id: UUID;
+  parish_id: UUID;
+  cluster_id?: UUID;
+  scc_code: string;
+  scc_name: string;
+  patron_saint?: string;
+  leader_name?: string;
+  location_description?: string;
+  meeting_day?: string;
+  meeting_time?: string;
+  is_active?: boolean;
+  created_at?: ISODateTimeString;
+  updated_at?: ISODateTimeString;
+  deleted_at?: ISODateTimeString;
+}
+
+export interface CreateSccRequest {
+  parish_id: UUID;
+  cluster_id?: UUID;
+  scc_code: string;
+  scc_name: string;
+  patron_saint?: string;
+  leader_name?: string;
+  location_description?: string;
+  meeting_day?: string;
+  meeting_time?: string;
+}
+
+export interface UpdateSccRequest {
+  cluster_id?: UUID;
+  scc_name?: string;
+  patron_saint?: string;
+  leader_name?: string;
+  location_description?: string;
+  meeting_day?: string;
+  meeting_time?: string;
+  is_active?: boolean;
+}
+
+// Family
+export interface Family {
+  id: UUID;
+  parish_id: UUID;
+  scc_id?: UUID;
+  family_code: string;
+  family_name: string;
+  head_of_family_id?: UUID;
+  physical_address?: string;
+  postal_address?: string;
+  primary_phone?: string;
+  secondary_phone?: string;
+  email?: string;
+  notes?: string;
+  is_active?: boolean;
+  created_at?: ISODateTimeString;
+  updated_at?: ISODateTimeString;
+  deleted_at?: ISODateTimeString;
+}
+
+export interface CreateFamilyRequest {
+  parish_id: UUID;
+  scc_id?: UUID;
+  family_code: string;
+  family_name: string;
+  physical_address?: string;
+  primary_phone?: string;
+  email?: string;
+  notes?: string;
+}
+
+export interface UpdateFamilyRequest {
+  scc_id?: UUID;
+  family_name?: string;
+  head_of_family_id?: UUID;
+  physical_address?: string;
+  postal_address?: string;
+  primary_phone?: string;
+  secondary_phone?: string;
+  email?: string;
+  notes?: string;
+  is_active?: boolean;
+}
+
+// Permissions & Roles
+
+export interface Permission {
+  id: UUID;
+  permission_key: string;
+  permission_group: string;
+  display_name: string;
+  description?: string;
+  created_at: ISODateTimeString;
+}
+
+export interface CustomRole {
+  id: UUID;
+  role_name: string;
+  display_name: string;
+  description?: string;
+  is_system: boolean;
+  created_at: ISODateTimeString;
+  updated_at: ISODateTimeString;
+}
+
+export interface RoleWithPermissions extends CustomRole {
+  permissions: Permission[];
+}
+
+export interface UserPermissionOverride {
+  id: UUID;
+  user_id: UUID;
+  permission_key: string;
+  permission_display_name: string;
+  granted_by: UUID;
+  reason?: string;
+  expires_at?: ISODateTimeString;
+  is_active: boolean;
+  created_at: ISODateTimeString;
+}
+
+export interface CreateRoleRequest {
+  role_name: string;
+  display_name: string;
+  description?: string;
+  permission_ids?: UUID[];
+}
+
+export interface UpdateRoleRequest {
+  display_name?: string;
+  description?: string;
+}
+
+export interface GrantUserOverrideRequest {
+  user_id: UUID;
+  permission_ids: UUID[];
+  reason?: string;
+  expires_at?: ISODateTimeString;
+}
+
+export interface RevokeUserOverrideRequest {
+  user_id: UUID;
+  permission_ids: UUID[];
+}
+
+// App Settings
+
+export interface AppSetting {
+  id: UUID;
+  parish_id?: UUID;
+  setting_key: string;
+  setting_value: string;
+  setting_group: string;
+  description?: string;
+  created_at: ISODateTimeString;
+  updated_at: ISODateTimeString;
 }

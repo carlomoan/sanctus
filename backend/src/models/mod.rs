@@ -6,3 +6,8 @@ pub mod dashboard;
 pub mod user;
 pub mod budget;
 pub mod report;
+pub mod cluster;
+pub mod scc;
+pub mod family;
+pub mod setting;
+pub mod permission;

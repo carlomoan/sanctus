@@ -34,6 +34,15 @@ pub enum SacramentType {
     AnointingOfSick,
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "family_role", rename_all = "SCREAMING_SNAKE_CASE")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum FamilyRole {
+    Head,
+    Spouse,
+    Member,
+}
+
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Member {
     pub id: Uuid,
@@ -53,7 +62,7 @@ pub struct Member {
     pub phone_number: Option<String>,
     pub physical_address: Option<String>,
     pub photo_url: Option<String>,
-    pub is_head_of_family: Option<bool>,
+    pub family_role: Option<FamilyRole>,
     pub notes: Option<String>,
     pub is_active: Option<bool>,
     pub created_at: Option<DateTime<Utc>>,

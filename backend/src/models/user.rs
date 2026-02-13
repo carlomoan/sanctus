@@ -24,6 +24,7 @@ pub struct User {
     pub full_name: String,
     pub phone_number: Option<String>,
     pub role: UserRole,
+    pub profile_photo_url: Option<String>,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -39,6 +40,7 @@ pub struct UserProfile {
     pub full_name: String,
     pub phone_number: Option<String>,
     pub role: UserRole,
+    pub profile_photo_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

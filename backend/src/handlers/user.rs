@@ -30,6 +30,7 @@ pub async fn list_users(
         full_name: u.full_name,
         phone_number: u.phone_number,
         role: u.role,
+        profile_photo_url: u.profile_photo_url,
     }).collect();
 
     Ok(Json(profiles))
@@ -75,6 +76,7 @@ pub async fn create_user(
         full_name: user.full_name,
         phone_number: user.phone_number,
         role: user.role,
+        profile_photo_url: user.profile_photo_url,
     }))
 }
 

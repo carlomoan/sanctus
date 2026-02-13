@@ -4,7 +4,7 @@ use axum::{
     Json,
 };
 use uuid::Uuid;
-use crate::{AppState, models::transaction::{IncomeTransaction, ExpenseVoucher, TransactionCategory, PaymentMethod}, handlers::auth::AuthUser};
+use crate::{AppState, models::transaction::{IncomeTransaction, ExpenseVoucher, TransactionCategory, PaymentMethod}, handlers::auth::AuthUser, handlers::rbac};
 use serde::Deserialize;
 use rust_decimal::Decimal;
 use chrono::NaiveDate;
@@ -20,6 +20,7 @@ pub struct ListTransactionsQuery {
 pub struct CreateIncomeRequest {
     pub parish_id: Uuid,
     pub member_id: Option<Uuid>,
+    pub family_id: Option<Uuid>,
     pub category: TransactionCategory,
     pub amount: Decimal,
     pub payment_method: PaymentMethod,
@@ -40,61 +41,53 @@ pub struct CreateExpenseRequest {
     pub expense_date: NaiveDate,
     pub description: String,
     pub reference_number: Option<String>,
-    pub requested_by: Uuid,
 }
 
 // Income Transactions Handlers
 
 pub async fn list_income_transactions(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Query(query): Query<ListTransactionsQuery>,
 ) -> Result<Json<Vec<IncomeTransaction>>, (StatusCode, String)> {
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
+    let parish_id = rbac::resolve_parish_id(&auth, query.parish_id)?;
 
-    let transactions = if let Some(parish_id) = query.parish_id {
-        sqlx::query_as::<_, IncomeTransaction>(
-            "SELECT * FROM income_transaction WHERE parish_id = $1 AND deleted_at IS NULL ORDER BY transaction_date DESC LIMIT $2 OFFSET $3"
-        )
-        .bind(parish_id)
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&state.db)
-        .await
-    } else {
-        sqlx::query_as::<_, IncomeTransaction>(
-            "SELECT * FROM income_transaction WHERE deleted_at IS NULL ORDER BY transaction_date DESC LIMIT $1 OFFSET $2"
-        )
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&state.db)
-        .await
-    };
-
-    let transactions = transactions.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let transactions = sqlx::query_as::<_, IncomeTransaction>(
+        "SELECT * FROM income_transaction WHERE parish_id = $1 AND deleted_at IS NULL ORDER BY transaction_date DESC LIMIT $2 OFFSET $3"
+    )
+    .bind(parish_id)
+    .bind(limit)
+    .bind(offset)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(transactions))
 }
 
 pub async fn create_income_transaction(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Json(payload): Json<CreateIncomeRequest>,
 ) -> Result<Json<IncomeTransaction>, (StatusCode, String)> {
-    // Note: transaction_number generation is handled by DB trigger
+    rbac::require_finance(&auth)?;
+    let parish_id = rbac::resolve_parish_id(&auth, Some(payload.parish_id))?;
+
     let transaction = sqlx::query_as::<_, IncomeTransaction>(
         r#"
         INSERT INTO income_transaction (
-            parish_id, member_id, category, amount, payment_method,
+            parish_id, member_id, family_id, category, amount, payment_method,
             transaction_date, description, reference_number, received_by
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
         "#
     )
-    .bind(payload.parish_id)
+    .bind(parish_id)
     .bind(payload.member_id)
+    .bind(payload.family_id)
     .bind(payload.category)
     .bind(payload.amount)
     .bind(payload.payment_method)
@@ -112,44 +105,35 @@ pub async fn create_income_transaction(
 // Expense Vouchers Handlers
 
 pub async fn list_expense_vouchers(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Query(query): Query<ListTransactionsQuery>,
 ) -> Result<Json<Vec<ExpenseVoucher>>, (StatusCode, String)> {
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
+    let parish_id = rbac::resolve_parish_id(&auth, query.parish_id)?;
 
-    let vouchers = if let Some(parish_id) = query.parish_id {
-        sqlx::query_as::<_, ExpenseVoucher>(
-            "SELECT * FROM expense_voucher WHERE parish_id = $1 AND deleted_at IS NULL ORDER BY expense_date DESC LIMIT $2 OFFSET $3"
-        )
-        .bind(parish_id)
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&state.db)
-        .await
-    } else {
-        sqlx::query_as::<_, ExpenseVoucher>(
-            "SELECT * FROM expense_voucher WHERE deleted_at IS NULL ORDER BY expense_date DESC LIMIT $1 OFFSET $2"
-        )
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&state.db)
-        .await
-    };
-
-    let vouchers = vouchers.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let vouchers = sqlx::query_as::<_, ExpenseVoucher>(
+        "SELECT * FROM expense_voucher WHERE parish_id = $1 AND deleted_at IS NULL ORDER BY expense_date DESC LIMIT $2 OFFSET $3"
+    )
+    .bind(parish_id)
+    .bind(limit)
+    .bind(offset)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(Json(vouchers))
 }
 
 pub async fn create_expense_voucher(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<AppState>,
     Json(payload): Json<CreateExpenseRequest>,
 ) -> Result<Json<ExpenseVoucher>, (StatusCode, String)> {
-    // Note: voucher_number generation is handled by DB trigger
-    // Default approval_status is 'PENDING' handled by DB default
+    rbac::require_finance(&auth)?;
+    let parish_id = rbac::resolve_parish_id(&auth, Some(payload.parish_id))?;
+
     let voucher = sqlx::query_as::<_, ExpenseVoucher>(
         r#"
         INSERT INTO expense_voucher (
@@ -161,7 +145,7 @@ pub async fn create_expense_voucher(
         RETURNING *
         "#
     )
-    .bind(payload.parish_id)
+    .bind(parish_id)
     .bind(payload.category)
     .bind(payload.amount)
     .bind(payload.payment_method)
@@ -170,7 +154,7 @@ pub async fn create_expense_voucher(
     .bind(payload.expense_date)
     .bind(payload.description)
     .bind(payload.reference_number)
-    .bind(payload.requested_by)
+    .bind(auth.user_id)
     .fetch_one(&state.db)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;

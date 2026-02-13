@@ -145,6 +145,7 @@ pub async fn login(
             full_name: user.full_name,
             phone_number: user.phone_number,
             role: user.role,
+            profile_photo_url: user.profile_photo_url,
         },
     }))
 }
