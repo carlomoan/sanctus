@@ -21,7 +21,6 @@ import {
   Family, CreateFamilyRequest, UpdateFamilyRequest,
   Permission, RoleWithPermissions, CustomRole, CreateRoleRequest, UpdateRoleRequest,
   UserPermissionOverride, GrantUserOverrideRequest, RevokeUserOverrideRequest,
-  AppSetting,
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:3000';
@@ -436,6 +435,19 @@ export class ApiClient {
 
   async revokeSingleOverride(id: UUID): Promise<void> {
     return this.request<void>('DELETE', `/user-overrides/${id}`);
+  }
+
+  // Audit Logs
+  async listAuditLogs(params?: { parish_id?: UUID; user_id?: UUID; action_type?: string; table_name?: string; limit?: number; offset?: number }): Promise<any[]> {
+    const p: string[] = [];
+    if (params?.parish_id) p.push(`parish_id=${params.parish_id}`);
+    if (params?.user_id) p.push(`user_id=${params.user_id}`);
+    if (params?.action_type) p.push(`action_type=${params.action_type}`);
+    if (params?.table_name) p.push(`table_name=${params.table_name}`);
+    if (params?.limit) p.push(`limit=${params.limit}`);
+    if (params?.offset) p.push(`offset=${params.offset}`);
+    const query = p.length ? '?' + p.join('&') : '';
+    return this.request<any[]>('GET', `/audit-logs${query}`);
   }
 
   // File Uploads

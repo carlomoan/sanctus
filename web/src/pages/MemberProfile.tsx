@@ -51,7 +51,7 @@ export default function MemberProfile() {
         m.family_id ? api.listFamilies(m.parish_id).then(fs => fs.find(x => x.id === m.family_id) || null) : Promise.resolve(null),
         m.scc_id ? api.listSccs(m.parish_id).then(ss => ss.find(x => x.id === m.scc_id) || null) : Promise.resolve(null),
         api.listSacraments(m.parish_id).then(all => all.filter(r => r.member_id === id)),
-        api.listIncome(m.parish_id).then(all => all.filter(t => t.member_id === id))
+        api.listIncomeTransactions(m.parish_id).then((all: IncomeTransaction[]) => all.filter((t: IncomeTransaction) => t.member_id === id))
       ]);
 
       setFamily(f);
@@ -120,7 +120,7 @@ export default function MemberProfile() {
           <h2 className="text-2xl font-bold text-gray-900">
             {member.first_name} {member.middle_name} {member.last_name}
           </h2>
-          <p className="text-gray-500 mt-1">{member.member_code} • {member.gender} • {member.age ? `${member.age} yrs` : ''}</p>
+          <p className="text-gray-500 mt-1">{member.member_code} • {member.gender}</p>
           <div className="flex gap-4 mt-4">
             <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full">
               <Users size={14} /> {family ? family.family_name : 'No Family'} ({member.family_role || 'MEMBER'})

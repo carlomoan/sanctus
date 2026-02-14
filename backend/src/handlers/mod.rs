@@ -16,3 +16,4 @@ pub mod upload;
 pub mod setting;
 pub mod rbac;
 pub mod permission;
+pub mod audit;

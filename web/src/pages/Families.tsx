@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Family, CreateFamilyRequest, UpdateFamilyRequest, Parish, Scc, Member, CreateMemberRequest, FamilyRole, GenderType, MaritalStatus, UserRole } from '../types';
-import { Plus, Users, Edit, Trash2, ChevronDown, ChevronRight, UserPlus, Search, X } from 'lucide-react';
+import { Family, CreateFamilyRequest, Parish, Scc, Member, CreateMemberRequest, FamilyRole, GenderType, MaritalStatus, UserRole } from '../types';
+import { Plus, Users, Edit, Trash2, ChevronDown, ChevronRight, UserPlus, Search } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
@@ -251,8 +251,8 @@ const Families = () => {
                             </div>
                             <div className="col-span-2">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${member.family_role === FamilyRole.HEAD ? 'bg-blue-100 text-blue-800' :
-                                  member.family_role === FamilyRole.SPOUSE ? 'bg-purple-100 text-purple-800' :
-                                    'bg-gray-100 text-gray-700'
+                                member.family_role === FamilyRole.SPOUSE ? 'bg-purple-100 text-purple-800' :
+                                  'bg-gray-100 text-gray-700'
                                 }`}>
                                 {member.family_role || 'Member'}
                               </span>

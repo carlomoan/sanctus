@@ -50,7 +50,6 @@ const Layout = () => {
   const isAccountant = role === UserRole.ACCOUNTANT;
   const isSecretary = role === UserRole.SECRETARY;
   const isViewer = role === UserRole.VIEWER;
-  const canWrite = !isViewer;
   const canManagePeople = isDioceseAdmin || isParishAdmin || isSecretary;
   const canManageFinance = isDioceseAdmin || isParishAdmin || isAccountant;
   const canAdmin = isDioceseAdmin || isParishAdmin;

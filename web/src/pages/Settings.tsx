@@ -122,10 +122,10 @@ export default function Settings() {
   }, []);
 
   useEffect(() => {
-    if (!selectedParishId) return;
     const loadSettings = async () => {
       try {
-        const settings = await api.listSettings(selectedParishId);
+        const pid = selectedParishId && selectedParishId.length > 0 ? selectedParishId : undefined;
+        const settings = await api.listSettings(pid);
         const map: Record<string, string> = {};
         SETTING_DEFINITIONS.forEach(d => { map[d.key] = d.value; });
         settings.forEach((s: any) => { map[s.setting_key] = s.setting_value; });
@@ -146,9 +146,9 @@ export default function Settings() {
       const groupSettings = SETTING_DEFINITIONS
         .filter(d => d.group === activeGroup)
         .map(d => ({
-          parish_id: selectedParishId || undefined,
+          parish_id: selectedParishId && selectedParishId.length > 0 ? selectedParishId : undefined,
           setting_key: d.key,
-          setting_value: values[d.key] || d.value,
+          setting_value: values[d.key] ?? d.value,
           setting_group: d.group,
           description: d.description,
         }));
@@ -195,8 +195,8 @@ export default function Settings() {
                   key={g.id}
                   onClick={() => { setActiveGroup(g.id); setSaved(false); }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeGroup === g.id
-                      ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                      : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-primary-50 text-primary-700 border border-primary-200'
+                    : 'text-gray-600 hover:bg-gray-50'
                     }`}
                 >
                   <Icon size={18} />
@@ -217,8 +217,8 @@ export default function Settings() {
               onClick={handleSave}
               disabled={saving}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${saved
-                  ? 'bg-green-50 text-green-700 border border-green-200'
-                  : 'bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50'
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50'
                 }`}
             >
               {saved ? <><Check size={16} /> Saved</> : <><Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}</>}

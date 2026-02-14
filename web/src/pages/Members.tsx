@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { Member, Parish, CreateMemberRequest, UpdateMemberRequest, UserRole } from '../types';
-import { Plus, Search, User, MapPin, Edit, Trash2, Filter, X } from 'lucide-react';
+import { Plus, Search, User, MapPin, Edit, Trash2, Filter, X, Download } from 'lucide-react';
 import Modal from '../components/Modal';
 import MemberForm from '../components/MemberForm';
+import DataTable, { Column, BulkAction } from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
 
 const Members = () => {
@@ -123,6 +124,104 @@ const Members = () => {
     }
   };
 
+  const handleBulkDelete = async (items: Member[]) => {
+    for (const m of items) {
+      try { await api.deleteMember(m.id); } catch { /* skip */ }
+    }
+    await fetchMembers();
+  };
+
+  const handleBulkExport = (items: Member[]) => {
+    const headers = ['Member Code', 'First Name', 'Middle Name', 'Last Name', 'Gender', 'Phone', 'Address', 'Status'];
+    const rows = items.map(m => [m.member_code, m.first_name, m.middle_name || '', m.last_name, m.gender || '', m.phone_number || '', m.physical_address || '', m.is_active ? 'Active' : 'Inactive']);
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'members_export.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const memberColumns: Column<Member>[] = useMemo(() => [
+    {
+      key: 'member',
+      header: 'Member',
+      sortable: true,
+      sortKey: (m) => `${m.first_name} ${m.last_name}`,
+      render: (m) => (
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-sm overflow-hidden">
+            {m.photo_url ? (
+              <img src={m.photo_url.startsWith('http') ? m.photo_url : `http://localhost:3000${m.photo_url}`} alt="" className="h-9 w-9 rounded-full object-cover" />
+            ) : (
+              m.first_name[0]
+            )}
+          </div>
+          <div className="min-w-0">
+            <Link to={`/members/${m.id}`} className="text-sm font-medium text-gray-900 hover:text-primary-600 hover:underline truncate block" onClick={e => e.stopPropagation()}>
+              {m.first_name} {m.middle_name ? m.middle_name + ' ' : ''}{m.last_name}
+            </Link>
+            <span className="text-xs text-gray-500">{m.member_code}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'gender',
+      header: 'Gender',
+      sortable: true,
+      sortKey: (m) => m.gender || '',
+      render: (m) => <span className="text-sm text-gray-700">{m.gender || '-'}</span>,
+    },
+    {
+      key: 'phone',
+      header: 'Phone',
+      render: (m) => <span className="text-sm text-gray-700 whitespace-nowrap">{m.phone_number || '-'}</span>,
+    },
+    {
+      key: 'address',
+      header: 'Address',
+      render: (m) => m.physical_address ? (
+        <div className="flex items-center gap-1 text-sm text-gray-500">
+          <MapPin size={12} className="flex-shrink-0" />
+          <span className="truncate max-w-[160px]">{m.physical_address}</span>
+        </div>
+      ) : <span className="text-gray-400">-</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      sortKey: (m) => m.is_active ? 1 : 0,
+      render: (m) => (
+        <span className={`px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${m.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {m.is_active ? 'Active' : 'Inactive'}
+        </span>
+      ),
+    },
+    ...(!isViewer ? [{
+      key: 'actions',
+      header: 'Actions',
+      className: 'text-right',
+      headerClassName: 'text-right',
+      render: (m: Member) => (
+        <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+          <button onClick={() => handleEdit(m)} className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-md transition-colors" title="Edit">
+            <Edit size={15} />
+          </button>
+          <button onClick={() => handleDelete(m.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors" title="Delete">
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ),
+    }] as Column<Member>[] : []),
+  ], [isViewer]);
+
+  const memberBulkActions: BulkAction<Member>[] = [
+    { label: 'Export CSV', icon: <Download size={14} />, onClick: handleBulkExport },
+    ...(!isViewer ? [{ label: 'Delete Selected', icon: <Trash2 size={14} />, onClick: handleBulkDelete, variant: 'danger' as const, requireConfirm: true, confirmMessage: 'Are you sure you want to delete the selected members?' }] : []),
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -233,82 +332,16 @@ const Members = () => {
         <div className="text-center py-12 text-gray-500">Loading members...</div>
       ) : error ? (
         <div className="text-center py-12 text-red-500">{error}</div>
-      ) : filteredMembers.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg border border-gray-100">
-          <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <User className="text-gray-400" size={24} />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900">No members found</h3>
-          <p className="text-gray-500 mt-1">Get started by adding a new member to this parish.</p>
-        </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Member</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gender</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredMembers.map((member) => (
-                <tr key={member.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                          {member.photo_url ? (
-                            <img src={member.photo_url.startsWith('http') ? member.photo_url : `http://localhost:3000${member.photo_url}`} alt="" className="h-10 w-10 rounded-full object-cover" />
-                          ) : (
-                            member.first_name[0]
-                          )}
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <Link to={`/members/${member.id}`} className="text-sm font-medium text-gray-900 hover:text-primary-600 hover:underline">
-                          {member.first_name} {member.middle_name} {member.last_name}
-                        </Link>
-                        <div className="text-sm text-gray-500">{member.member_code}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{member.gender}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{member.phone_number}</div>
-                    {member.physical_address && (
-                      <div className="flex items-center text-sm text-gray-500">
-                        <MapPin size={12} className="mr-1" />
-                        <span className="truncate max-w-[150px]">{member.physical_address}</span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    {!isViewer && (
-                      <>
-                        <button
-                          onClick={() => handleEdit(member)}
-                          className="text-primary-600 hover:text-primary-900 mr-3"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(member.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable<Member>
+          data={filteredMembers}
+          columns={memberColumns}
+          keyField="id"
+          bulkActions={memberBulkActions}
+          emptyIcon={<User size={24} />}
+          emptyTitle="No members found"
+          emptyMessage="Get started by adding a new member to this parish."
+        />
       )}
 
       <Modal

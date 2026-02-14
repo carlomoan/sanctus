@@ -22,7 +22,7 @@ export default function UserProfile() {
     }
   });
 
-  const onSubmit = async (data: Partial<User>) => {
+  const onSubmit = async (_data: Partial<User>) => {
     try {
       if (!user) return;
       setMessage({ type: 'success', text: 'Profile updated successfully' });

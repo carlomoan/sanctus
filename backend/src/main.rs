@@ -100,6 +100,7 @@ async fn main() {
         .route("/user-overrides", get(handlers::permission::list_user_overrides).post(handlers::permission::grant_user_overrides))
         .route("/user-overrides/revoke", post(handlers::permission::revoke_user_overrides))
         .route("/user-overrides/:id", delete(handlers::permission::revoke_single_override))
+        .route("/audit-logs", get(handlers::audit::list_audit_logs))
         .route("/upload/parish/:id/logo", post(handlers::upload::upload_parish_logo))
         .route("/upload/member/:id/photo", post(handlers::upload::upload_member_photo))
         .route("/upload/user/photo", post(handlers::upload::upload_user_photo))

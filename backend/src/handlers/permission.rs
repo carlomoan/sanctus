@@ -8,7 +8,7 @@ use serde::Deserialize;
 use crate::{
     AppState,
     models::permission::{
-        Permission, CustomRole, RolePermission, UserPermissionOverride,
+        Permission, CustomRole,
         CreateRoleRequest, UpdateRoleRequest, AssignPermissionsRequest,
         GrantUserOverrideRequest, RevokeUserOverrideRequest,
         RoleWithPermissions, UserOverrideInfo,
@@ -27,7 +27,7 @@ pub struct PermissionQuery {
 }
 
 pub async fn list_permissions(
-    auth: AuthUser,
+    _auth: AuthUser,
     State(state): State<AppState>,
     Query(query): Query<PermissionQuery>,
 ) -> Result<Json<Vec<Permission>>, (StatusCode, String)> {

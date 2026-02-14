@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { Permission, RoleWithPermissions, User, UserPermissionOverride, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Plus, Edit, Trash2, Users, Clock, ChevronDown, ChevronRight, Check, X, Search } from 'lucide-react';
+import { Shield, Plus, Edit, Trash2, Clock, ChevronDown, ChevronRight, Check, X, Search } from 'lucide-react';
 import Modal from '../components/Modal';
 
 const PERMISSION_GROUP_LABELS: Record<string, string> = {
@@ -184,22 +184,20 @@ export default function RoleManagement() {
         <nav className="flex gap-6">
           <button
             onClick={() => setActiveTab('roles')}
-            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'roles'
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'roles'
                 ? 'border-primary-600 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <Shield size={16} className="inline mr-1.5" />
             Roles ({roles.length})
           </button>
           <button
             onClick={() => setActiveTab('overrides')}
-            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'overrides'
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'overrides'
                 ? 'border-primary-600 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <Clock size={16} className="inline mr-1.5" />
             Temporary Overrides ({overrides.length})
@@ -493,9 +491,8 @@ export default function RoleManagement() {
                 <button
                   key={u.id}
                   onClick={() => setOverrideUserId(u.id)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex justify-between items-center ${
-                    overrideUserId === u.id ? 'bg-primary-50 text-primary-700' : ''
-                  }`}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex justify-between items-center ${overrideUserId === u.id ? 'bg-primary-50 text-primary-700' : ''
+                    }`}
                 >
                   <span>{u.full_name} <span className="text-gray-400">({u.username})</span></span>
                   {overrideUserId === u.id && <Check size={14} />}

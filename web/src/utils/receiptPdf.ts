@@ -221,22 +221,99 @@ export async function generateReceiptPdf(data: ReceiptData): Promise<jsPDF> {
   doc.text(blessText, (pageWidth - blW) / 2, y);
   y += fontSize.small * 0.5 + 3;
 
-  // Signature line (A4 only)
+  // --- Stamp & Signature Section ---
   if (format === 'a4') {
-    y += 10;
+    y += 8;
+
+    // Parish stamp (circular seal)
+    const stampCenterX = pageWidth / 2;
+    const stampCenterY = y + 18;
+    const stampRadius = 16;
+
+    // Outer circle
+    doc.setDrawColor(0, 80, 160);
+    doc.setLineWidth(0.8);
+    doc.circle(stampCenterX, stampCenterY, stampRadius);
+    // Inner circle
+    doc.setLineWidth(0.4);
+    doc.circle(stampCenterX, stampCenterY, stampRadius - 3);
+
+    // Parish name around the top arc
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 80, 160);
+    const stampText = parish.parish_name.toUpperCase();
+    const stampTextW = doc.getTextWidth(stampText);
+    doc.text(stampText, stampCenterX - stampTextW / 2, stampCenterY - 8);
+
+    // Center text
+    doc.setFontSize(7);
+    doc.text('OFFICIAL', stampCenterX - doc.getTextWidth('OFFICIAL') / 2, stampCenterY + 1);
+    doc.setFontSize(5);
+    doc.text('RECEIPT', stampCenterX - doc.getTextWidth('RECEIPT') / 2, stampCenterY + 5);
+
+    // Bottom arc text
+    doc.setFontSize(4.5);
+    doc.setFont('helvetica', 'normal');
+    const sealDate = formatDate(transaction.transaction_date);
+    doc.text(sealDate, stampCenterX - doc.getTextWidth(sealDate) / 2, stampCenterY + 10);
+
+    doc.setTextColor(0, 0, 0);
+    y = stampCenterY + stampRadius + 8;
+
+    // Signature lines
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(fontSize.body);
-    doc.line(marginX, y, marginX + 60, y);
-    doc.line(pageWidth - marginX - 60, y, pageWidth - marginX, y);
-    y += 4;
-    doc.text('Received By (Signature)', marginX, y);
-    doc.text('Date / Stamp', pageWidth - marginX - 60, y);
-  }
 
-  // For thermal, trim the page height
-  if (format !== 'a4') {
-    // jsPDF doesn't support dynamic page resize after creation,
-    // but the content will print correctly on continuous roll paper
+    const sigY = y;
+    const col1X = marginX;
+    const col2X = pageWidth / 2 + 10;
+    const lineLen = 55;
+
+    // Received By
+    doc.line(col1X, sigY, col1X + lineLen, sigY);
+    doc.setFontSize(fontSize.small);
+    doc.text('Received By (Name & Signature)', col1X, sigY + 4);
+
+    // Authorized By
+    doc.line(col2X, sigY, col2X + lineLen, sigY);
+    doc.text('Authorized By (Name & Signature)', col2X, sigY + 4);
+
+    y = sigY + 12;
+
+    // Date line
+    doc.line(col1X, y, col1X + lineLen, y);
+    doc.text('Date', col1X, y + 4);
+
+    // Receiver signature
+    doc.line(col2X, y, col2X + lineLen, y);
+    doc.text('Money Receiver (Signature)', col2X, y + 4);
+
+  } else {
+    // Thermal receipt: compact stamp + signature
+    y += 3;
+    doc.setDrawColor(0, 80, 160);
+    doc.setLineWidth(0.4);
+    const tStampCX = pageWidth / 2;
+    const tStampR = format === 'thermal-80' ? 10 : 8;
+    doc.circle(tStampCX, y + tStampR, tStampR);
+    doc.setFontSize(4);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 80, 160);
+    const tName = parish.parish_name.toUpperCase().substring(0, 20);
+    doc.text(tName, tStampCX - doc.getTextWidth(tName) / 2, y + tStampR - 3);
+    doc.setFontSize(5);
+    doc.text('RECEIPT', tStampCX - doc.getTextWidth('RECEIPT') / 2, y + tStampR + 2);
+    doc.setTextColor(0, 0, 0);
+    y += tStampR * 2 + 4;
+
+    doc.setFontSize(fontSize.small);
+    doc.setFont('helvetica', 'normal');
+    doc.line(marginX, y, pageWidth - marginX, y);
+    y += 3;
+    doc.text('Signature: _______________', marginX, y);
+    y += fontSize.small * 0.5 + 1;
+    doc.text('Date: _______________', marginX, y);
   }
 
   return doc;

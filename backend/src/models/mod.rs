@@ -11,3 +11,4 @@ pub mod scc;
 pub mod family;
 pub mod setting;
 pub mod permission;
+pub mod audit;

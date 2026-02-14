@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { DashboardStats, Parish } from '../types';
-import { Users, Church, Coins, FileText, Plus, Upload, UserPlus, Home, MapPin, Layers, ArrowRight, Search, Calendar, TrendingUp, Activity, Clock } from 'lucide-react';
+import { Users, Church, Coins, FileText, UserPlus, Home, MapPin, Layers, ArrowRight, Search } from 'lucide-react';
 import ImportButton from '../components/ImportButton';
 
 const Dashboard = () => {

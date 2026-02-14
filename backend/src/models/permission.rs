@@ -93,7 +93,7 @@ pub struct RoleWithPermissions {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, FromRow)]
 pub struct UserOverrideInfo {
     pub id: Uuid,
     pub user_id: Uuid,
