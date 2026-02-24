@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'screens/login_screen.dart';
 import 'services/api_service.dart';
 
 void main() {
-  final apiService = ApiService(baseUrl: 'http://localhost:3000');
+  // Use 10.0.2.2 for Android emulator, localhost for others
+  final String baseUrl = Platform.isAndroid 
+      ? 'http://10.0.2.2:3000' 
+      : 'http://localhost:3000';
+      
+  final apiService = ApiService(baseUrl: baseUrl);
   runApp(SanctusApp(apiService: apiService));
 }
 

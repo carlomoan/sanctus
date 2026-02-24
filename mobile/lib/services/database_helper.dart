@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../models/parish.dart';
 import '../models/member.dart';
 import '../models/transaction.dart';
 import '../models/sacrament.dart';

@@ -123,7 +123,7 @@ class _MemberFormScreenState extends State<MemberFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<GenderType>(
-                value: _gender,
+                initialValue: _gender,
                 decoration: const InputDecoration(labelText: 'Gender'),
                 items: GenderType.values.map((g) {
                   return DropdownMenuItem(value: g, child: Text(g.toString().split('.').last));
@@ -132,7 +132,7 @@ class _MemberFormScreenState extends State<MemberFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<MaritalStatus>(
-                value: _maritalStatus,
+                initialValue: _maritalStatus,
                 decoration: const InputDecoration(labelText: 'Marital Status'),
                 items: MaritalStatus.values.map((s) {
                   return DropdownMenuItem(value: s, child: Text(s.toString().split('.').last));

@@ -17,6 +17,7 @@ import UserProfile from './pages/UserProfile';
 import Settings from './pages/Settings';
 import RoleManagement from './pages/RoleManagement';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SettingsProvider } from './context/SettingsContext';
 import './App.css'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -40,38 +41,40 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="parishes" element={<Parishes />} />
-            <Route path="clusters" element={<Clusters />} />
-            <Route path="families" element={<Families />} />
-            <Route path="members" element={<Members />} />
-            <Route path="members/:id" element={<MemberProfile />} />
-            <Route path="sacraments" element={<Sacraments />} />
-            <Route path="finance" element={<Finance />} />
-            <Route path="budgets" element={<Budgets />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="import" element={<DataImport />} />
-            <Route path="users" element={<Users />} />
-            <Route path="profile" element={<UserProfile />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="roles" element={<RoleManagement />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
+      <SettingsProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="parishes" element={<Parishes />} />
+              <Route path="clusters" element={<Clusters />} />
+              <Route path="families" element={<Families />} />
+              <Route path="members" element={<Members />} />
+              <Route path="members/:id" element={<MemberProfile />} />
+              <Route path="sacraments" element={<Sacraments />} />
+              <Route path="finance" element={<Finance />} />
+              <Route path="budgets" element={<Budgets />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="import" element={<DataImport />} />
+              <Route path="users" element={<Users />} />
+              <Route path="profile" element={<UserProfile />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="roles" element={<RoleManagement />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </SettingsProvider>
     </AuthProvider>
-  )
+  );
 }
 
 export default App

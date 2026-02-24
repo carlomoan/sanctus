@@ -153,7 +153,7 @@ class _SacramentScreenState extends State<SacramentScreen> {
               const SizedBox(height: 16),
               
               DropdownButtonFormField<SacramentType>(
-                value: _sacramentType,
+                initialValue: _sacramentType,
                 decoration: const InputDecoration(labelText: 'Sacrament Type'),
                 items: SacramentType.values.map((s) {
                   return DropdownMenuItem(

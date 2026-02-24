@@ -1,5 +1,3 @@
-import 'enums.dart';
-
 class Parish {
   final String id;
   final String dioceseId;

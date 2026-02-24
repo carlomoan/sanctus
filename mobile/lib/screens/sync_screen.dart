@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import '../services/sync_service.dart';
 
 class SyncScreen extends StatefulWidget {

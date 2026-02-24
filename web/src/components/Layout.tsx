@@ -1,8 +1,9 @@
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, Church, Coins, Menu, X, Scroll, LogOut, ShieldCheck, Wallet, FileBarChart, Upload, Network, Home, Settings, ChevronDown, ChevronRight, LucideIcon, Shield } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import classNames from 'classnames';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { UserRole } from '../types';
 import ToastContainer, { ToastType } from './Toast';
 
@@ -19,12 +20,28 @@ interface NavSection {
 }
 
 const Layout = () => {
+  const { getSetting, loading } = useSettings();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['people', 'finance']));
   const [toasts, setToasts] = useState<{ id: string; type: ToastType; message: string }[]>([]);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  // Initialize sidebar state once settings are loaded
+  useEffect(() => {
+    if (!loading && !settingsLoaded) {
+      const collapsed = getSetting('ui.sidebar_collapsed') === 'true';
+      setIsSidebarOpen(!collapsed);
+      setSettingsLoaded(true);
+    }
+  }, [loading, settingsLoaded, getSetting]);
+
+  const appName = getSetting('ui.app_name') || 'Sanctus';
+  const logoUrl = getSetting('ui.logo_url');
+  const footerContent = getSetting('ui.footer_content');
+  const showFooter = getSetting('ui.footer_show') !== 'false';
 
   const handleLogout = () => {
     logout();
@@ -113,7 +130,7 @@ const Layout = () => {
       {/* Sidebar */}
       <div
         className={classNames(
-          "bg-white shadow-lg transition-all duration-300 ease-in-out flex flex-col",
+          "bg-sidebar-bg text-sidebar-text shadow-lg transition-all duration-300 ease-in-out flex flex-col",
           {
             "w-64": isSidebarOpen,
             "w-20": !isSidebarOpen,
@@ -121,15 +138,20 @@ const Layout = () => {
         )}
       >
         {/* Logo / Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 h-16">
-          {isSidebarOpen ? (
-            <h1 className="text-xl font-bold text-primary-600 truncate">Sanctus</h1>
-          ) : (
-            <span className="text-xl font-bold text-primary-600 mx-auto">S</span>
-          )}
+        <div className="flex items-center justify-between p-4 border-b border-gray-100/10 h-16 bg-sidebar-bg">
+          <div className="flex items-center gap-2 overflow-hidden">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-8 w-8 object-contain" />
+            ) : null}
+            {isSidebarOpen ? (
+              <h1 className="text-xl font-bold text-primary-600 truncate">{appName}</h1>
+            ) : (
+              !logoUrl && <span className="text-xl font-bold text-primary-600 mx-auto">{appName.charAt(0)}</span>
+            )}
+          </div>
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-1 rounded-md hover:bg-gray-100 text-gray-500"
+            className="p-1 rounded-md hover:bg-gray-100/10 text-sidebar-text opacity-70 hover:opacity-100"
           >
             {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -144,7 +166,7 @@ const Layout = () => {
               <div key={section.id}>
                 <button
                   onClick={() => toggleSection(section.id)}
-                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-700 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider opacity-70 hover:opacity-100 transition-colors text-sidebar-text"
                 >
                   <span>{section.label}</span>
                   <Chevron size={14} />
@@ -161,8 +183,8 @@ const Layout = () => {
                           className={classNames(
                             "flex items-center px-3 py-2 rounded-md transition-colors",
                             {
-                              "bg-primary-50 text-primary-700": isActive,
-                              "text-gray-600 hover:bg-gray-50 hover:text-gray-900": !isActive,
+                              "bg-sidebar-active bg-primary-50/10 text-primary-600": isActive,
+                              "text-sidebar-text hover:bg-gray-100/10 opacity-80 hover:opacity-100": !isActive,
                               "justify-center": !isSidebarOpen,
                             }
                           )}
@@ -181,26 +203,26 @@ const Layout = () => {
         </nav>
 
         {/* Footer / User Profile */}
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 border-t border-gray-100/10">
           <div className={classNames("flex items-center justify-between", { "flex-col gap-4": !isSidebarOpen })}>
             <Link
               to="/profile"
-              className="flex items-center min-w-0 hover:bg-gray-50 rounded-md p-1 -ml-1 transition-colors flex-1"
+              className="flex items-center min-w-0 hover:bg-gray-100/10 rounded-md p-1 -ml-1 transition-colors flex-1 text-sidebar-text"
             >
               <div className="w-8 h-8 rounded-full bg-primary-100 flex-shrink-0 flex items-center justify-center text-primary-700 font-bold">
                 {user?.full_name?.[0] || 'U'}
               </div>
               {isSidebarOpen && (
                 <div className="ml-3 truncate text-left">
-                  <p className="text-sm font-medium text-gray-900 truncate">{user?.full_name}</p>
-                  <p className="text-xs text-gray-500 truncate">{user?.role.replace('_', ' ')}</p>
+                  <p className="text-sm font-medium truncate opacity-90">{user?.full_name}</p>
+                  <p className="text-xs truncate opacity-70">{user?.role.replace('_', ' ')}</p>
                 </div>
               )}
             </Link>
             <button
               onClick={handleLogout}
               className={classNames(
-                "p-2 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50 transition-colors",
+                "p-2 opacity-60 hover:text-red-600 rounded-md hover:bg-red-50/10 transition-colors",
                 { "mt-2": !isSidebarOpen }
               )}
               title="Logout"
@@ -212,10 +234,15 @@ const Layout = () => {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">
+      <main className="flex-1 overflow-auto flex flex-col">
+        <div className="flex-1 p-8">
           <Outlet />
         </div>
+        {showFooter && (
+          <footer className="bg-footer-bg text-footer-text py-4 px-8 text-sm text-center border-t border-gray-200">
+            {footerContent}
+          </footer>
+        )}
       </main>
 
       {/* Toast Notifications */}

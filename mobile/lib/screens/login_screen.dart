@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../models/user.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -28,11 +27,13 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final response = await widget.apiService.login(
+      await widget.apiService.login(
         _usernameController.text,
         _passwordController.text,
       );
       
+      if (!mounted) return;
+
       // Navigate to Home on success
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -40,13 +41,16 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = e.toString().replaceAll('Exception: ', '');
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -61,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
             constraints: const BoxConstraints(maxWidth: 400),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: MainAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Icon(
                   Icons.church,
@@ -95,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (_errorMessage != null)
                         Container(
                           padding: const EdgeInsets.all(12),
-                          margin: const EdgeInsets.bottom(16),
+                          margin: const EdgeInsets.only(bottom: 16),
                           decoration: BoxDecoration(
                             color: Colors.red[50],
                             border: Border.all(color: Colors.red[200]!),
@@ -137,18 +141,25 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                       ),
                       const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _login,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _login,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text(
+                                  'Sign In',
+                                  style: TextStyle(fontSize: 18),
+                                ),
                         ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator()
-                            : const Text(
-                                'Sign In',
-                                style: TextStyle(fontSize: 18),
-                              ),
                       ),
                     ],
                   ),

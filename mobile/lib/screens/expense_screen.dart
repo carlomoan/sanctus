@@ -90,7 +90,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
           child: ListView(
             children: [
               DropdownButtonFormField<TransactionCategory>(
-                value: _category,
+                initialValue: _category,
                 decoration: const InputDecoration(labelText: 'Category'),
                 items: TransactionCategory.values.map((c) {
                   return DropdownMenuItem(
@@ -129,7 +129,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               const SizedBox(height: 16),
               
               DropdownButtonFormField<PaymentMethod>(
-                value: _paymentMethod,
+                initialValue: _paymentMethod,
                 decoration: const InputDecoration(labelText: 'Payment Method'),
                 items: PaymentMethod.values.map((m) {
                   return DropdownMenuItem(
