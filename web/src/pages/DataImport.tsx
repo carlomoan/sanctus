@@ -3,33 +3,30 @@ import { api } from '../api/client';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Info, Filter } from 'lucide-react';
 import { Parish } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useParish } from '../context/ParishContext';
 
 const DataImport = () => {
-  const [importType, setReportType] = useState<'members' | 'transactions'>('members');
+  const [importType, setReportType] = useState<'members' | 'transactions' | 'clusters'>('members');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success_count: number; errors: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { user } = useAuth();
+  const { getEffectiveParishId, activeParishId, setActiveParish } = useParish();
   const [parishes, setParishes] = useState<Parish[]>([]);
-  const [selectedParishId, setSelectedParishId] = useState<string>('');
 
   useEffect(() => {
     const fetchParishes = async () => {
       try {
         const data = await api.listParishes();
         setParishes(data);
-        if (data.length > 0 && !selectedParishId) {
-          // Default to user's parish if available, otherwise first in list (or empty if forcing selection)
-          setSelectedParishId(user?.parish_id || data[0].id);
-        }
       } catch (err) {
         console.error('Failed to load parishes:', err);
       }
     };
     fetchParishes();
-  }, [user]);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -42,7 +39,9 @@ const DataImport = () => {
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return;
-    if (!selectedParishId && !user?.parish_id) {
+
+    const targetParishId = getEffectiveParishId();
+    if (!targetParishId) {
       setError("Please select a parish for import.");
       return;
     }
@@ -53,11 +52,12 @@ const DataImport = () => {
 
     try {
       let response;
-      const targetParishId = selectedParishId || user?.parish_id;
       if (importType === 'members') {
         response = await api.importMembers(file, targetParishId);
-      } else {
+      } else if (importType === 'transactions') {
         response = await api.importTransactions(file, targetParishId);
+      } else if (importType === 'clusters') {
+        response = await api.importClusters(file, targetParishId);
       }
       setResult({
         success_count: response.success_count,
@@ -88,8 +88,8 @@ const DataImport = () => {
                   <div className="flex items-center gap-2">
                     <Filter size={20} className="text-gray-400" />
                     <select
-                      value={selectedParishId}
-                      onChange={(e) => setSelectedParishId(e.target.value)}
+                      value={activeParishId || ''}
+                      onChange={(e) => setActiveParish(e.target.value || null)}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
                       required
                     >
@@ -120,6 +120,14 @@ const DataImport = () => {
                       }`}
                   >
                     Transactions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReportType('clusters')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${importType === 'clusters' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                  >
+                    Clusters
                   </button>
                 </div>
               </div>
@@ -213,7 +221,7 @@ const DataImport = () => {
                     <li><code className="bg-gray-100 px-1 rounded">phone_number</code></li>
                   </ul>
                 </div>
-              ) : (
+              ) : importType === 'transactions' ? (
                 <div className="space-y-2">
                   <p className="font-medium text-gray-900">Expected CSV Columns:</p>
                   <ul className="list-disc pl-5 space-y-1">
@@ -223,6 +231,19 @@ const DataImport = () => {
                     <li><code className="bg-gray-100 px-1 rounded">transaction_date</code> (YYYY-MM-DD)</li>
                     <li><code className="bg-gray-100 px-1 rounded">description</code></li>
                   </ul>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="font-medium text-gray-900">Expected CSV/Excel Columns:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li><code className="bg-gray-100 px-1 rounded">cluster_code</code> (Unique identifier for the cluster)</li>
+                    <li><code className="bg-gray-100 px-1 rounded">cluster_name</code> (Name of the cluster)</li>
+                    <li><code className="bg-gray-100 px-1 rounded">location_description</code> (Optional: Physical location)</li>
+                    <li><code className="bg-gray-100 px-1 rounded">leader_name</code> (Optional: Name of cluster leader)</li>
+                  </ul>
+                  <p className="text-orange-600 text-xs mt-2">
+                    <strong>Note:</strong> A parish must be selected before importing clusters. Each cluster belongs to a specific parish.
+                  </p>
                 </div>
               )}
 

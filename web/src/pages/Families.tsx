@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { Family, CreateFamilyRequest, Parish, Scc, Member, CreateMemberRequest, FamilyRole, GenderType, MaritalStatus, UserRole } from '../types';
-import { Plus, Users, Edit, Trash2, ChevronDown, ChevronRight, UserPlus, Search } from 'lucide-react';
+import { Plus, Users, Edit, Trash2, ChevronDown, ChevronRight, UserPlus, Search, Upload, FileText } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
-import ImportButton from '../components/ImportButton';
+import { useParish } from '../context/ParishContext';
 
 const cls = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2";
 
 const Families = () => {
   const { user } = useAuth();
+  const { getEffectiveParishId, activeParishId, setActiveParish } = useParish();
+  const [searchParams] = useSearchParams();
+  const preSelectedSccId = searchParams.get('scc');
   const [families, setFamilies] = useState<Family[]>([]);
   const [parishes, setParishes] = useState<Parish[]>([]);
   const [sccs, setSccs] = useState<Scc[]>([]);
@@ -23,32 +27,35 @@ const Families = () => {
   const [memberTargetFamily, setMemberTargetFamily] = useState<Family | null>(null);
   const [editingMember, setEditingMember] = useState<Member | undefined>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedSccForImport, setSelectedSccForImport] = useState<string>('');
 
   const isDioceseAdmin = user?.role === UserRole.SUPER_ADMIN;
   const isViewer = user?.role === UserRole.VIEWER;
-  const userParishId = user?.parish_id;
+
+  // Get parish ID from context
+  const parishId = getEffectiveParishId();
 
   const fetchData = async () => {
     try {
-      const parishId = isDioceseAdmin ? undefined : userParishId;
       const [f, p, s, m] = await Promise.all([
         api.listFamilies(parishId),
-        isDioceseAdmin ? api.listParishes() : (userParishId ? api.listParishes() : Promise.resolve([])),
+        isDioceseAdmin ? api.listParishes() : Promise.resolve([]),
         api.listSccs(parishId),
         api.listMembers(parishId),
       ]);
       setFamilies(f);
-      setParishes(isDioceseAdmin ? p : p.filter(pp => pp.id === userParishId));
+      setParishes(p);
       setSccs(s);
       setAllMembers(m);
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [parishId]);
 
   const handleFamilySubmit = async (data: any) => {
     try {
-      if (!isDioceseAdmin && userParishId) {
-        data.parish_id = userParishId;
+      if (isDioceseAdmin && activeParishId) {
+        data.parish_id = activeParishId;
       }
       if (selected) await api.updateFamily(selected.id, data);
       else await api.createFamily(data);
@@ -104,21 +111,39 @@ const Families = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Families</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Families</h1>
+          {isDioceseAdmin && parishes.length > 0 && (
+            <div className="mt-2">
+              <select
+                value={activeParishId || ''}
+                onChange={(e) => setActiveParish(e.target.value || null)}
+                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">All Parishes</option>
+                {parishes.map(parish => (
+                  <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
         <div className="flex gap-2 items-center">
           {!isViewer && (
             <>
-              <ImportButton
-                label="Import Families"
-                onImport={async (file) => {
-                  const parish = parishes[0];
-                  if (!parish) throw new Error('No parish available');
-                  const res = await api.importFamilies(file, parish.id);
-                  await fetchData();
-                  return res;
+              <button
+                onClick={() => {
+                  if (sccs.length === 0) {
+                    alert('Please create SCCs first before importing families');
+                    return;
+                  }
+                  setShowImportModal(true);
                 }}
-                templateColumns={['family_code', 'family_name', 'scc_code', 'physical_address', 'primary_phone', 'email', 'notes']}
-              />
+                className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
+              >
+                <Upload size={20} />
+                Import Families
+              </button>
               <button onClick={() => { setSelected(undefined); setIsModalOpen(true); }} className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700">
                 <Plus size={20} />Add Family
               </button>
@@ -314,6 +339,7 @@ const Families = () => {
           parishes={parishes}
           sccs={sccs}
           userParishId={isDioceseAdmin ? undefined : userParishId}
+          preSelectedSccId={preSelectedSccId || undefined}
           onSubmit={handleFamilySubmit}
           onCancel={() => setIsModalOpen(false)}
         />
@@ -335,6 +361,99 @@ const Families = () => {
           />
         )}
       </Modal>
+
+      {/* Family Import Selection Modal */}
+      <Modal
+        isOpen={showImportModal}
+        onClose={() => { setShowImportModal(false); setSelectedSccForImport(''); }}
+        title="Import Families - Select SCC"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Select the SCC for which you want to import families:
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">SCC *</label>
+            <select
+              value={selectedSccForImport}
+              onChange={(e) => setSelectedSccForImport(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+              required
+            >
+              <option value="">Select SCC</option>
+              {sccs.map(s => (
+                <option key={s.id} value={s.id}>{s.scc_name} ({s.scc_code})</option>
+              ))}
+            </select>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <FileText size={16} className="text-blue-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-blue-800">Template Format</p>
+                <p className="text-xs text-blue-700 mt-1">
+                  Your CSV file should include these columns: <code>family_code, family_name, scc_code, physical_address, primary_phone, email, notes</code>
+                </p>
+                <button
+                  onClick={() => {
+                    const csv = 'family_code,family_name,scc_code,physical_address,primary_phone,email,notes\n';
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'families_template.csv';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-800 underline mt-2"
+                >
+                  Download Template
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <button
+              onClick={() => { setShowImportModal(false); setSelectedSccForImport(''); }}
+              className="px-4 py-2 border rounded-md text-sm text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (!selectedSccForImport) {
+                  alert('Please select an SCC');
+                  return;
+                }
+                // Trigger actual file selection
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.csv,.xlsx';
+                input.onchange = async (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0];
+                  if (file) {
+                    try {
+                      const scc = sccs.find(s => s.id === selectedSccForImport);
+                      if (!scc) return;
+                      const res = await api.importFamilies(file, scc.parish_id);
+                      await fetchData();
+                      alert(`Successfully imported ${res.success_count} families${res.errors.length > 0 ? `. ${res.errors.length} errors occurred.` : ''}`);
+                    } catch (err: any) {
+                      alert('Import failed: ' + err.message);
+                    }
+                  }
+                };
+                input.click();
+                setShowImportModal(false);
+                setSelectedSccForImport('');
+              }}
+              className="px-4 py-2 rounded-md text-sm text-white bg-primary-600 hover:bg-primary-700"
+            >
+              Next: Select File
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
@@ -345,11 +464,12 @@ interface FamilyFormProps {
   parishes: Parish[];
   sccs: Scc[];
   userParishId?: string;
+  preSelectedSccId?: string;
   onSubmit: (d: any) => Promise<void>;
   onCancel: () => void;
 }
 
-const FamilyForm = ({ initialData, parishes, sccs, userParishId, onSubmit, onCancel }: FamilyFormProps) => {
+const FamilyForm = ({ initialData, parishes, sccs, userParishId, preSelectedSccId, onSubmit, onCancel }: FamilyFormProps) => {
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<CreateFamilyRequest>();
   useEffect(() => {
     if (initialData) {
@@ -363,9 +483,12 @@ const FamilyForm = ({ initialData, parishes, sccs, userParishId, onSubmit, onCan
         email: initialData.email || '',
       });
     } else if (userParishId) {
-      reset({ parish_id: userParishId });
+      reset({
+        parish_id: userParishId,
+        scc_id: preSelectedSccId || '' as any
+      });
     }
-  }, [initialData, reset, userParishId]);
+  }, [initialData, reset, userParishId, preSelectedSccId]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -382,8 +505,8 @@ const FamilyForm = ({ initialData, parishes, sccs, userParishId, onSubmit, onCan
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        {userParishId ? (
-          <input type="hidden" {...register('parish_id')} value={userParishId} />
+        {activeParishId ? (
+          <input type="hidden" {...register('parish_id')} value={activeParishId} />
         ) : (
           <div>
             <label className="block text-sm font-medium text-gray-700">Parish *</label>
@@ -395,10 +518,15 @@ const FamilyForm = ({ initialData, parishes, sccs, userParishId, onSubmit, onCan
         )}
         <div>
           <label className="block text-sm font-medium text-gray-700">SCC</label>
-          <select {...register('scc_id')} className={cls}>
+          <select {...register('scc_id')} disabled={!!preSelectedSccId} className={cls + (!!preSelectedSccId ? ' disabled:bg-gray-100' : '')}>
             <option value="">-- None --</option>
             {sccs.map(s => <option key={s.id} value={s.id}>{s.scc_name}</option>)}
           </select>
+          {preSelectedSccId && (
+            <p className="text-xs text-gray-500 mt-1">
+              SCC pre-selected: {sccs.find(s => s.id === preSelectedSccId)?.scc_name}
+            </p>
+          )}
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">

@@ -6,14 +6,15 @@ import { useAuth } from './AuthContext';
 interface SettingsContextType {
   settings: Record<string, string>;
   loading: boolean;
-  refreshSettings: () => Promise<void>;
+  refreshSettings: (parishId?: string | null) => Promise<void>;
   getSetting: (key: string) => string;
+  setSelectedParishId: (parishId: string | null) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 // Helper to generate color palette
-function generatePalette(hex: string) {
+function generateColorPalette(hex: string) {
   // Simple shade generator - in a real app, use a library like 'tinycolor2' or 'colord'
   // This is a basic implementation to avoid deps
 
@@ -65,9 +66,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const [selectedParishId, setSelectedParishId] = useState<string | null>(null);
 
-  const refreshSettings = async () => {
+  const refreshSettings = async (parishId?: string | null) => {
     setLoading(true);
+    // Clear settings to force fresh load
+    setSettings({});
     try {
       const finalSettings: Record<string, string> = {};
 
@@ -89,11 +93,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.warn('Failed to load global settings (likely not logged in)', e);
       }
 
-      // 3. Load Parish Settings (if user has parish_id)
-      if (user?.parish_id) {
+      // 3. Load Parish Settings
+      const pid = parishId || selectedParishId || user?.parish_id;
+      if (pid) {
         try {
-          console.log('Loading parish settings for:', user.parish_id);
-          const parishSettingsResponse = await api.listSettings(user.parish_id);
+          console.log('Loading parish settings for:', pid);
+          const parishSettingsResponse = await api.listSettings(pid);
           console.log('Parish settings response:', parishSettingsResponse);
           if (Array.isArray(parishSettingsResponse)) {
             parishSettingsResponse.forEach((s: any) => {
@@ -119,11 +124,21 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const applyTheme = (currentSettings: Record<string, string>) => {
     const root = document.documentElement;
-    const primaryColor = currentSettings['ui.primary_color'];
 
-    // Apply Primary Color Palette
-    if (primaryColor) {
-      const palette = generatePalette(primaryColor);
+    // Clear all CSS variables first to prevent old values from persisting
+    const allColorVars = [
+      '--color-primary-50', '--color-primary-100', '--color-primary-200', '--color-primary-300',
+      '--color-primary-400', '--color-primary-500', '--color-primary-600', '--color-primary-700',
+      '--color-primary-800', '--color-primary-900', '--color-sidebar-bg', '--color-sidebar-text',
+      '--color-sidebar-active-bg', '--color-topbar-bg', '--color-topbar-text',
+      '--color-footer-bg', '--color-footer-text'
+    ];
+    allColorVars.forEach(varName => root.style.removeProperty(varName));
+
+    // Apply primary color palette if set
+    const primaryHex = currentSettings['ui.primary_color'];
+    if (primaryHex) {
+      const palette = generateColorPalette(primaryHex);
       if (palette) {
         Object.entries(palette).forEach(([shade, rgb]) => {
           root.style.setProperty(`--color-primary-${shade}`, `${rgb.r} ${rgb.g} ${rgb.b}`);
@@ -152,13 +167,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   useEffect(() => {
+    // Clear any cached settings on initial load
+    setSettings({});
     refreshSettings();
-  }, [user?.id, user?.parish_id]);
+  }, [user?.id, user?.parish_id, selectedParishId]);
 
   const getSetting = (key: string) => settings[key] ?? SETTING_DEFINITIONS.find(d => d.key === key)?.value ?? '';
 
   return (
-    <SettingsContext.Provider value={{ settings, loading, refreshSettings, getSetting }}>
+    <SettingsContext.Provider value={{ settings, loading, refreshSettings, getSetting, setSelectedParishId }}>
       {children}
     </SettingsContext.Provider>
   );

@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Church, Coins, Menu, X, Scroll, LogOut, ShieldCheck, Wallet, FileBarChart, Upload, Network, Home, Settings, ChevronDown, ChevronRight, LucideIcon, Shield } from 'lucide-react';
+import { LayoutDashboard, Users, Church, Coins, Menu, X, Scroll, LogOut, ShieldCheck, Wallet, FileBarChart, Upload, Network, Home, Settings, ChevronDown, ChevronRight, LucideIcon, Shield, Building } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import classNames from 'classnames';
 import { useAuth } from '../context/AuthContext';
@@ -112,6 +112,7 @@ const Layout = () => {
     if (canAdmin) {
       const adminItems: NavItem[] = [];
       if (isDioceseAdmin) {
+        adminItems.push({ name: 'Dioceses', href: '/dioceses', icon: Building });
         adminItems.push({ name: 'Parishes', href: '/parishes', icon: Church });
       }
       adminItems.push({ name: 'Data Import', href: '/import', icon: Upload });

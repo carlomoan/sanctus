@@ -1,18 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import { Member, Parish, CreateMemberRequest, UpdateMemberRequest, UserRole } from '../types';
-import { Plus, Search, User, MapPin, Edit, Trash2, Filter, X, Download } from 'lucide-react';
+import { Member, Parish, CreateMemberRequest, UpdateMemberRequest, UserRole, Family, Cluster, Scc } from '../types';
+import { Plus, Search, User, MapPin, Edit, Trash2, Filter, X, Download, Upload, FileText } from 'lucide-react';
 import Modal from '../components/Modal';
 import MemberForm from '../components/MemberForm';
 import DataTable, { Column, BulkAction } from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
+import { useParish } from '../context/ParishContext';
 
 const Members = () => {
   const { user } = useAuth();
-  const [members, setMembers] = useState<Member[]>([]);
-  const [parishes, setParishes] = useState<Parish[]>([]);
-  const [selectedParishId, setSelectedParishId] = useState<string>('');
+  const { getEffectiveParishId, activeParishId, setActiveParish } = useParish();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,23 +20,32 @@ const Members = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [filterGender, setFilterGender] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedFamilyForImport, setSelectedFamilyForImport] = useState<string>('');
+
+  // Cascading dropdown states
+  const [selectedParish, setSelectedParish] = useState<string>('');
+  const [selectedCluster, setSelectedCluster] = useState<string>('');
+  const [selectedScc, setSelectedScc] = useState<string>('');
+  const [selectedFamily, setSelectedFamily] = useState<string>('');
+
+  // Data for dropdowns
+  const [parishes, setParishes] = useState<Parish[]>([]);
+  const [clusters, setClusters] = useState<Cluster[]>([]);
+  const [sccs, setSccs] = useState<Scc[]>([]);
+  const [families, setFamilies] = useState<Family[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
 
   const isDioceseAdmin = user?.role === UserRole.SUPER_ADMIN;
   const isViewer = user?.role === UserRole.VIEWER;
-  const userParishId = user?.parish_id;
 
+  // Fetch parishes on mount
   useEffect(() => {
     const fetchParishes = async () => {
       try {
-        if (!isDioceseAdmin && userParishId) {
-          setSelectedParishId(userParishId);
-          setParishes([]);
-          return;
-        }
-        const data = await api.listParishes();
-        setParishes(data);
-        if (data.length > 0 && !selectedParishId) {
-          setSelectedParishId(data[0].id);
+        if (isDioceseAdmin) {
+          const data = await api.listParishes();
+          setParishes(data);
         }
       } catch (err) {
         console.error('Failed to load parishes:', err);
@@ -46,25 +54,107 @@ const Members = () => {
     fetchParishes();
   }, []);
 
-  const fetchMembers = async () => {
-    if (!selectedParishId) return;
-
-    setLoading(true);
-    try {
-      const data = await api.listMembers(selectedParishId);
-      setMembers(data);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load members');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch clusters when parish is selected
   useEffect(() => {
+    if (selectedParish) {
+      const fetchClusters = async () => {
+        try {
+          const data = await api.listClusters(selectedParish);
+          setClusters(data);
+          setSelectedCluster('');
+          setSelectedScc('');
+          setSelectedFamily('');
+          setSccs([]);
+          setFamilies([]);
+          setMembers([]);
+        } catch (err) {
+          console.error('Failed to load clusters:', err);
+        }
+      };
+      fetchClusters();
+    }
+  }, [selectedParish]);
+
+  // Fetch SCCs when cluster is selected
+  useEffect(() => {
+    if (selectedCluster) {
+      const fetchSccs = async () => {
+        try {
+          const data = await api.listSccs(selectedParish);
+          setSccs(data.filter(s => s.cluster_id === selectedCluster));
+          setSelectedScc('');
+          setSelectedFamily('');
+          setFamilies([]);
+          setMembers([]);
+        } catch (err) {
+          console.error('Failed to load SCCs:', err);
+        }
+      };
+      fetchSccs();
+    }
+  }, [selectedCluster, selectedParish]);
+
+  // Fetch families when SCC is selected
+  useEffect(() => {
+    if (selectedScc) {
+      const fetchFamilies = async () => {
+        try {
+          const data = await api.listFamilies(selectedParish);
+          setFamilies(data.filter(f => f.scc_id === selectedScc));
+          setSelectedFamily('');
+          setMembers([]);
+        } catch (err) {
+          console.error('Failed to load families:', err);
+        }
+      };
+      fetchFamilies();
+    }
+  }, [selectedScc, selectedParish]);
+
+  // Fetch members when any selection is made
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!selectedParish) {
+        setMembers([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        let memberData = await api.listMembers(selectedParish);
+
+        // Filter based on the deepest selection made
+        if (selectedFamily) {
+          // Show family members
+          memberData = memberData.filter(m => m.family_id === selectedFamily);
+        } else if (selectedScc) {
+          // Show SCC members (all families in this SCC)
+          const sccFamilies = families.filter(f => f.scc_id === selectedScc);
+          const familyIds = sccFamilies.map(f => f.id);
+          memberData = memberData.filter(m => familyIds.includes(m.family_id));
+        } else if (selectedCluster) {
+          // Show cluster members (all SCCs and families in this cluster)
+          const clusterSccs = sccs.filter(s => s.cluster_id === selectedCluster);
+          const sccFamilyIds = families
+            .filter(f => clusterSccs.some(s => s.id === f.scc_id))
+            .map(f => f.id);
+          memberData = memberData.filter(m => sccFamilyIds.includes(m.family_id));
+        }
+        // else: show all parish members (already filtered by parish)
+
+        setMembers(memberData);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch members:', err);
+        setError('Failed to load members');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchMembers();
-  }, [selectedParishId]);
+  }, [selectedParish, selectedCluster, selectedScc, selectedFamily, families, sccs]);
 
   const filteredMembers = members.filter(member => {
     const matchesSearch =
@@ -88,6 +178,10 @@ const Members = () => {
   const hasActiveFilters = searchQuery || filterGender || filterStatus;
 
   const handleCreate = () => {
+    if (!selectedParish) {
+      alert('Please select a parish first before adding a member');
+      return;
+    }
     setSelectedMember(undefined);
     setIsModalOpen(true);
   };
@@ -116,7 +210,27 @@ const Members = () => {
       } else {
         await api.createMember(data as CreateMemberRequest);
       }
-      await fetchMembers();
+      // Refresh members list at current level
+      if (selectedParish) {
+        let memberData = await api.listMembers(selectedParish);
+
+        // Apply the same filtering logic as in the useEffect
+        if (selectedFamily) {
+          memberData = memberData.filter(m => m.family_id === selectedFamily);
+        } else if (selectedScc) {
+          const sccFamilies = families.filter(f => f.scc_id === selectedScc);
+          const familyIds = sccFamilies.map(f => f.id);
+          memberData = memberData.filter(m => familyIds.includes(m.family_id));
+        } else if (selectedCluster) {
+          const clusterSccs = sccs.filter(s => s.cluster_id === selectedCluster);
+          const sccFamilyIds = families
+            .filter(f => clusterSccs.some(s => s.id === f.scc_id))
+            .map(f => f.id);
+          memberData = memberData.filter(m => sccFamilyIds.includes(m.family_id));
+        }
+
+        setMembers(memberData);
+      }
       setIsModalOpen(false);
     } catch (err) {
       console.error('Failed to save member:', err);
@@ -225,16 +339,88 @@ const Members = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Members</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Members</h1>
+          {/* Cascading Dropdowns */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {/* Parish Dropdown */}
+            {isDioceseAdmin && (
+              <select
+                value={selectedParish}
+                onChange={(e) => setSelectedParish(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">Select Parish</option>
+                {parishes.map(parish => (
+                  <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
+                ))}
+              </select>
+            )}
+
+            {/* Cluster Dropdown */}
+            <select
+              value={selectedCluster}
+              onChange={(e) => setSelectedCluster(e.target.value)}
+              disabled={!selectedParish}
+              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+            >
+              <option value="">Select Cluster</option>
+              {clusters.map(cluster => (
+                <option key={cluster.id} value={cluster.id}>{cluster.cluster_name}</option>
+              ))}
+            </select>
+
+            {/* SCC Dropdown */}
+            <select
+              value={selectedScc}
+              onChange={(e) => setSelectedScc(e.target.value)}
+              disabled={!selectedCluster}
+              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+            >
+              <option value="">Select SCC</option>
+              {sccs.map(scc => (
+                <option key={scc.id} value={scc.id}>{scc.scc_name}</option>
+              ))}
+            </select>
+
+            {/* Family Dropdown */}
+            <select
+              value={selectedFamily}
+              onChange={(e) => setSelectedFamily(e.target.value)}
+              disabled={!selectedScc}
+              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+            >
+              <option value="">Select Family</option>
+              {families.map(family => (
+                <option key={family.id} value={family.id}>{family.family_name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
         {!isViewer && (
-          <button
-            onClick={handleCreate}
-            disabled={!selectedParishId}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus size={20} />
-            Add Member
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                if (families.length === 0) {
+                  alert('Please create families first before importing members');
+                  return;
+                }
+                setShowImportModal(true);
+              }}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 transition-colors"
+            >
+              <Upload size={20} />
+              Import Members
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={!selectedParish}
+              className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus size={20} />
+              Add Member
+            </button>
+          </div>
         )}
       </div>
 
@@ -256,8 +442,8 @@ const Members = () => {
             <div className="flex items-center gap-2">
               <Filter size={20} className="text-gray-400" />
               <select
-                value={selectedParishId}
-                onChange={(e) => setSelectedParishId(e.target.value)}
+                value={selectedParish}
+                onChange={(e) => setSelectedParish(e.target.value)}
                 className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
               >
                 <option value="" disabled>Select Parish</option>
@@ -324,24 +510,57 @@ const Members = () => {
       </div>
 
       {/* Member List */}
-      {!selectedParishId ? (
+      {!selectedParish ? (
         <div className="text-center py-12 bg-white rounded-lg border border-gray-100">
-          <p className="text-gray-500">Please select a parish to view members.</p>
+          <User size={48} className="mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Parish to View Members</h3>
+          <p className="text-gray-500">
+            {isDioceseAdmin ? 'Please select a parish to view its members.' : 'Please select a parish from the context menu.'}
+          </p>
         </div>
       ) : loading ? (
         <div className="text-center py-12 text-gray-500">Loading members...</div>
       ) : error ? (
         <div className="text-center py-12 text-red-500">{error}</div>
       ) : (
-        <DataTable<Member>
-          data={filteredMembers}
-          columns={memberColumns}
-          keyField="id"
-          bulkActions={memberBulkActions}
-          emptyIcon={<User size={24} />}
-          emptyTitle="No members found"
-          emptyMessage="Get started by adding a new member to this parish."
-        />
+        <div>
+          {/* Context Header */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center gap-2">
+              <User size={20} className="text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">
+                Showing members for:
+                <span className="font-bold">
+                  {selectedFamily ? ` ${families.find(f => f.id === selectedFamily)?.family_name}` :
+                    selectedScc ? ` ${sccs.find(s => s.id === selectedScc)?.scc_name}` :
+                      selectedCluster ? ` ${clusters.find(c => c.id === selectedCluster)?.cluster_name}` :
+                        ` ${parishes.find(p => p.id === selectedParish)?.parish_name}`}
+                </span>
+                {selectedFamily && ` (Family)`}
+                {selectedScc && !selectedFamily && ` (SCC)`}
+                {selectedCluster && !selectedScc && ` (Cluster)`}
+                {!selectedCluster && ` (Parish)`}
+              </span>
+            </div>
+            <p className="text-xs text-blue-700 mt-1">
+              {selectedFamily ? 'Members of this specific family' :
+                selectedScc ? 'All members from all families in this SCC' :
+                  selectedCluster ? 'All members from all SCCs and families in this cluster' :
+                    'All members in this parish'}
+            </p>
+          </div>
+
+          {/* Members Table */}
+          <DataTable<Member>
+            data={filteredMembers}
+            columns={memberColumns}
+            keyField="id"
+            bulkActions={memberBulkActions}
+            emptyIcon={<User size={24} />}
+            emptyTitle="No members found"
+            emptyMessage={`No members found${selectedFamily ? ' in this family' : selectedScc ? ' in this SCC' : selectedCluster ? ' in this cluster' : ' in this parish'}.`}
+          />
+        </div>
       )}
 
       <Modal
@@ -351,10 +570,103 @@ const Members = () => {
       >
         <MemberForm
           initialData={selectedMember}
-          parishId={selectedParishId}
+          parishId={selectedParish}
           onCancel={() => setIsModalOpen(false)}
           onSubmit={handleSubmit}
         />
+      </Modal>
+
+      {/* Member Import Selection Modal */}
+      <Modal
+        isOpen={showImportModal}
+        onClose={() => { setShowImportModal(false); setSelectedFamilyForImport(''); }}
+        title="Import Members - Select Family"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Select the family for which you want to import members:
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Family *</label>
+            <select
+              value={selectedFamilyForImport}
+              onChange={(e) => setSelectedFamilyForImport(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+              required
+            >
+              <option value="">Select Family</option>
+              {families.map(f => (
+                <option key={f.id} value={f.id}>{f.family_name} ({f.family_code})</option>
+              ))}
+            </select>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-start gap-2">
+              <FileText size={16} className="text-blue-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-blue-800">Template Format</p>
+                <p className="text-xs text-blue-700 mt-1">
+                  Your CSV file should include these columns: <code>first_name, last_name, member_code, gender, date_of_birth, phone_number, email, physical_address, role, is_active</code>
+                </p>
+                <button
+                  onClick={() => {
+                    const csv = 'first_name,last_name,member_code,gender,date_of_birth,phone_number,email,physical_address,role,is_active\n';
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'members_template.csv';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-800 underline mt-2"
+                >
+                  Download Template
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <button
+              onClick={() => { setShowImportModal(false); setSelectedFamilyForImport(''); }}
+              className="px-4 py-2 border rounded-md text-sm text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (!selectedFamilyForImport) {
+                  alert('Please select a family');
+                  return;
+                }
+                // Trigger actual file selection
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.csv,.xlsx';
+                input.onchange = async (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0];
+                  if (file) {
+                    try {
+                      const family = families.find(f => f.id === selectedFamilyForImport);
+                      if (!family) return;
+                      const res = await api.importMembers(file, family.parish_id);
+                      await fetchMembers();
+                      alert(`Successfully imported ${res.success_count} members${res.errors.length > 0 ? `. ${res.errors.length} errors occurred.` : ''}`);
+                    } catch (err: any) {
+                      alert('Import failed: ' + err.message);
+                    }
+                  }
+                };
+                input.click();
+                setShowImportModal(false);
+                setSelectedFamilyForImport('');
+              }}
+              className="px-4 py-2 rounded-md text-sm text-white bg-primary-600 hover:bg-primary-700"
+            >
+              Next: Select File
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

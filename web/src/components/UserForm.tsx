@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserRole } from '../types';
 
 interface UserFormProps {
   onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
-  parishes: { id: string; parish_name: string }[];
+  parishes: { id: string; parish_name: string; diocese_id: string }[];
+  dioceses: { id: string; diocese_name: string }[];
 }
 
-const UserForm = ({ onSubmit, onCancel, parishes }: UserFormProps) => {
+const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -15,9 +16,22 @@ const UserForm = ({ onSubmit, onCancel, parishes }: UserFormProps) => {
     full_name: '',
     phone_number: '',
     role: UserRole.PARISH_ADMIN,
+    diocese_id: '',
     parish_id: '',
   });
   const [loading, setLoading] = useState(false);
+
+  // Filter parishes based on selected diocese
+  const filteredParishes = formData.diocese_id
+    ? parishes.filter(p => p.diocese_id === formData.diocese_id)
+    : parishes;
+
+  // Reset parish when diocese changes
+  useEffect(() => {
+    if (formData.diocese_id) {
+      setFormData(prev => ({ ...prev, parish_id: '' }));
+    }
+  }, [formData.diocese_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,17 +114,34 @@ const UserForm = ({ onSubmit, onCancel, parishes }: UserFormProps) => {
           </select>
         </div>
         <div>
+          <label className="block text-sm font-medium text-gray-700">Diocese</label>
+          <select
+            value={formData.diocese_id}
+            onChange={(e) => setFormData({ ...formData, diocese_id: e.target.value })}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          >
+            <option value="">Select Diocese</option>
+            {dioceses.map((diocese) => (
+              <option key={diocese.id} value={diocese.id}>{diocese.diocese_name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
           <label className="block text-sm font-medium text-gray-700">Parish (Optional)</label>
           <select
             value={formData.parish_id}
             onChange={(e) => setFormData({ ...formData, parish_id: e.target.value })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            disabled={!formData.diocese_id}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm disabled:bg-gray-100"
           >
-            <option value="">None (Diocese level)</option>
-            {parishes.map((parish) => (
+            <option value="">
+              {formData.diocese_id ? 'Select Parish' : 'First select a diocese'}
+            </option>
+            {filteredParishes.map((parish) => (
               <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
             ))}
           </select>
+          <p className="text-xs text-gray-500 mt-1">Leave empty for diocese-level user</p>
         </div>
       </div>
 

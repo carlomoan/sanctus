@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { User, UserRole, Parish } from '../types';
+import { User, UserRole, Parish, Diocese } from '../types';
 import { Plus, Shield, Trash2, Mail, Phone, Church } from 'lucide-react';
 import Modal from '../components/Modal';
 import UserForm from '../components/UserForm';
@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 const Users = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [parishes, setParishes] = useState<Parish[]>([]);
+  const [dioceses, setDioceses] = useState<Diocese[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,14 +18,16 @@ const Users = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [usersData, parishesData] = await Promise.all([
+      const [usersData, parishesData, diocesesData] = await Promise.all([
         api.listUsers(),
         api.listParishes(),
+        api.listDioceses(),
       ]);
       setUsers(usersData);
       setParishes(parishesData);
+      setDioceses(diocesesData);
     } catch (err) {
-      setError('Failed to load users or parishes');
+      setError('Failed to load users, parishes, or dioceses');
       console.error(err);
     } finally {
       setLoading(false);
@@ -152,6 +155,7 @@ const Users = () => {
           onSubmit={handleCreateUser}
           onCancel={() => setIsModalOpen(false)}
           parishes={parishes}
+          dioceses={dioceses}
         />
       </Modal>
     </div>

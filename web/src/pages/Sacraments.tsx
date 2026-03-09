@@ -6,34 +6,31 @@ import Modal from '../components/Modal';
 import SacramentForm from '../components/SacramentForm';
 import DataTable, { Column, BulkAction } from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
+import { useParish } from '../context/ParishContext';
 
 const Sacraments = () => {
   const { user } = useAuth();
+  const { getEffectiveParishId, activeParishId, setActiveParish } = useParish();
   const isDioceseAdmin = user?.role === UserRole.SUPER_ADMIN;
   const isViewer = user?.role === UserRole.VIEWER;
-  const userParishId = user?.parish_id;
 
   const [sacraments, setSacraments] = useState<SacramentRecord[]>([]);
   const [parishes, setParishes] = useState<Parish[]>([]);
-  const [selectedParishId, setSelectedParishId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSacrament, setSelectedSacrament] = useState<SacramentRecord | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Get parish ID from context
+  const parishId = getEffectiveParishId();
+
   useEffect(() => {
     const fetchParishes = async () => {
       try {
-        if (!isDioceseAdmin && userParishId) {
-          setSelectedParishId(userParishId);
-          setParishes([]);
-          return;
-        }
-        const data = await api.listParishes();
-        setParishes(data);
-        if (data.length > 0 && !selectedParishId) {
-          setSelectedParishId(data[0].id);
+        if (isDioceseAdmin) {
+          const data = await api.listParishes();
+          setParishes(data);
         }
       } catch (err) {
         console.error('Failed to load parishes:', err);
@@ -43,16 +40,16 @@ const Sacraments = () => {
   }, []);
 
   const fetchSacraments = async () => {
-    if (!selectedParishId) return;
+    if (!parishId && !isDioceseAdmin) return;
 
     setLoading(true);
     try {
-      const data = await api.listSacraments(undefined, selectedParishId);
+      const data = await api.listSacraments(undefined, parishId);
       setSacraments(data);
       setError(null);
     } catch (err) {
+      console.error('Failed to fetch sacraments:', err);
       setError('Failed to load sacraments');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -60,7 +57,7 @@ const Sacraments = () => {
 
   useEffect(() => {
     fetchSacraments();
-  }, [selectedParishId]);
+  }, [parishId]);
 
   const handleCreate = () => {
     setSelectedSacrament(undefined);
@@ -205,11 +202,27 @@ const Sacraments = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Sacraments</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Sacraments</h1>
+          {isDioceseAdmin && parishes.length > 0 && (
+            <div className="mt-2">
+              <select
+                value={activeParishId || ''}
+                onChange={(e) => setActiveParish(e.target.value || null)}
+                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">All Parishes</option>
+                {parishes.map(parish => (
+                  <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
         {!isViewer && (
           <button
             onClick={handleCreate}
-            disabled={!selectedParishId}
+            disabled={!parishId && !isDioceseAdmin}
             className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus size={20} />
@@ -278,7 +291,7 @@ const Sacraments = () => {
           initialData={selectedSacrament}
           onSubmit={handleSubmit} // @ts-ignore
           onCancel={() => setIsModalOpen(false)}
-          parishId={selectedParishId}
+          parishId={parishId}
         />
       </Modal>
     </div>

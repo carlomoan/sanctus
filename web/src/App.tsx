@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
+import Dioceses from './pages/Dioceses';
 import Parishes from './pages/Parishes';
 import Members from './pages/Members';
 import Finance from './pages/Finance';
@@ -18,6 +19,7 @@ import Settings from './pages/Settings';
 import RoleManagement from './pages/RoleManagement';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
+import { ParishProvider } from './context/ParishContext';
 import './App.css'
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -41,38 +43,41 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <AuthProvider>
-      <SettingsProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Dashboard />} />
-              <Route path="parishes" element={<Parishes />} />
-              <Route path="clusters" element={<Clusters />} />
-              <Route path="families" element={<Families />} />
-              <Route path="members" element={<Members />} />
-              <Route path="members/:id" element={<MemberProfile />} />
-              <Route path="sacraments" element={<Sacraments />} />
-              <Route path="finance" element={<Finance />} />
-              <Route path="budgets" element={<Budgets />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="import" element={<DataImport />} />
-              <Route path="users" element={<Users />} />
-              <Route path="profile" element={<UserProfile />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="roles" element={<RoleManagement />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
-      </SettingsProvider>
+      <ParishProvider>
+        <SettingsProvider>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="dioceses" element={<Dioceses />} />
+                <Route path="parishes" element={<Parishes />} />
+                <Route path="clusters" element={<Clusters />} />
+                <Route path="families" element={<Families />} />
+                <Route path="members" element={<Members />} />
+                <Route path="members/:id" element={<MemberProfile />} />
+                <Route path="sacraments" element={<Sacraments />} />
+                <Route path="finance" element={<Finance />} />
+                <Route path="budgets" element={<Budgets />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="import" element={<DataImport />} />
+                <Route path="users" element={<Users />} />
+                <Route path="profile" element={<UserProfile />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="roles" element={<RoleManagement />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </SettingsProvider>
+      </ParishProvider>
     </AuthProvider>
   );
 }

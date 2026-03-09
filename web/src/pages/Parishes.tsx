@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
-import { Parish, CreateParishRequest, UpdateParishRequest } from '../types';
+import { Parish, CreateParishRequest, UpdateParishRequest, Diocese } from '../types';
 import { Plus, Search, MapPin, Phone, Mail, Edit, Trash2, Upload, Church } from 'lucide-react';
 import Modal from '../components/Modal';
 import ParishForm from '../components/ParishForm';
@@ -9,6 +9,7 @@ const API_BASE_URL = 'http://localhost:3000';
 
 const Parishes = () => {
   const [parishes, setParishes] = useState<Parish[]>([]);
+  const [dioceses, setDioceses] = useState<Diocese[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,10 +50,14 @@ const Parishes = () => {
 
   const fetchParishes = async () => {
     try {
-      const data = await api.listParishes();
-      setParishes(data);
+      const [parishesData, diocesesData] = await Promise.all([
+        api.listParishes(),
+        api.listDioceses(),
+      ]);
+      setParishes(parishesData);
+      setDioceses(diocesesData);
     } catch (err) {
-      setError('Failed to load parishes');
+      setError('Failed to load parishes or dioceses');
       console.error(err);
     } finally {
       setLoading(false);
@@ -85,18 +90,28 @@ const Parishes = () => {
     }
   };
 
-  const handleSubmit = async (data: CreateParishRequest | UpdateParishRequest) => {
+  const handleSubmit = async (data: any) => {
     try {
+      console.log('Submitting parish data:', data);
+      // Transform empty string values to null for UUID fields
+      const submitData = {
+        ...data,
+        priest_id: data.priest_id || null, // Convert empty string to null
+      };
+      console.log('Transformed parish data:', submitData);
+
       if (selectedParish) {
-        await api.updateParish(selectedParish.id, data as UpdateParishRequest);
+        await api.updateParish(selectedParish.id, submitData as UpdateParishRequest);
       } else {
-        await api.createParish(data as CreateParishRequest);
+        await api.createParish(submitData as CreateParishRequest);
       }
       await fetchParishes();
       setIsModalOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save parish:', err);
-      alert('Failed to save parish');
+      // Show more detailed error message
+      const errorMessage = err?.message || err?.detail || 'Failed to save parish';
+      alert(`Error: ${errorMessage}`);
     }
   };
 
@@ -230,6 +245,7 @@ const Parishes = () => {
           initialData={selectedParish}
           onSubmit={handleSubmit}
           onCancel={() => setIsModalOpen(false)}
+          dioceses={dioceses}
         />
       </Modal>
     </div>
