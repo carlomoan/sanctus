@@ -33,17 +33,31 @@ export default function Clusters() {
 
   const load = async () => {
     try {
-      console.log('Loading clusters with parishId:', parishId);
-      const [c, s, p] = await Promise.all([
-        api.listClusters(parishId || undefined),
-        api.listSccs(parishId || undefined),
-        isDioceseAdmin ? api.listParishes() : Promise.resolve([]),
-      ]);
-      console.log('Loaded clusters:', c);
-      console.log('Loaded SCCs:', s);
-      setC(c); setS(s); setP(p);
+      console.log('Loading clusters with parishId:', parishId, 'isDioceseAdmin:', isDioceseAdmin);
+
+      // Only load clusters and SCCs if we have a parishId
+      if (parishId) {
+        const [c, s, p] = await Promise.all([
+          api.listClusters(parishId),
+          api.listSccs(parishId),
+          isDioceseAdmin ? api.listParishes() : Promise.resolve([]),
+        ]);
+        console.log('Loaded clusters:', c);
+        console.log('Loaded SCCs:', s);
+        setC(c); setS(s); setP(p);
+      } else {
+        // No parish selected - clear data and only load parishes for diocese admin
+        setC([]); setS([]);
+        if (isDioceseAdmin) {
+          const p = await api.listParishes();
+          setP(p);
+        } else {
+          setP([]);
+        }
+      }
     } catch (e) {
       console.error('Failed to load data:', e);
+      setC([]); setS([]); setP([]);
     } finally {
       setL(false);
     }
@@ -63,17 +77,47 @@ export default function Clusters() {
     setM(null);
   };
   const svS = async (d: any) => {
-    const dataWithParish = isDioceseAdmin ? { ...d, parish_id: activeParishId } : d;
-    if (selectedClusterForScc) {
-      dataWithParish.cluster_id = selectedClusterForScc.id;
-      // Use the parish_id from the selected cluster
-      dataWithParish.parish_id = selectedClusterForScc.parish_id;
+    console.log('svS called with data:', d);
+    console.log('selectedClusterForScc:', selectedClusterForScc);
+    console.log('activeParishId:', activeParishId);
+    console.log('isDioceseAdmin:', isDioceseAdmin);
+
+    // Clean and validate the data
+    let dataWithParish = { ...d };
+
+    // Clean meeting_time - ensure it's a valid time format or null
+    if (dataWithParish.meeting_time && dataWithParish.meeting_time.trim() === '') {
+      dataWithParish.meeting_time = null;
     }
-    if (selS) await api.updateScc(selS.id, dataWithParish);
-    else await api.createScc(dataWithParish);
-    await load();
-    setM(null);
-    setSelectedClusterForScc(undefined);
+
+    // Handle parish_id based on context
+    if (selectedClusterForScc) {
+      // When creating SCC for a specific cluster, use the cluster's parish_id
+      dataWithParish.cluster_id = selectedClusterForScc.id;
+      dataWithParish.parish_id = selectedClusterForScc.parish_id;
+      console.log('Using cluster parish_id:', selectedClusterForScc.parish_id);
+    } else if (isDioceseAdmin && !d.parish_id) {
+      // For diocese admin with no parish_id in form data, use active parish
+      dataWithParish.parish_id = activeParishId;
+      console.log('Using activeParishId for diocese admin:', activeParishId);
+    } else if (!d.parish_id) {
+      // For parish admin, parish_id should be in form data
+      console.error('No parish_id found in form data for parish admin');
+      throw new Error('Parish is required');
+    }
+
+    console.log('Final data to save:', dataWithParish);
+
+    try {
+      if (selS) await api.updateScc(selS.id, dataWithParish);
+      else await api.createScc(dataWithParish);
+      await load();
+      setM(null);
+      setSelectedClusterForScc(undefined);
+    } catch (error) {
+      console.error('Failed to save SCC:', error);
+      throw error;
+    }
   };
 
   const handleCreateScc = () => {

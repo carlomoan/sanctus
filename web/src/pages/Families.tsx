@@ -15,6 +15,11 @@ const Families = () => {
   const { getEffectiveParishId, activeParishId, setActiveParish } = useParish();
   const [searchParams] = useSearchParams();
   const preSelectedSccId = searchParams.get('scc');
+
+  // Get parish ID from context
+  const parishId = getEffectiveParishId();
+  const userParishId = user?.parish_id; // For parish admins
+
   const [families, setFamilies] = useState<Family[]>([]);
   const [parishes, setParishes] = useState<Parish[]>([]);
   const [sccs, setSccs] = useState<Scc[]>([]);
@@ -33,11 +38,22 @@ const Families = () => {
   const isDioceseAdmin = user?.role === UserRole.SUPER_ADMIN;
   const isViewer = user?.role === UserRole.VIEWER;
 
-  // Get parish ID from context
-  const parishId = getEffectiveParishId();
-
   const fetchData = async () => {
     try {
+      if (!parishId) {
+        // No parish selected - clear data and only load parishes for diocese admin
+        setFamilies([]);
+        setSccs([]);
+        setAllMembers([]);
+        if (isDioceseAdmin) {
+          const p = await api.listParishes();
+          setParishes(p);
+        } else {
+          setParishes([]);
+        }
+        return;
+      }
+
       const [f, p, s, m] = await Promise.all([
         api.listFamilies(parishId),
         isDioceseAdmin ? api.listParishes() : Promise.resolve([]),
@@ -54,13 +70,26 @@ const Families = () => {
 
   const handleFamilySubmit = async (data: any) => {
     try {
-      if (isDioceseAdmin && activeParishId) {
-        data.parish_id = activeParishId;
+      // Always ensure parish_id is set
+      if (!data.parish_id) {
+        if (isDioceseAdmin && activeParishId) {
+          data.parish_id = activeParishId;
+        } else if (userParishId) {
+          data.parish_id = userParishId;
+        } else {
+          throw new Error('Parish is required');
+        }
       }
+
+      console.log('Submitting family data:', data);
+
       if (selected) await api.updateFamily(selected.id, data);
       else await api.createFamily(data);
       await fetchData(); setIsModalOpen(false);
-    } catch (e) { alert('Failed to save family'); }
+    } catch (e) {
+      console.error('Failed to save family:', e);
+      alert('Failed to save family: ' + (e as Error).message);
+    }
   };
 
   const handleMemberSubmit = async (data: CreateMemberRequest) => {
@@ -339,6 +368,7 @@ const Families = () => {
           parishes={parishes}
           sccs={sccs}
           userParishId={isDioceseAdmin ? undefined : userParishId}
+          activeParishId={activeParishId || undefined}
           preSelectedSccId={preSelectedSccId || undefined}
           onSubmit={handleFamilySubmit}
           onCancel={() => setIsModalOpen(false)}
@@ -464,15 +494,57 @@ interface FamilyFormProps {
   parishes: Parish[];
   sccs: Scc[];
   userParishId?: string;
+  activeParishId?: string;
   preSelectedSccId?: string;
   onSubmit: (d: any) => Promise<void>;
   onCancel: () => void;
 }
 
-const FamilyForm = ({ initialData, parishes, sccs, userParishId, preSelectedSccId, onSubmit, onCancel }: FamilyFormProps) => {
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<CreateFamilyRequest>();
+const FamilyForm = ({ initialData, parishes, sccs, userParishId, activeParishId, preSelectedSccId, onSubmit, onCancel }: FamilyFormProps) => {
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, watch, setValue } = useForm<CreateFamilyRequest>();
+  const [formSccs, setFormSccs] = useState<Scc[]>(sccs);
+  const selectedParishId = watch('parish_id');
+
+  // Load SCCs when parish selection changes
   useEffect(() => {
+    const loadSccs = async () => {
+      console.log('FamilyForm loadSccs called with selectedParishId:', selectedParishId);
+      if (selectedParishId) {
+        try {
+          console.log('Fetching SCCs for parish:', selectedParishId);
+          const sccData = await api.listSccs(selectedParishId);
+          console.log('SCCs loaded:', sccData);
+          console.log('SCC details:', sccData.map(s => ({ id: s.id, scc_name: s.scc_name })));
+          setFormSccs(sccData);
+
+          // If we have a pre-selected SCC and it's in the loaded list, set the form value
+          if (preSelectedSccId && sccData.some(s => s.id === preSelectedSccId)) {
+            console.log('Setting pre-selected SCC value:', preSelectedSccId);
+            setValue('scc_id', preSelectedSccId);
+          }
+        } catch (error) {
+          console.error('Failed to load SCCs:', error);
+          setFormSccs([]);
+        }
+      } else {
+        console.log('No parish selected, clearing SCCs');
+        setFormSccs([]);
+      }
+    };
+
+    loadSccs();
+  }, [selectedParishId, preSelectedSccId, setValue]);
+
+  useEffect(() => {
+    console.log('FamilyForm initialization:', {
+      initialData,
+      userParishId,
+      activeParishId,
+      preSelectedSccId,
+      initialSccs: sccs
+    });
     if (initialData) {
+      console.log('Resetting form with existing data');
       reset({
         family_name: initialData.family_name,
         family_code: initialData.family_code,
@@ -482,13 +554,16 @@ const FamilyForm = ({ initialData, parishes, sccs, userParishId, preSelectedSccI
         primary_phone: initialData.primary_phone || '',
         email: initialData.email || '',
       });
-    } else if (userParishId) {
+    } else if (userParishId || activeParishId) {
+      console.log('Resetting form with new data, parish:', userParishId || activeParishId);
       reset({
-        parish_id: userParishId,
+        parish_id: userParishId || activeParishId,
         scc_id: preSelectedSccId || '' as any
       });
+    } else {
+      console.log('No initial parish data available');
     }
-  }, [initialData, reset, userParishId, preSelectedSccId]);
+  }, [initialData, reset, userParishId, activeParishId, preSelectedSccId, sccs]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -507,6 +582,8 @@ const FamilyForm = ({ initialData, parishes, sccs, userParishId, preSelectedSccI
       <div className="grid grid-cols-2 gap-4">
         {activeParishId ? (
           <input type="hidden" {...register('parish_id')} value={activeParishId} />
+        ) : userParishId ? (
+          <input type="hidden" {...register('parish_id')} value={userParishId} />
         ) : (
           <div>
             <label className="block text-sm font-medium text-gray-700">Parish *</label>
@@ -517,14 +594,21 @@ const FamilyForm = ({ initialData, parishes, sccs, userParishId, preSelectedSccI
           </div>
         )}
         <div>
-          <label className="block text-sm font-medium text-gray-700">SCC</label>
-          <select {...register('scc_id')} disabled={!!preSelectedSccId} className={cls + (!!preSelectedSccId ? ' disabled:bg-gray-100' : '')}>
-            <option value="">-- None --</option>
-            {sccs.map(s => <option key={s.id} value={s.id}>{s.scc_name}</option>)}
+          <label className="block text-sm font-medium text-gray-700">SCC *</label>
+          <select
+            {...register('scc_id', { required: 'SCC is required' })}
+            disabled={!!preSelectedSccId && formSccs.some(s => s.id === preSelectedSccId)}
+            className={cls + (!!preSelectedSccId && formSccs.some(s => s.id === preSelectedSccId) ? ' disabled:bg-gray-100' : '')}
+          >
+            <option value="">Select SCC</option>
+            {formSccs.map(s => (
+              <option key={s.id} value={s.id}>{s.scc_name}</option>
+            ))}
           </select>
-          {preSelectedSccId && (
+          {errors.scc_id && <p className="text-red-500 text-xs mt-1">{errors.scc_id.message}</p>}
+          {preSelectedSccId && formSccs.some(s => s.id === preSelectedSccId) && (
             <p className="text-xs text-gray-500 mt-1">
-              SCC pre-selected: {sccs.find(s => s.id === preSelectedSccId)?.scc_name}
+              SCC pre-selected: {formSccs.find(s => s.id === preSelectedSccId)?.scc_name}
             </p>
           )}
         </div>

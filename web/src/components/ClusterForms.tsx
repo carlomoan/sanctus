@@ -33,12 +33,24 @@ export function CForm({ i, p, selectedParishId, onD, onX }: { i?: Cluster; p: Pa
 export function SForm({ i, p, c, selectedParishId, selectedClusterId, onD, onX }: { i?: Scc; p: Parish[]; c: Cluster[]; selectedParishId?: string; selectedClusterId?: string; onD: (d: any) => Promise<void>; onX: () => void }) {
   const { register, handleSubmit, formState: { isSubmitting }, reset, setValue } = useForm();
   useEffect(() => {
-    if (i) reset(i);
-    else {
-      if (selectedParishId) setValue('parish_id', selectedParishId);
-      if (selectedClusterId) setValue('cluster_id', selectedClusterId);
+    console.log('SForm useEffect:', { i, selectedParishId, selectedClusterId });
+    if (i) {
+      console.log('Resetting form with existing data:', i);
+      reset(i);
+    } else {
+      console.log('Resetting form with new data');
+      const formData: any = {};
+      if (selectedParishId) {
+        formData.parish_id = selectedParishId;
+        console.log('Setting parish_id from selectedParishId:', selectedParishId);
+      }
+      if (selectedClusterId) {
+        formData.cluster_id = selectedClusterId;
+        console.log('Setting cluster_id from selectedClusterId:', selectedClusterId);
+      }
+      reset(formData);
     }
-  }, [i, reset, selectedParishId, selectedClusterId, setValue]);
+  }, [i, reset, selectedParishId, selectedClusterId]);
   return <form onSubmit={handleSubmit(async (data) => {
     console.log('SForm submitting data:', data);
     console.log('selectedParishId:', selectedParishId);
@@ -64,8 +76,8 @@ export function SForm({ i, p, c, selectedParishId, selectedClusterId, onD, onX }
       <div><label className="text-sm font-medium text-gray-700">Leader</label><input {...register('leader_name')} className={ic} /></div>
     </div>
     <div className="grid grid-cols-2 gap-4">
-      <div><label className="text-sm font-medium text-gray-700">Meeting Day</label><input {...register('meeting_day')} className={ic} /></div>
-      <div><label className="text-sm font-medium text-gray-700">Meeting Time</label><input {...register('meeting_time')} className={ic} /></div>
+      <div><label className="text-sm font-medium text-gray-700">Meeting Day</label><input {...register('meeting_day')} className={ic} placeholder="e.g. Sunday" /></div>
+      <div><label className="text-sm font-medium text-gray-700">Meeting Time</label><input {...register('meeting_time')} type="time" className={ic} /></div>
     </div>
     <div className="flex justify-end gap-3 pt-4 border-t">
       <button type="button" onClick={onX} className="px-4 py-2 border rounded-md text-sm text-gray-700">Cancel</button>
