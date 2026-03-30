@@ -67,3 +67,8 @@ pub fn require_finance(auth: &AuthUser) -> Result<(), (StatusCode, String)> {
 pub fn require_admin(auth: &AuthUser) -> Result<(), (StatusCode, String)> {
     require_role(auth, &[UserRole::SuperAdmin, UserRole::ParishAdmin])
 }
+
+/// Check that the user is a SuperAdmin
+pub fn require_super_admin(auth: &AuthUser) -> Result<(), (StatusCode, String)> {
+    require_role(auth, &[UserRole::SuperAdmin])
+}

@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Parish } from '../types';
 import { useAuth } from './AuthContext';
 
 interface ParishContextType {

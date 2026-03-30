@@ -4,6 +4,7 @@ class IncomeTransaction {
   final String id;
   final String parishId;
   final String? memberId;
+  final String? familyId;
   final String transactionNumber;
   final TransactionCategory category;
   final double amount;
@@ -14,15 +15,18 @@ class IncomeTransaction {
   final String? referenceNumber;
   final String? receivedBy;
   final bool? receiptPrinted;
+  final String? receiptPrintedAt;
   final bool? isSynced;
   final String? syncedAt;
   final String? createdAt;
   final String? updatedAt;
+  final String? deletedAt;
 
   IncomeTransaction({
     required this.id,
     required this.parishId,
     this.memberId,
+    this.familyId,
     required this.transactionNumber,
     required this.category,
     required this.amount,
@@ -33,10 +37,12 @@ class IncomeTransaction {
     this.referenceNumber,
     this.receivedBy,
     this.receiptPrinted,
+    this.receiptPrintedAt,
     this.isSynced,
     this.syncedAt,
     this.createdAt,
     this.updatedAt,
+    this.deletedAt,
   });
 
   factory IncomeTransaction.fromJson(Map<String, dynamic> json) {
@@ -44,6 +50,7 @@ class IncomeTransaction {
       id: json['id'],
       parishId: json['parish_id'],
       memberId: json['member_id'],
+      familyId: json['family_id'],
       transactionNumber: json['transaction_number'],
       category: enumFromString(TransactionCategory.values, json['category']),
       amount: double.parse(json['amount'].toString()),
@@ -54,10 +61,12 @@ class IncomeTransaction {
       referenceNumber: json['reference_number'],
       receivedBy: json['received_by'],
       receiptPrinted: json['receipt_printed'],
+      receiptPrintedAt: json['receipt_printed_at'],
       isSynced: json['is_synced'],
       syncedAt: json['synced_at'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
+      deletedAt: json['deleted_at'],
     );
   }
 
@@ -66,6 +75,7 @@ class IncomeTransaction {
       'id': id,
       'parish_id': parishId,
       'member_id': memberId,
+      'family_id': familyId,
       'transaction_number': transactionNumber,
       'category': enumToString(category),
       'amount': amount,
@@ -76,10 +86,12 @@ class IncomeTransaction {
       'reference_number': referenceNumber,
       'received_by': receivedBy,
       'receipt_printed': receiptPrinted,
+      'receipt_printed_at': receiptPrintedAt,
       'is_synced': isSynced,
       'synced_at': syncedAt,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'deleted_at': deletedAt,
     };
   }
 }
@@ -107,6 +119,7 @@ class ExpenseVoucher {
   final String? syncedAt;
   final String? createdAt;
   final String? updatedAt;
+  final String? deletedAt;
 
   ExpenseVoucher({
     required this.id,
@@ -131,6 +144,7 @@ class ExpenseVoucher {
     this.syncedAt,
     this.createdAt,
     this.updatedAt,
+    this.deletedAt,
   });
 
   factory ExpenseVoucher.fromJson(Map<String, dynamic> json) {
@@ -159,6 +173,7 @@ class ExpenseVoucher {
       syncedAt: json['synced_at'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
+      deletedAt: json['deleted_at'],
     );
   }
 
@@ -186,6 +201,7 @@ class ExpenseVoucher {
       'synced_at': syncedAt,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'deleted_at': deletedAt,
     };
   }
 }

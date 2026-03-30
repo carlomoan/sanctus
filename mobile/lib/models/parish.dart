@@ -5,6 +5,7 @@ class Parish {
   final String parishName;
   final String? patronSaint;
   final String? priestName;
+  final String? priestId;
   final String? establishedDate;
   final String? physicalAddress;
   final String? postalAddress;
@@ -20,9 +21,11 @@ class Parish {
   final double? latitude;
   final double? longitude;
   final String? timezone;
+  final String? logoUrl;
   final bool? isActive;
   final String? createdAt;
   final String? updatedAt;
+  final String? deletedAt;
 
   Parish({
     required this.id,
@@ -31,6 +34,7 @@ class Parish {
     required this.parishName,
     this.patronSaint,
     this.priestName,
+    this.priestId,
     this.establishedDate,
     this.physicalAddress,
     this.postalAddress,
@@ -46,9 +50,11 @@ class Parish {
     this.latitude,
     this.longitude,
     this.timezone,
+    this.logoUrl,
     this.isActive,
     this.createdAt,
     this.updatedAt,
+    this.deletedAt,
   });
 
   factory Parish.fromJson(Map<String, dynamic> json) {
@@ -59,6 +65,7 @@ class Parish {
       parishName: json['parish_name'],
       patronSaint: json['patron_saint'],
       priestName: json['priest_name'],
+      priestId: json['priest_id'],
       establishedDate: json['established_date'],
       physicalAddress: json['physical_address'],
       postalAddress: json['postal_address'],
@@ -74,9 +81,11 @@ class Parish {
       latitude: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
       longitude: json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null,
       timezone: json['timezone'],
+      logoUrl: json['logo_url'],
       isActive: json['is_active'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
+      deletedAt: json['deleted_at'],
     );
   }
 
@@ -88,6 +97,7 @@ class Parish {
       'parish_name': parishName,
       'patron_saint': patronSaint,
       'priest_name': priestName,
+      'priest_id': priestId,
       'established_date': establishedDate,
       'physical_address': physicalAddress,
       'postal_address': postalAddress,
@@ -103,9 +113,11 @@ class Parish {
       'latitude': latitude,
       'longitude': longitude,
       'timezone': timezone,
+      'logo_url': logoUrl,
       'is_active': isActive,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'deleted_at': deletedAt,
     };
   }
 }

@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { Diocese } from '../types';
-import { Plus, Search, MapPin, Phone, Mail, Edit, Trash2, Upload, Church, Building } from 'lucide-react';
+import { Plus, Search, MapPin, Phone, Mail, Edit, Trash2, Building } from 'lucide-react';
 import Modal from '../components/Modal';
 
 const API_BASE_URL = 'http://localhost:3000';
@@ -12,9 +12,6 @@ const Dioceses = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDiocese, setSelectedDiocese] = useState<Diocese | undefined>(undefined);
-  const [uploadingLogoId, setUploadingLogoId] = useState<string | null>(null);
-  const logoInputRef = useRef<HTMLInputElement>(null);
-  const logoTargetId = useRef<string>('');
 
   const fetchDioceses = async () => {
     try {
@@ -45,13 +42,12 @@ const Dioceses = () => {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this diocese? This action cannot be undone.')) {
       try {
-        // Note: You'll need to implement deleteDiocese in the backend and API client
-        // await api.deleteDiocese(id);
-        // setDioceses(dioceses.filter(d => d.id !== id));
-        alert('Delete functionality not yet implemented for dioceses.');
-      } catch (err) {
+        await api.deleteDiocese(id);
+        setDioceses(dioceses.filter(d => d.id !== id));
+        alert('Diocese deleted successfully');
+      } catch (err: any) {
         console.error('Failed to delete diocese:', err);
-        alert('Failed to delete diocese');
+        alert(err.message || 'Failed to delete diocese');
       }
     }
   };

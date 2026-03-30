@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '../api/client';
 import { Parish, IncomeTransaction, ExpenseVoucher, CreateIncomeRequest, CreateExpenseRequest, Member, UserRole } from '../types';
-import { Plus, Filter, TrendingUp, TrendingDown, Calendar, FileText, Download, Printer } from 'lucide-react';
+import { Plus, Filter, TrendingUp, TrendingDown, Calendar, FileText, Download, Printer, Eye } from 'lucide-react';
 import Modal from '../components/Modal';
 import IncomeForm from '../components/IncomeForm';
 import ExpenseForm from '../components/ExpenseForm';
 import DataTable, { Column, BulkAction } from '../components/DataTable';
+import ReceiptPreview from '../components/ReceiptPreview';
 import classNames from 'classnames';
 import { downloadReceipt, printReceipt, ReceiptFormat } from '../utils/receiptPdf';
 import { useAuth } from '../context/AuthContext';
@@ -26,8 +27,10 @@ const Finance = () => {
 
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [receiptFormat, setReceiptFormat] = useState<ReceiptFormat>('a4');
+  const [receiptFormat, setReceiptFormat] = useState<ReceiptFormat>('thermal-80');
   const [generatingReceipt, setGeneratingReceipt] = useState<string | null>(null);
+  const [previewTransaction, setPreviewTransaction] = useState<IncomeTransaction | null>(null);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
 
   const getSelectedParish = (): Parish | undefined => {
     return parishes.find(p => p.id === selectedParishId);
@@ -67,6 +70,11 @@ const Finance = () => {
     } finally {
       setGeneratingReceipt(null);
     }
+  };
+
+  const handlePreviewReceipt = async (income: IncomeTransaction) => {
+    setPreviewTransaction(income);
+    setShowReceiptPreview(true);
   };
 
   const handleBulkDownloadReceipts = async (items: IncomeTransaction[]) => {
@@ -219,6 +227,13 @@ const Finance = () => {
       render: (i) => (
         <div className="flex items-center justify-center gap-0.5" onClick={e => e.stopPropagation()}>
           <button
+            onClick={() => handlePreviewReceipt(i)}
+            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+            title="Preview Receipt"
+          >
+            <Eye size={15} />
+          </button>
+          <button
             onClick={() => handleDownloadReceipt(i)}
             disabled={generatingReceipt === i.id}
             className="p-1.5 text-primary-600 hover:bg-primary-50 rounded-md transition-colors disabled:opacity-50"
@@ -313,8 +328,8 @@ const Finance = () => {
       header: 'Status',
       render: (e) => (
         <span className={`px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${e.approval_status === 'APPROVED' ? 'bg-green-100 text-green-700' :
-            e.approval_status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
-              'bg-gray-100 text-gray-600'
+          e.approval_status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+            'bg-gray-100 text-gray-600'
           }`}>
           {e.approval_status || 'N/A'}
         </span>
@@ -403,9 +418,9 @@ const Finance = () => {
                 onChange={(e) => setReceiptFormat(e.target.value as ReceiptFormat)}
                 className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
               >
-                <option value="a4">A4 Paper</option>
-                <option value="thermal-80">Thermal 80mm</option>
-                <option value="thermal-58">Thermal 58mm</option>
+                <option value="thermal-80">🧾 Thermal 80mm (Recommended)</option>
+                <option value="thermal-58">🧾 Thermal 58mm</option>
+                <option value="a4">📄 A4 Paper</option>
               </select>
             </div>
           )}
@@ -460,6 +475,21 @@ const Finance = () => {
           />
         )}
       </Modal>
+
+      {/* Receipt Preview Modal */}
+      {showReceiptPreview && previewTransaction && (
+        <Modal
+          isOpen={showReceiptPreview}
+          onClose={() => setShowReceiptPreview(false)}
+          title="Receipt Preview"
+        >
+          <ReceiptPreview
+            transaction={previewTransaction}
+            parish={getSelectedParish()!}
+            member={null} // You can fetch member if needed
+          />
+        </Modal>
+      )}
     </div>
   );
 };

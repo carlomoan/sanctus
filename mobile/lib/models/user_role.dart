@@ -4,7 +4,6 @@ enum UserRole {
   ACCOUNTANT,
   SECRETARY,
   VIEWER,
-  SCC_LEADER
 }
 
 extension UserRoleExtension on UserRole {

@@ -31,7 +31,7 @@ export function CForm({ i, p, selectedParishId, onD, onX }: { i?: Cluster; p: Pa
 }
 
 export function SForm({ i, p, c, selectedParishId, selectedClusterId, onD, onX }: { i?: Scc; p: Parish[]; c: Cluster[]; selectedParishId?: string; selectedClusterId?: string; onD: (d: any) => Promise<void>; onX: () => void }) {
-  const { register, handleSubmit, formState: { isSubmitting }, reset, setValue } = useForm();
+  const { register, handleSubmit, formState: { isSubmitting }, reset } = useForm();
   useEffect(() => {
     console.log('SForm useEffect:', { i, selectedParishId, selectedClusterId });
     if (i) {

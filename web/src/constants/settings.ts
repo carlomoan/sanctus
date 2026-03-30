@@ -27,6 +27,14 @@ export const SETTING_DEFINITIONS: SettingItem[] = [
   { key: 'ui.logo_url', value: '', group: 'ui', label: 'Logo URL', description: 'URL for the system logo image', type: 'text' },
   { key: 'ui.app_name', value: 'Sanctus', group: 'ui', label: 'Application Name', description: 'Display name shown in header and title', type: 'text' },
 
+  // ID Initials Configuration
+  { key: 'id.diocese_initials', value: 'DIO', group: 'ui', label: 'Diocese ID Initials', description: '3-character prefix for Diocese IDs (e.g., DOM for Diocese of Morogoro)', type: 'text' },
+  { key: 'id.parish_initials', value: 'PAR', group: 'ui', label: 'Parish ID Initials', description: '3-character prefix for Parish IDs (e.g., STM for St. Mary\'s)', type: 'text' },
+  { key: 'id.cluster_initials', value: 'CLU', group: 'ui', label: 'Cluster ID Initials', description: '3-character prefix for Cluster IDs (e.g., CHR for Christian Community)', type: 'text' },
+  { key: 'id.scc_initials', value: 'SCC', group: 'ui', label: 'SCC ID Initials', description: '3-character prefix for Small Christian Community IDs (e.g., SCC for Small Christian Community)', type: 'text' },
+  { key: 'id.family_initials', value: 'FAM', group: 'ui', label: 'Family ID Initials', description: '3-character prefix for Family IDs (e.g., FAM for Family)', type: 'text' },
+  { key: 'id.member_initials', value: 'MEM', group: 'ui', label: 'Member ID Initials', description: '3-character prefix for Member IDs (e.g., MEM for Member)', type: 'text' },
+
   // Language & Locale
   {
     key: 'language', value: 'en', group: 'locale', label: 'Language', description: 'Application display language', type: 'select', options: [
@@ -62,6 +70,7 @@ export const SETTING_DEFINITIONS: SettingItem[] = [
   },
   { key: 'auto_print_receipt', value: 'false', group: 'printer', label: 'Auto-Print Receipts', description: 'Automatically print receipt after recording income', type: 'toggle' },
   { key: 'receipt_footer_text', value: 'Thank you for your generous contribution!', group: 'printer', label: 'Receipt Footer Text', description: 'Custom message at the bottom of receipts', type: 'textarea' },
+  { key: 'custom_receipt_config', value: '{}', group: 'printer', label: 'Custom Receipt Configuration', description: 'Advanced receipt layout and styling configuration', type: 'textarea' },
 
   // Email/SMS
   { key: 'smtp_host', value: '', group: 'email', label: 'SMTP Host', description: 'Email server hostname', type: 'text' },

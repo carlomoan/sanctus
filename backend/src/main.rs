@@ -74,6 +74,7 @@ async fn main() {
         .route("/sync", post(sync::sync_handler))
         .route("/dashboard", get(handlers::dashboard::get_dashboard_stats))
         .route("/dioceses", get(handlers::diocese::list_dioceses))
+        .route("/dioceses/:id", delete(handlers::diocese::delete_diocese))
         .route("/parishes", get(handlers::parish::list_parishes).post(handlers::parish::create_parish))
         .route("/parishes/:id", get(handlers::parish::get_parish).put(handlers::parish::update_parish).delete(handlers::parish::delete_parish))
         .route("/members", get(handlers::member::list_members).post(handlers::member::create_member))

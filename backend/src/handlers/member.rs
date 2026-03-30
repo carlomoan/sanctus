@@ -79,10 +79,13 @@ pub async fn get_member(
 pub async fn create_member(
     auth: AuthUser,
     State(state): State<AppState>,
-    Json(payload): Json<CreateMemberRequest>,
+    Json(mut payload): Json<CreateMemberRequest>,
 ) -> Result<Json<Member>, (StatusCode, String)> {
     rbac::require_write(&auth)?;
     let parish_id = rbac::resolve_parish_id(&auth, Some(payload.parish_id))?;
+    
+    // Update payload with resolved parish_id
+    payload.parish_id = parish_id;
 
     let member = sqlx::query_as::<_, Member>(
         r#"

@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { Parish } from '../types';
-import { Settings as SettingsIcon, Globe, Printer, Mail, CreditCard, RefreshCw, Save, Check, Palette, Church } from 'lucide-react';
+import { Settings as SettingsIcon, Globe, Printer, Mail, CreditCard, RefreshCw, Save, Check, Palette, Church, Settings as SettingsIcon2 } from 'lucide-react';
 import { SETTING_DEFINITIONS } from '../constants/settings';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { useParish } from '../context/ParishContext';
+import ReceiptBuilder from '../components/ReceiptBuilder';
+import { defaultReceiptConfigs, ReceiptConfig } from '../components/CustomReceipt';
+import IdInitialsConfig from '../components/IdInitialsConfig';
+import { IdConfig } from '../utils/idGenerator';
+import Modal from '../components/Modal';
 
 const GROUPS = [
   { id: 'ui', label: 'UI Configuration', icon: Palette },
@@ -24,6 +29,10 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [parishSpecificSettings, setParishSpecificSettings] = useState<Set<string>>(new Set());
+  const [showReceiptBuilder, setShowReceiptBuilder] = useState(false);
+  const [receiptConfig, setReceiptConfig] = useState<ReceiptConfig>(defaultReceiptConfigs['thermal-80']);
+  const [showIdConfig, setShowIdConfig] = useState(false);
+  const [idConfig, setIdConfig] = useState<Partial<IdConfig>>({});
   const { refreshSettings, setSelectedParishId: setContextParishId } = useSettings();
   const { user } = useAuth();
   const { activeParishId, isGlobalMode, setActiveParish, setGlobalMode } = useParish();
@@ -99,7 +108,7 @@ export default function Settings() {
     try {
       // Save ALL settings, not just the active group
       const allSettings = SETTING_DEFINITIONS.map(d => ({
-        parish_id: activeParishId,
+        parish_id: activeParishId || undefined,
         setting_key: d.key,
         setting_value: values[d.key] ?? d.value,
         setting_group: d.group,
@@ -116,6 +125,63 @@ export default function Settings() {
       alert('Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleOpenReceiptBuilder = () => {
+    // Load existing config if available
+    try {
+      const existingConfig = values['custom_receipt_config'];
+      if (existingConfig && existingConfig !== '{}') {
+        const parsed = JSON.parse(existingConfig);
+        setReceiptConfig(parsed);
+      }
+    } catch (e) {
+      console.error('Failed to parse existing receipt config:', e);
+    }
+    setShowReceiptBuilder(true);
+  };
+
+  const handleSaveReceiptConfig = (config: ReceiptConfig) => {
+    setReceiptConfig(config);
+    const configJson = JSON.stringify(config, null, 2);
+    updateValue('custom_receipt_config', configJson);
+  };
+
+  const handleOpenIdConfig = () => {
+    // Load existing ID configuration
+    const currentIdConfig: Partial<IdConfig> = {
+      dioceseInitials: values['id.diocese_initials'] || undefined,
+      parishInitials: values['id.parish_initials'] || undefined,
+      clusterInitials: values['id.cluster_initials'] || undefined,
+      sccInitials: values['id.scc_initials'] || undefined,
+      familyInitials: values['id.family_initials'] || undefined,
+      memberInitials: values['id.member_initials'] || undefined,
+    };
+    setIdConfig(currentIdConfig);
+    setShowIdConfig(true);
+  };
+
+  const handleSaveIdConfig = (config: Partial<IdConfig>) => {
+    setIdConfig(config);
+    // Update all ID configuration values
+    if (config.dioceseInitials !== undefined) {
+      updateValue('id.diocese_initials', config.dioceseInitials);
+    }
+    if (config.parishInitials !== undefined) {
+      updateValue('id.parish_initials', config.parishInitials);
+    }
+    if (config.clusterInitials !== undefined) {
+      updateValue('id.cluster_initials', config.clusterInitials);
+    }
+    if (config.sccInitials !== undefined) {
+      updateValue('id.scc_initials', config.sccInitials);
+    }
+    if (config.familyInitials !== undefined) {
+      updateValue('id.family_initials', config.familyInitials);
+    }
+    if (config.memberInitials !== undefined) {
+      updateValue('id.member_initials', config.memberInitials);
     }
   };
 
@@ -250,7 +316,61 @@ export default function Settings() {
                   <p className="text-xs text-gray-500 mt-0.5">{setting.description}</p>
                 </div>
                 <div className="sm:w-2/3">
-                  {setting.type === 'text' && (
+                  {setting.key === 'custom_receipt_config' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={handleOpenReceiptBuilder}
+                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                          <SettingsIcon2 size={16} />
+                          Open Receipt Builder
+                        </button>
+                        <span className="text-sm text-gray-500">
+                          {values[setting.key] && values[setting.key] !== '{}' ? 'Custom configuration saved' : 'Using default configuration'}
+                        </span>
+                      </div>
+                      {values[setting.key] && values[setting.key] !== '{}' && (
+                        <div className="p-3 bg-gray-50 rounded-lg">
+                          <div className="text-xs font-medium text-gray-700 mb-1">Current Configuration:</div>
+                          <pre className="text-xs text-gray-600 overflow-x-auto whitespace-pre-wrap">
+                            {JSON.stringify(JSON.parse(values[setting.key]), null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  ) : setting.key.startsWith('id.') && setting.key.endsWith('_initials') ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={handleOpenIdConfig}
+                          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                          <SettingsIcon2 size={16} />
+                          Configure ID Initials
+                        </button>
+                        <span className="text-sm text-gray-500">
+                          {values[setting.key] ? `Using "${values[setting.key]}"` : 'Using default initials'}
+                        </span>
+                      </div>
+                      {setting.key === 'id.diocese_initials' && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                          <div className="bg-gray-50 rounded p-2">
+                            <div className="font-medium text-gray-700">Diocese</div>
+                            <div className="text-gray-900">{values['id.diocese_initials'] || 'DIO'}-000001</div>
+                          </div>
+                          <div className="bg-gray-50 rounded p-2">
+                            <div className="font-medium text-gray-700">Parish</div>
+                            <div className="text-gray-900">{values['id.parish_initials'] || 'PAR'}-000001</div>
+                          </div>
+                          <div className="bg-gray-50 rounded p-2">
+                            <div className="font-medium text-gray-700">Member</div>
+                            <div className="text-gray-900">{values['id.member_initials'] || 'MEM'}-000001</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : setting.type === 'text' && (
                     <input
                       type={setting.key.includes('password') || setting.key.includes('secret') ? 'password' : 'text'}
                       value={values[setting.key] || ''}
@@ -259,7 +379,7 @@ export default function Settings() {
                       placeholder={setting.description}
                     />
                   )}
-                  {setting.type === 'textarea' && (
+                  {setting.type === 'textarea' && setting.key !== 'custom_receipt_config' && (
                     <textarea
                       value={values[setting.key] || ''}
                       onChange={e => updateValue(setting.key, e.target.value)}
@@ -309,6 +429,51 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Receipt Builder Modal */}
+      {showReceiptBuilder && (
+        <Modal
+          isOpen={showReceiptBuilder}
+          onClose={() => setShowReceiptBuilder(false)}
+          title="Custom Receipt Builder"
+          size="xlarge"
+        >
+          <ReceiptBuilder
+            transaction={{
+              id: 'sample',
+              transaction_number: 'RCT/2024/001',
+              amount: 50000,
+              category: 'offertory' as any,
+              payment_method: 'cash' as any,
+              transaction_date: new Date().toISOString().split('T')[0],
+              description: 'Sample transaction for receipt preview',
+              parish_id: activeParishId || '1',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }}
+            parish={parishes.find(p => p.id === (activeParishId || parishes[0]?.id)) || parishes[0]!}
+            member={null}
+            onConfigChange={handleSaveReceiptConfig}
+            initialConfig={receiptConfig}
+          />
+        </Modal>
+      )}
+
+      {/* ID Configuration Modal */}
+      {showIdConfig && (
+        <Modal
+          isOpen={showIdConfig}
+          onClose={() => setShowIdConfig(false)}
+          title="ID Initials Configuration"
+          size="large"
+        >
+          <IdInitialsConfig
+            config={idConfig}
+            onChange={handleSaveIdConfig}
+            disabled={saving}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

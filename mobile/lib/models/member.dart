@@ -18,11 +18,12 @@ class Member {
   final String? phoneNumber;
   final String? physicalAddress;
   final String? photoUrl;
-  final String? familyRole;
+  final FamilyRole? familyRole;
   final String? notes;
   final bool? isActive;
   final String? createdAt;
   final String? updatedAt;
+  final String? deletedAt;
 
   Member({
     required this.id,
@@ -47,6 +48,7 @@ class Member {
     this.isActive,
     this.createdAt,
     this.updatedAt,
+    this.deletedAt,
   });
 
   factory Member.fromJson(Map<String, dynamic> json) {
@@ -72,11 +74,14 @@ class Member {
       phoneNumber: json['phone_number'],
       physicalAddress: json['physical_address'],
       photoUrl: json['photo_url'],
-      familyRole: json['family_role'],
+      familyRole: json['family_role'] != null
+          ? enumFromString(FamilyRole.values, json['family_role'])
+          : null,
       notes: json['notes'],
       isActive: json['is_active'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
+      deletedAt: json['deleted_at'],
     );
   }
 
@@ -99,11 +104,12 @@ class Member {
       'phone_number': phoneNumber,
       'physical_address': physicalAddress,
       'photo_url': photoUrl,
-      'family_role': familyRole,
+      'family_role': familyRole != null ? enumToString(familyRole!) : null,
       'notes': notes,
       'is_active': isActive,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'deleted_at': deletedAt,
     };
   }
 }

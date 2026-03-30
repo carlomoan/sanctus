@@ -11,7 +11,7 @@ import { useParish } from '../context/ParishContext';
 
 export default function Clusters() {
   const { user } = useAuth();
-  const { getEffectiveParishId, activeParishId, isGlobalMode, setActiveParish } = useParish();
+  const { getEffectiveParishId, activeParishId, setActiveParish } = useParish();
   const isViewer = user?.role === UserRole.VIEWER;
   const isDioceseAdmin = user?.role === UserRole.SUPER_ADMIN;
 
@@ -259,14 +259,14 @@ export default function Clusters() {
             <>
               <ImportButton
                 label={tab === 'c' ? 'Import Clusters' : 'Import SCCs'}
-                onImport={async (file) => {
+                onImport={async (_file) => {
                   // Show selection modal instead of direct import
                   if (tab === 'c') {
                     setShowImportModal('cluster');
                   } else {
                     if (clusters.length === 0) {
                       alert('Please create clusters first before importing SCCs');
-                      return;
+                      return { success_count: 0, errors: [] };
                     }
                     setShowImportModal('scc');
                   }
@@ -313,7 +313,7 @@ export default function Clusters() {
       )}
 
       <Modal isOpen={modal === 'c'} onClose={() => setM(null)} title={selC ? 'Edit Cluster' : 'Add Cluster'}>
-        <CForm i={selC} p={parishes} selectedParishId={activeParishId} onD={svC} onX={() => setM(null)} />
+        <CForm i={selC} p={parishes} selectedParishId={activeParishId || undefined} onD={svC} onX={() => setM(null)} />
       </Modal>
       <Modal isOpen={modal === 's'} onClose={() => { setM(null); setSelectedClusterForScc(undefined); }} title={selS ? 'Edit SCC' : 'Add SCC'}>
         {selectedClusterForScc && !selS && (
@@ -327,7 +327,7 @@ export default function Clusters() {
           i={selS}
           p={parishes}
           c={clusters}
-          selectedParishId={activeParishId}
+          selectedParishId={activeParishId || undefined}
           selectedClusterId={selectedClusterForScc?.id}
           onD={svS}
           onX={() => { setM(null); setSelectedClusterForScc(undefined); }}

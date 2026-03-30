@@ -107,6 +107,10 @@ export class ApiClient {
     return this.request<Diocese[]>('GET', '/dioceses');
   }
 
+  async deleteDiocese(id: UUID): Promise<void> {
+    return this.request<void>('DELETE', `/dioceses/${id}`);
+  }
+
   // Parishes
   async listParishes(): Promise<Parish[]> {
     return this.request<Parish[]>('GET', '/parishes');

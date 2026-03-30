@@ -11,7 +11,7 @@ import { useParish } from '../context/ParishContext';
 
 const Members = () => {
   const { user } = useAuth();
-  const { getEffectiveParishId, activeParishId, setActiveParish } = useParish();
+  const { getEffectiveParishId, activeParishId: _activeParishId, setActiveParish } = useParish();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -132,14 +132,14 @@ const Members = () => {
           // Show SCC members (all families in this SCC)
           const sccFamilies = families.filter(f => f.scc_id === selectedScc);
           const familyIds = sccFamilies.map(f => f.id);
-          memberData = memberData.filter(m => familyIds.includes(m.family_id));
+          memberData = memberData.filter(m => m.family_id && familyIds.includes(m.family_id));
         } else if (selectedCluster) {
           // Show cluster members (all SCCs and families in this cluster)
           const clusterSccs = sccs.filter(s => s.cluster_id === selectedCluster);
           const sccFamilyIds = families
             .filter(f => clusterSccs.some(s => s.id === f.scc_id))
             .map(f => f.id);
-          memberData = memberData.filter(m => sccFamilyIds.includes(m.family_id));
+          memberData = memberData.filter(m => m.family_id && sccFamilyIds.includes(m.family_id));
         }
         // else: show all parish members (already filtered by parish)
 
@@ -220,13 +220,13 @@ const Members = () => {
         } else if (selectedScc) {
           const sccFamilies = families.filter(f => f.scc_id === selectedScc);
           const familyIds = sccFamilies.map(f => f.id);
-          memberData = memberData.filter(m => familyIds.includes(m.family_id));
+          memberData = memberData.filter(m => m.family_id && familyIds.includes(m.family_id));
         } else if (selectedCluster) {
           const clusterSccs = sccs.filter(s => s.cluster_id === selectedCluster);
           const sccFamilyIds = families
             .filter(f => clusterSccs.some(s => s.id === f.scc_id))
             .map(f => f.id);
-          memberData = memberData.filter(m => sccFamilyIds.includes(m.family_id));
+          memberData = memberData.filter(m => m.family_id && sccFamilyIds.includes(m.family_id));
         }
 
         setMembers(memberData);
@@ -242,7 +242,12 @@ const Members = () => {
     for (const m of items) {
       try { await api.deleteMember(m.id); } catch { /* skip */ }
     }
-    await fetchMembers();
+    // Trigger refresh by updating the selected parish
+    const currentParishId = getEffectiveParishId();
+    if (currentParishId) {
+      setActiveParish(null);
+      setTimeout(() => setActiveParish(currentParishId), 100);
+    }
   };
 
   const handleBulkExport = (items: Member[]) => {
@@ -650,7 +655,12 @@ const Members = () => {
                       const family = families.find(f => f.id === selectedFamilyForImport);
                       if (!family) return;
                       const res = await api.importMembers(file, family.parish_id);
-                      await fetchMembers();
+                      // Trigger refresh by updating the selected parish
+                      const currentParishId = getEffectiveParishId();
+                      if (currentParishId) {
+                        setActiveParish(null);
+                        setTimeout(() => setActiveParish(currentParishId), 100);
+                      }
                       alert(`Successfully imported ${res.success_count} members${res.errors.length > 0 ? `. ${res.errors.length} errors occurred.` : ''}`);
                     } catch (err: any) {
                       alert('Import failed: ' + err.message);

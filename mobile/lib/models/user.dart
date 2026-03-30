@@ -8,7 +8,9 @@ class User {
   final String fullName;
   final String? phoneNumber;
   final UserRole role;
+  final String? profilePhotoUrl;
   final bool isActive;
+  final String createdAt;
 
   User({
     required this.id,
@@ -18,7 +20,9 @@ class User {
     required this.fullName,
     this.phoneNumber,
     required this.role,
+    this.profilePhotoUrl,
     required this.isActive,
+    required this.createdAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -30,7 +34,9 @@ class User {
       fullName: json['full_name'],
       phoneNumber: json['phone_number'],
       role: userRoleFromString(json['role']),
+      profilePhotoUrl: json['profile_photo_url'],
       isActive: json['is_active'] ?? true,
+      createdAt: json['created_at'],
     );
   }
 
@@ -43,7 +49,9 @@ class User {
       'full_name': fullName,
       'phone_number': phoneNumber,
       'role': role.name,
+      'profile_photo_url': profilePhotoUrl,
       'is_active': isActive,
+      'created_at': createdAt,
     };
   }
 }

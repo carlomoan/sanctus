@@ -11,6 +11,12 @@ enum MaritalStatus {
   DIVORCED,
 }
 
+enum FamilyRole {
+  HEAD,
+  SPOUSE,
+  MEMBER,
+}
+
 enum SacramentType {
   BAPTISM,
   FIRST_COMMUNION,
@@ -61,6 +67,14 @@ enum ApprovalStatus {
   APPROVED,
   REJECTED,
   CANCELLED,
+}
+
+enum UserRole {
+  SUPER_ADMIN,
+  PARISH_ADMIN,
+  ACCOUNTANT,
+  SECRETARY,
+  VIEWER,
 }
 
 String enumToString(Object o) => o.toString().split('.').last;

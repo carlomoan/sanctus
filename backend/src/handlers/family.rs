@@ -64,6 +64,11 @@ pub async fn create_family(
     rbac::require_write(&auth)?;
     let parish_id = rbac::resolve_parish_id(&auth, Some(payload.parish_id))?;
 
+    // Validate that SCC is provided
+    if payload.scc_id.is_none() {
+        return Err((StatusCode::BAD_REQUEST, "SCC is required for family creation".to_string()));
+    }
+
     let family = sqlx::query_as::<_, Family>(
         r#"
         INSERT INTO family (parish_id, scc_id, family_code, family_name, physical_address, primary_phone, email, notes)

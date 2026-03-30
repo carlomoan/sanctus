@@ -59,10 +59,13 @@ const DataImport = () => {
       } else if (importType === 'clusters') {
         response = await api.importClusters(file, targetParishId);
       }
-      setResult({
-        success_count: response.success_count,
-        errors: response.errors || []
-      });
+
+      if (response) {
+        setResult({
+          success_count: response.success_count,
+          errors: response.errors || []
+        });
+      }
     } catch (err: any) {
       console.error('Import failed:', err);
       setError(err.message || 'Import failed. Please check your file format and try again.');

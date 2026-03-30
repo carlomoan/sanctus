@@ -44,7 +44,7 @@ const Sacraments = () => {
 
     setLoading(true);
     try {
-      const data = await api.listSacraments(undefined, parishId);
+      const data = await api.listSacraments(undefined, parishId || undefined);
       setSacraments(data);
       setError(null);
     } catch (err) {
@@ -248,8 +248,8 @@ const Sacraments = () => {
           <div className="flex items-center gap-2">
             <Filter size={20} className="text-gray-400" />
             <select
-              value={selectedParishId}
-              onChange={(e) => setSelectedParishId(e.target.value)}
+              value={activeParishId || ''}
+              onChange={(e) => setActiveParish(e.target.value || null)}
               className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
             >
               <option value="" disabled>Select Parish</option>
@@ -262,7 +262,7 @@ const Sacraments = () => {
       </div>
 
       {/* Sacrament List */}
-      {!selectedParishId ? (
+      {!activeParishId ? (
         <div className="text-center py-12 bg-white rounded-lg border border-gray-100">
           <p className="text-gray-500">Please select a parish to view sacrament records.</p>
         </div>
@@ -287,12 +287,14 @@ const Sacraments = () => {
         onClose={() => setIsModalOpen(false)}
         title={selectedSacrament ? 'Edit Sacrament Record' : 'Record Sacrament'}
       >
-        <SacramentForm
-          initialData={selectedSacrament}
-          onSubmit={handleSubmit} // @ts-ignore
-          onCancel={() => setIsModalOpen(false)}
-          parishId={parishId}
-        />
+        {parishId && (
+          <SacramentForm
+            initialData={selectedSacrament}
+            onSubmit={handleSubmit} // @ts-ignore
+            onCancel={() => setIsModalOpen(false)}
+            parishId={parishId}
+          />
+        )}
       </Modal>
     </div>
   );

@@ -17,6 +17,7 @@ class SacramentRecord {
   final String? notes;
   final String? createdAt;
   final String? updatedAt;
+  final String? deletedAt;
 
   SacramentRecord({
     required this.id,
@@ -35,6 +36,7 @@ class SacramentRecord {
     this.notes,
     this.createdAt,
     this.updatedAt,
+    this.deletedAt,
   });
 
   factory SacramentRecord.fromJson(Map<String, dynamic> json) {
@@ -55,6 +57,7 @@ class SacramentRecord {
       notes: json['notes'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
+      deletedAt: json['deleted_at'],
     );
   }
 
@@ -76,6 +79,7 @@ class SacramentRecord {
       'notes': notes,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'deleted_at': deletedAt,
     };
   }
 }
