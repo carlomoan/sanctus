@@ -311,6 +311,20 @@ export interface DashboardStats {
   total_income: number;
   total_expenses: number;
   pending_approvals: number;
+  // Additional fields for enhanced analytics
+  parish_growth?: number;
+  monthly_income?: number;
+  monthly_expenses?: number;
+  member_attendance?: number;
+  pending_tasks?: number;
+  total_families?: number;
+  total_clusters?: number;
+  total_sccs?: number;
+  sacraments_this_month?: number;
+  active_groups?: number;
+  upcoming_events?: number;
+  budget_used_percentage?: number;
+  community_engagement?: 'Low' | 'Medium' | 'High';
 }
 
 export interface CreateParishRequest {

@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Dioceses from './pages/Dioceses';
 import Parishes from './pages/Parishes';
+import ParishProfile from './pages/ParishProfile';
 import Members from './pages/Members';
 import Finance from './pages/Finance';
 import Budgets from './pages/Budgets';
@@ -59,6 +60,8 @@ function App() {
                 <Route index element={<Dashboard />} />
                 <Route path="dioceses" element={<Dioceses />} />
                 <Route path="parishes" element={<Parishes />} />
+                <Route path="parishes/:id" element={<ParishProfile />} />
+                <Route path="parish-profile" element={<ParishProfile />} />
                 <Route path="clusters" element={<Clusters />} />
                 <Route path="families" element={<Families />} />
                 <Route path="members" element={<Members />} />

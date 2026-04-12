@@ -102,6 +102,10 @@ export class ApiClient {
     return this.request<DashboardStats>('GET', '/dashboard');
   }
 
+  async getParishStats(parishId: UUID): Promise<DashboardStats> {
+    return this.request<DashboardStats>('GET', `/parishes/${parishId}/stats`);
+  }
+
   // Dioceses
   async listDioceses(): Promise<Diocese[]> {
     return this.request<Diocese[]>('GET', '/dioceses');
@@ -213,6 +217,14 @@ export class ApiClient {
 
   async createUser(data: any): Promise<User> {
     return this.request<User>('POST', '/users', data);
+  }
+
+  async updateUser(id: UUID, data: Partial<User>): Promise<User> {
+    return this.request<User>('PUT', `/users/${id}`, data);
+  }
+
+  async toggleUserStatus(id: UUID, isActive: boolean): Promise<User> {
+    return this.request<User>('POST', `/users/${id}`, { is_active: isActive });
   }
 
   async deleteUser(id: UUID): Promise<void> {

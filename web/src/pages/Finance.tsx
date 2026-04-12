@@ -10,6 +10,7 @@ import ReceiptPreview from '../components/ReceiptPreview';
 import classNames from 'classnames';
 import { downloadReceipt, printReceipt, ReceiptFormat } from '../utils/receiptPdf';
 import { useAuth } from '../context/AuthContext';
+import { filterParishesByRole, getEffectiveParishId } from '../utils/parishFilters';
 
 const Finance = () => {
   const { user } = useAuth();
@@ -92,22 +93,22 @@ const Finance = () => {
   useEffect(() => {
     const fetchParishes = async () => {
       try {
-        if (!isDioceseAdmin && userParishId) {
-          setSelectedParishId(userParishId);
-          setParishes([]);
-          return;
-        }
-        const data = await api.listParishes();
-        setParishes(data);
-        if (data.length > 0 && !selectedParishId) {
-          setSelectedParishId(data[0].id);
+        const allParishes = await api.listParishes();
+        const accessibleParishes = filterParishesByRole(allParishes, user);
+        setParishes(accessibleParishes);
+
+        // Auto-select parish for non-super admins
+        if (!isDioceseAdmin && accessibleParishes.length > 0) {
+          setSelectedParishId(accessibleParishes[0].id);
+        } else if (isDioceseAdmin && accessibleParishes.length > 0 && !selectedParishId) {
+          setSelectedParishId(accessibleParishes[0].id);
         }
       } catch (err) {
         console.error('Failed to load parishes:', err);
       }
     };
     fetchParishes();
-  }, []);
+  }, [user, isDioceseAdmin, selectedParishId]);
 
   const fetchTransactions = async () => {
     if (!selectedParishId) return;
@@ -404,7 +405,7 @@ const Finance = () => {
                 className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white w-full md:w-64"
               >
                 <option value="" disabled>Select Parish</option>
-                {parishes.map(parish => (
+                {parishes.filter(p => p.is_active).map(parish => (
                   <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
                 ))}
               </select>

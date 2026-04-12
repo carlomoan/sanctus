@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Info, Filter } from 'lucide-react';
-import { Parish } from '../types';
+import { Parish, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useParish } from '../context/ParishContext';
+import { filterParishesByRole } from '../utils/parishFilters';
 
 const DataImport = () => {
   const [importType, setReportType] = useState<'members' | 'transactions' | 'clusters'>('members');
@@ -19,14 +20,20 @@ const DataImport = () => {
   useEffect(() => {
     const fetchParishes = async () => {
       try {
-        const data = await api.listParishes();
-        setParishes(data);
+        const allParishes = await api.listParishes();
+        const accessibleParishes = filterParishesByRole(allParishes, user);
+        setParishes(accessibleParishes);
+
+        // Auto-select parish for non-super admins
+        if (user?.role !== UserRole.SUPER_ADMIN && accessibleParishes.length > 0) {
+          setActiveParish(accessibleParishes[0].id);
+        }
       } catch (err) {
         console.error('Failed to load parishes:', err);
       }
     };
     fetchParishes();
-  }, []);
+  }, [user, setActiveParish]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -85,7 +92,7 @@ const DataImport = () => {
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
             <form onSubmit={handleImport} className="space-y-6">
               {/* Parish Selector for Admins */}
-              {(!user?.parish_id || user?.role === 'SUPER_ADMIN') && (
+              {user?.role === UserRole.SUPER_ADMIN && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Target Parish</label>
                   <div className="flex items-center gap-2">
@@ -97,7 +104,7 @@ const DataImport = () => {
                       required
                     >
                       <option value="" disabled>Select Parish</option>
-                      {parishes.map(parish => (
+                      {parishes.filter(p => p.is_active).map(parish => (
                         <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
                       ))}
                     </select>

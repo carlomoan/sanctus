@@ -1,0 +1,62 @@
+[package]
+name = "sanctus"
+version = "0.1.0"
+description = "Sanctus Parish Management System"
+authors = ["Sanctus Team"]
+license = "MIT"
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "sanctus_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "sanctus"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2.5.6", features = [] }
+
+[dependencies]
+# Tauri dependencies
+tauri = { version = "2.10.3", features = ["rustls-tls"] }
+tauri-plugin-log = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-http = "2"
+
+# Backend dependencies (reuse from main backend)
+axum = { version = "0.7", features = ["multipart"] }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "migrate", "rust_decimal"] }
+dotenvy = "0.15"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["serde", "v4"] }
+rust_decimal = { version = "1.0", features = ["db-postgres"] }
+jsonwebtoken = { version = "9.3", features = ["use_pem"] }
+bcrypt = "0.18.0"
+pbkdf2 = { version = "0.12.2", features = ["sha2"] }
+sha2 = "0.10.8"
+hex = "0.4.3"
+base64 = "0.22.1"
+validator = "0.20.0"
+serde_with = "3.16.1"
+argon2 = "0.5.3"
+csv = "1.4.0"
+calamine = "0.33.0"
+axum-extra = { version = "0.9", features = ["multipart"] }
+log = "0.4"
+
+[features]
+# This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]

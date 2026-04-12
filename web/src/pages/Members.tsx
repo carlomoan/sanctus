@@ -8,6 +8,7 @@ import MemberForm from '../components/MemberForm';
 import DataTable, { Column, BulkAction } from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
 import { useParish } from '../context/ParishContext';
+import { filterParishesByRole, getEffectiveParishId, canAccessParish } from '../utils/parishFilters';
 
 const Members = () => {
   const { user } = useAuth();
@@ -43,16 +44,20 @@ const Members = () => {
   useEffect(() => {
     const fetchParishes = async () => {
       try {
-        if (isDioceseAdmin) {
-          const data = await api.listParishes();
-          setParishes(data);
+        const allParishes = await api.listParishes();
+        const accessibleParishes = filterParishesByRole(allParishes, user);
+        setParishes(accessibleParishes);
+
+        // Auto-select parish for non-super admins
+        if (!isDioceseAdmin && accessibleParishes.length > 0) {
+          setSelectedParish(accessibleParishes[0].id);
         }
       } catch (err) {
         console.error('Failed to load parishes:', err);
       }
     };
     fetchParishes();
-  }, []);
+  }, [user, isDioceseAdmin]);
 
   // Fetch clusters when parish is selected
   useEffect(() => {
@@ -356,7 +361,7 @@ const Members = () => {
                 className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Select Parish</option>
-                {parishes.map(parish => (
+                {parishes.filter(p => p.is_active).map(parish => (
                   <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
                 ))}
               </select>
@@ -452,7 +457,7 @@ const Members = () => {
                 className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
               >
                 <option value="" disabled>Select Parish</option>
-                {parishes.map(parish => (
+                {parishes.filter(p => p.is_active).map(parish => (
                   <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
                 ))}
               </select>

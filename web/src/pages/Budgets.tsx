@@ -5,6 +5,7 @@ import { Plus, Filter, Calendar, Target, Edit, Trash2 } from 'lucide-react';
 import Modal from '../components/Modal';
 import BudgetForm from '../components/BudgetForm';
 import { useAuth } from '../context/AuthContext';
+import { filterParishesByRole } from '../utils/parishFilters';
 
 const Budgets = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -20,15 +21,15 @@ const Budgets = () => {
 
   const fetchParishes = async () => {
     try {
-      if (!isDioceseAdmin && userParishId) {
-        setSelectedParishId(userParishId);
-        setParishes([]);
-        return;
-      }
-      const data = await api.listParishes();
-      setParishes(data);
-      if (data.length > 0 && !selectedParishId) {
-        setSelectedParishId(userParishId || data[0].id);
+      const allParishes = await api.listParishes();
+      const accessibleParishes = filterParishesByRole(allParishes, user);
+      setParishes(accessibleParishes);
+
+      // Auto-select parish for non-super admins
+      if (!isDioceseAdmin && accessibleParishes.length > 0) {
+        setSelectedParishId(accessibleParishes[0].id);
+      } else if (accessibleParishes.length > 0 && !selectedParishId) {
+        setSelectedParishId(accessibleParishes[0].id);
       }
     } catch (err) {
       console.error('Failed to load parishes:', err);
@@ -94,7 +95,7 @@ const Budgets = () => {
                 className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white min-w-[200px]"
               >
                 <option value="" disabled>Select Parish</option>
-                {parishes.map(parish => (
+                {parishes.filter(p => p.is_active).map(parish => (
                   <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
                 ))}
               </select>

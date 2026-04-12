@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { User, UserRole, Parish, Diocese } from '../types';
-import { Plus, Shield, Trash2, Mail, Phone, Church } from 'lucide-react';
+import { Plus, Shield, Trash2, Mail, Phone, Church, Edit, UserCheck, UserX, Settings } from 'lucide-react';
 import Modal from '../components/Modal';
 import UserForm from '../components/UserForm';
+import UserEditForm from '../components/UserEditForm';
+import RoleChangeModal from '../components/RoleChangeModal';
 import { useAuth } from '../context/AuthContext';
 
 const Users = () => {
@@ -13,6 +15,10 @@ const Users = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [updatingRole, setUpdatingRole] = useState(false);
   const { user: currentUser } = useAuth();
 
   const fetchData = async () => {
@@ -43,9 +49,28 @@ const Users = () => {
       await api.createUser(data);
       await fetchData();
       setIsModalOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create user:', err);
-      alert('Failed to create user');
+
+      // Handle specific database errors and re-throw for form display
+      let errorMessage = 'Failed to create user';
+
+      if (err.message.includes('duplicate key value violates unique constraint')) {
+        if (err.message.includes('email_key')) {
+          errorMessage = 'A user with this email address already exists. Please use a different email.';
+        } else if (err.message.includes('username_key')) {
+          errorMessage = 'A user with this username already exists. Please choose a different username.';
+        } else {
+          errorMessage = 'A user with this information already exists. Please check your inputs and try again.';
+        }
+      } else if (err.message.includes('API Error: 500')) {
+        errorMessage = 'Server error occurred. Please try again later.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      // Re-throw with the specific error message for the form to display
+      throw new Error(errorMessage);
     }
   };
 
@@ -65,6 +90,86 @@ const Users = () => {
     }
   };
 
+  const handleChangeRole = (user: User) => {
+    setSelectedUser(user);
+    setIsRoleModalOpen(true);
+  };
+
+  const handleRoleChange = async (newRole: UserRole) => {
+    if (!selectedUser) return;
+
+    setUpdatingRole(true);
+    try {
+      const updatedUser = await api.updateUser(selectedUser.id, { role: newRole });
+      setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u));
+      setIsRoleModalOpen(false);
+      setSelectedUser(null);
+
+      // Show success message
+      alert(`Role changed to ${newRole.replace('_', ' ')} successfully`);
+    } catch (err) {
+      console.error('Failed to update user role:', err);
+      alert('Failed to update user role');
+    } finally {
+      setUpdatingRole(false);
+    }
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateUser = async (data: Partial<User>) => {
+    if (!selectedUser) return;
+
+    try {
+      // Use the toggleUserStatus method if only status is being updated
+      if (Object.keys(data).length === 1 && 'is_active' in data) {
+        const updatedUser = await api.toggleUserStatus(selectedUser.id, data.is_active!);
+        setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u));
+      } else {
+        // For other updates, try the regular updateUser method
+        const updatedUser = await api.updateUser(selectedUser.id, data);
+        setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u));
+      }
+
+      setIsEditModalOpen(false);
+      setSelectedUser(null);
+
+      // Show success message
+      alert('User updated successfully');
+    } catch (err: any) {
+      console.error('Failed to update user:', err);
+
+      // Provide specific error message for CORS issues
+      if (err.message.includes('405') || err.message.includes('CORS')) {
+        alert('Unable to update user information due to server restrictions. Please contact your system administrator to enable user management features.');
+      } else {
+        alert('Failed to update user. Please try again later.');
+      }
+    }
+  };
+
+  const handleToggleUserStatus = async (user: User) => {
+    try {
+      const updatedUser = await api.toggleUserStatus(user.id, !user.is_active);
+      setUsers(users.map(u => u.id === user.id ? updatedUser : u));
+
+      // Show success message
+      alert(`User ${!user.is_active ? 'activated' : 'deactivated'} successfully`);
+    } catch (err: any) {
+      console.error('Failed to toggle user status:', err);
+
+      // Provide specific error message for CORS issues
+      if (err.message.includes('405') || err.message.includes('CORS')) {
+        alert('Unable to update user status due to server restrictions. Please contact your system administrator to enable user management features.');
+      } else {
+        alert('Failed to update user status. Please try again later.');
+      }
+    }
+  };
+
   if (currentUser?.role !== UserRole.SUPER_ADMIN) {
     return (
       <div className="text-center py-12">
@@ -77,6 +182,20 @@ const Users = () => {
 
   return (
     <div className="space-y-6">
+      {/* Backend Limitations Notice */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Shield className="text-yellow-600 mt-0.5" size={20} />
+          <div>
+            <h3 className="text-sm font-medium text-yellow-800">User Management Limitations</h3>
+            <p className="text-sm text-yellow-700 mt-1">
+              Some user management features (status toggling, profile editing) are currently limited due to server configuration.
+              Contact your system administrator to enable full user management capabilities.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
         <button
@@ -106,10 +225,16 @@ const Users = () => {
                     <p className="text-sm text-gray-500">@{user.username}</p>
                   </div>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.role === UserRole.SUPER_ADMIN ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                  }`}>
-                  {user.role.replace('_', ' ')}
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.role === UserRole.SUPER_ADMIN ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                    {user.role.replace('_', ' ')}
+                  </span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                    {user.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
               </div>
 
               <div className="space-y-2 text-sm text-gray-600">
@@ -131,7 +256,33 @@ const Users = () => {
                 )}
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+              <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between">
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handleEditUser(user)}
+                    disabled={user.id === currentUser.id}
+                    className="p-2 text-gray-400 hover:text-blue-600 rounded-full hover:bg-blue-50 transition-colors disabled:opacity-30"
+                    title="Edit User"
+                  >
+                    <Settings size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleToggleUserStatus(user)}
+                    disabled={user.id === currentUser.id}
+                    className="p-2 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors disabled:opacity-30"
+                    title={user.is_active ? 'Deactivate User' : 'Activate User'}
+                  >
+                    {user.is_active ? <UserX size={18} /> : <UserCheck size={18} />}
+                  </button>
+                  <button
+                    onClick={() => handleChangeRole(user)}
+                    disabled={user.id === currentUser.id}
+                    className="p-2 text-gray-400 hover:text-purple-600 rounded-full hover:bg-purple-50 transition-colors disabled:opacity-30"
+                    title="Change Role"
+                  >
+                    <Edit size={18} />
+                  </button>
+                </div>
                 <button
                   onClick={() => handleDeleteUser(user.id)}
                   disabled={user.id === currentUser.id}
@@ -158,6 +309,32 @@ const Users = () => {
           dioceses={dioceses}
         />
       </Modal>
+
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit User"
+      >
+        {selectedUser && (
+          <UserEditForm
+            onSubmit={handleUpdateUser}
+            onCancel={() => setIsEditModalOpen(false)}
+            user={selectedUser}
+            parishes={parishes}
+            dioceses={dioceses}
+          />
+        )}
+      </Modal>
+
+      {selectedUser && (
+        <RoleChangeModal
+          isOpen={isRoleModalOpen}
+          onClose={() => setIsRoleModalOpen(false)}
+          onConfirm={handleRoleChange}
+          user={selectedUser}
+          loading={updatingRole}
+        />
+      )}
     </div>
   );
 };

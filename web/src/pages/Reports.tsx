@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { TrialBalance, IncomeExpenditureStatement, Parish } from '../types';
+import { TrialBalance, IncomeExpenditureStatement, Parish, UserRole } from '../types';
 import { Filter, Calendar, FileText, Download, TrendingUp, PieChart, Landmark, ArrowRightLeft, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { filterParishesByRole } from '../utils/parishFilters';
 
 type ReportType = 'income-expenditure' | 'trial-balance' | 'budget-vs-actual' | 'balance-sheet' | 'cash-flow' | 'audit-log';
 
@@ -28,10 +29,15 @@ const Reports = () => {
 
   const fetchParishes = async () => {
     try {
-      const data = await api.listParishes();
-      setParishes(data);
-      if (data.length > 0 && !selectedParishId) {
-        setSelectedParishId(user?.parish_id || data[0].id);
+      const allParishes = await api.listParishes();
+      const accessibleParishes = filterParishesByRole(allParishes, user);
+      setParishes(accessibleParishes);
+
+      // Auto-select parish for non-super admins
+      if (user?.role !== UserRole.SUPER_ADMIN && accessibleParishes.length > 0) {
+        setSelectedParishId(accessibleParishes[0].id);
+      } else if (accessibleParishes.length > 0 && !selectedParishId) {
+        setSelectedParishId(accessibleParishes[0].id);
       }
     } catch (err) {
       console.error('Failed to load parishes:', err);
@@ -105,13 +111,15 @@ const Reports = () => {
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
-        <div className="flex items-center gap-2">
-          <Filter size={20} className="text-gray-400" />
-          <select value={selectedParishId} onChange={(e) => setSelectedParishId(e.target.value)} className="border border-gray-200 rounded-lg py-2 px-4 bg-white min-w-[200px]">
-            <option value="" disabled>Select Parish</option>
-            {parishes.map(p => <option key={p.id} value={p.id}>{p.parish_name}</option>)}
-          </select>
-        </div>
+        {user?.role === UserRole.SUPER_ADMIN && (
+          <div className="flex items-center gap-2">
+            <Filter size={20} className="text-gray-400" />
+            <select value={selectedParishId} onChange={(e) => setSelectedParishId(e.target.value)} className="border border-gray-200 rounded-lg py-2 px-4 bg-white min-w-[200px]">
+              <option value="" disabled>Select Parish</option>
+              {parishes.filter(p => p.is_active).map(p => <option key={p.id} value={p.id}>{p.parish_name}</option>)}
+            </select>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Calendar size={20} className="text-gray-400" />
           <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border border-gray-200 rounded-lg py-2 px-4 bg-white" />

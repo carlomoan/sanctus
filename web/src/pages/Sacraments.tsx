@@ -7,6 +7,7 @@ import SacramentForm from '../components/SacramentForm';
 import DataTable, { Column, BulkAction } from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
 import { useParish } from '../context/ParishContext';
+import { filterParishesByRole } from '../utils/parishFilters';
 
 const Sacraments = () => {
   const { user } = useAuth();
@@ -28,16 +29,20 @@ const Sacraments = () => {
   useEffect(() => {
     const fetchParishes = async () => {
       try {
-        if (isDioceseAdmin) {
-          const data = await api.listParishes();
-          setParishes(data);
+        const allParishes = await api.listParishes();
+        const accessibleParishes = filterParishesByRole(allParishes, user);
+        setParishes(accessibleParishes);
+
+        // Auto-select parish for non-super admins
+        if (!isDioceseAdmin && accessibleParishes.length > 0) {
+          setActiveParish(accessibleParishes[0].id);
         }
       } catch (err) {
         console.error('Failed to load parishes:', err);
       }
     };
     fetchParishes();
-  }, []);
+  }, [user, isDioceseAdmin, setActiveParish]);
 
   const fetchSacraments = async () => {
     if (!parishId && !isDioceseAdmin) return;
@@ -253,7 +258,7 @@ const Sacraments = () => {
               className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
             >
               <option value="" disabled>Select Parish</option>
-              {parishes.map(parish => (
+              {parishes.filter(p => p.is_active).map(parish => (
                 <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
               ))}
             </select>

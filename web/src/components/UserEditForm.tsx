@@ -1,23 +1,24 @@
 import { useState, useEffect } from 'react';
-import { UserRole } from '../types';
+import { User, UserRole } from '../types';
 
-interface UserFormProps {
-  onSubmit: (data: any) => Promise<void>;
+interface UserEditFormProps {
+  onSubmit: (data: Partial<User>) => Promise<void>;
   onCancel: () => void;
+  user: User;
   parishes: { id: string; parish_name: string; diocese_id: string }[];
   dioceses: { id: string; diocese_name: string }[];
 }
 
-const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => {
+const UserEditForm = ({ onSubmit, onCancel, user, parishes, dioceses }: UserEditFormProps) => {
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    full_name: '',
-    phone_number: '',
-    role: UserRole.PARISH_ADMIN,
-    diocese_id: '',
-    parish_id: '',
+    username: user.username,
+    email: user.email,
+    full_name: user.full_name,
+    phone_number: user.phone_number || '',
+    role: user.role,
+    diocese_id: user.diocese_id || '',
+    parish_id: user.parish_id || '',
+    is_active: user.is_active ?? true,
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -29,10 +30,10 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
 
   // Reset parish when diocese changes
   useEffect(() => {
-    if (formData.diocese_id) {
+    if (formData.diocese_id && formData.diocese_id !== user.diocese_id) {
       setFormData(prev => ({ ...prev, parish_id: '' }));
     }
-  }, [formData.diocese_id]);
+  }, [formData.diocese_id, user.diocese_id]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -49,13 +50,6 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Password validation
-    if (!formData.password.trim()) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
     }
 
     // Full name validation
@@ -90,6 +84,7 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
       const submissionData = {
         ...formData,
         parish_id: formData.parish_id === '' ? null : formData.parish_id,
+        diocese_id: formData.diocese_id === '' ? null : formData.diocese_id,
       };
       await onSubmit(submissionData);
     } catch (err: any) {
@@ -149,25 +144,6 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
           />
           {errors.email && (
             <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Password</label>
-          <input
-            type="password"
-            required
-            value={formData.password}
-            onChange={(e) => {
-              setFormData({ ...formData, password: e.target.value });
-              if (errors.password) setErrors({ ...errors, password: '' });
-            }}
-            className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.password
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
-              }`}
-          />
-          {errors.password && (
-            <p className="mt-1 text-sm text-red-600">{errors.password}</p>
           )}
         </div>
         <div>
@@ -258,6 +234,17 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
           </select>
           <p className="text-xs text-gray-500 mt-1">Leave empty for diocese-level user</p>
         </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Account Status</label>
+          <select
+            value={formData.is_active.toString()}
+            onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'true' })}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+          >
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
       </div>
 
       <div className="mt-5 sm:mt-6 flex gap-3 justify-end">
@@ -273,11 +260,11 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
           disabled={loading}
           className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm disabled:opacity-50"
         >
-          {loading ? 'Creating...' : 'Create User'}
+          {loading ? 'Updating...' : 'Update User'}
         </button>
       </div>
     </form>
   );
 };
 
-export default UserForm;
+export default UserEditForm;
