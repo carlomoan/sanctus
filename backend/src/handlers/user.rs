@@ -6,6 +6,7 @@ use axum::{
 use uuid::Uuid;
 use crate::{AppState, models::user::{User, UserProfile, UserRole, CreateUserRequest}, handlers::auth::AuthUser};
 use bcrypt::{hash, DEFAULT_COST};
+use serde::Deserialize;
 
 pub async fn list_users(
     auth: AuthUser,
@@ -102,4 +103,96 @@ pub async fn delete_user(
     }
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ToggleStatusRequest {
+    pub is_active: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateUserRequest {
+    pub full_name: Option<String>,
+    pub email: Option<String>,
+    pub phone_number: Option<String>,
+    pub parish_id: Option<Uuid>,
+    pub role: Option<UserRole>,
+}
+
+// ------- toggle_user_status -------------------------------------------
+pub async fn toggle_user_status(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<ToggleStatusRequest>,
+) -> Result<Json<UserProfile>, (StatusCode, String)> {
+    if auth.role != UserRole::SuperAdmin {
+        return Err((StatusCode::FORBIDDEN, "Only SuperAdmins can update users".to_string()));
+    }
+
+    let user = sqlx::query_as::<_, User>(
+        "UPDATE app_user SET is_active = $1, updated_at = NOW()
+         WHERE id = $2 AND deleted_at IS NULL
+         RETURNING *"
+    )
+    .bind(payload.is_active)
+    .bind(id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(UserProfile {
+        id: user.id,
+        parish_id: user.parish_id,
+        username: user.username,
+        email: user.email,
+        full_name: user.full_name,
+        phone_number: user.phone_number,
+        role: user.role,
+        profile_photo_url: user.profile_photo_url,
+    }))
+}
+
+// ------- update_user ------------------------------------------------
+pub async fn update_user(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<UpdateUserRequest>,
+) -> Result<Json<UserProfile>, (StatusCode, String)> {
+    if auth.role != UserRole::SuperAdmin {
+        return Err((StatusCode::FORBIDDEN, "Only SuperAdmins can update users".to_string()));
+    }
+
+    let user = sqlx::query_as::<_, User>(
+        r#"UPDATE app_user SET
+            full_name    = COALESCE($1, full_name),
+            email        = COALESCE($2, email),
+            phone_number = COALESCE($3, phone_number),
+            parish_id    = COALESCE($4, parish_id),
+            role         = COALESCE($5, role),
+            updated_at   = NOW()
+           WHERE id = $6 AND deleted_at IS NULL
+           RETURNING *"#
+    )
+    .bind(payload.full_name)
+    .bind(payload.email)
+    .bind(payload.phone_number)
+    .bind(payload.parish_id)
+    .bind(payload.role)
+    .bind(id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(UserProfile {
+        id: user.id,
+        parish_id: user.parish_id,
+        username: user.username,
+        email: user.email,
+        full_name: user.full_name,
+        phone_number: user.phone_number,
+        role: user.role,
+        profile_photo_url: user.profile_photo_url,
+    }))
 }

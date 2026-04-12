@@ -126,13 +126,14 @@ const Users = () => {
     try {
       // Use the toggleUserStatus method if only status is being updated
       if (Object.keys(data).length === 1 && 'is_active' in data) {
-        const updatedUser = await api.toggleUserStatus(selectedUser.id, data.is_active!);
-        setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u));
+        await api.toggleUserStatus(selectedUser.id, data.is_active!);
       } else {
         // For other updates, try the regular updateUser method
-        const updatedUser = await api.updateUser(selectedUser.id, data);
-        setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u));
+        await api.updateUser(selectedUser.id, data);
       }
+
+      // Refetch all users to get latest data from database
+      await fetchData();
 
       setIsEditModalOpen(false);
       setSelectedUser(null);
@@ -141,32 +142,22 @@ const Users = () => {
       alert('User updated successfully');
     } catch (err: any) {
       console.error('Failed to update user:', err);
-
-      // Provide specific error message for CORS issues
-      if (err.message.includes('405') || err.message.includes('CORS')) {
-        alert('Unable to update user information due to server restrictions. Please contact your system administrator to enable user management features.');
-      } else {
-        alert('Failed to update user. Please try again later.');
-      }
+      alert('Failed to update user. Please try again later.');
     }
   };
 
   const handleToggleUserStatus = async (user: User) => {
     try {
-      const updatedUser = await api.toggleUserStatus(user.id, !user.is_active);
-      setUsers(users.map(u => u.id === user.id ? updatedUser : u));
+      await api.toggleUserStatus(user.id, !user.is_active);
+
+      // Refetch all users to get latest data from database
+      await fetchData();
 
       // Show success message
       alert(`User ${!user.is_active ? 'activated' : 'deactivated'} successfully`);
     } catch (err: any) {
       console.error('Failed to toggle user status:', err);
-
-      // Provide specific error message for CORS issues
-      if (err.message.includes('405') || err.message.includes('CORS')) {
-        alert('Unable to update user status due to server restrictions. Please contact your system administrator to enable user management features.');
-      } else {
-        alert('Failed to update user status. Please try again later.');
-      }
+      alert('Failed to update user status. Please try again later.');
     }
   };
 
@@ -182,20 +173,6 @@ const Users = () => {
 
   return (
     <div className="space-y-6">
-      {/* Backend Limitations Notice */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <Shield className="text-yellow-600 mt-0.5" size={20} />
-          <div>
-            <h3 className="text-sm font-medium text-yellow-800">User Management Limitations</h3>
-            <p className="text-sm text-yellow-700 mt-1">
-              Some user management features (status toggling, profile editing) are currently limited due to server configuration.
-              Contact your system administrator to enable full user management capabilities.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
         <button

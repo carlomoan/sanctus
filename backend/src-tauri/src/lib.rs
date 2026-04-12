@@ -7,7 +7,6 @@ pub async fn run() {
         http::{Method, header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT}},
     };
     use std::net::SocketAddr;
-    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
     use sqlx::postgres::{PgPool, PgPoolOptions};
     use dotenvy::dotenv;
     use tower_http::cors::{CorsLayer, Any};
@@ -37,16 +36,8 @@ pub async fn run() {
         Ok(3000)
     }
 
-    // Initialize logging and database
+    // Initialize environment variables
     dotenv().ok();
-
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "sanctus=debug,tower_http=debug".into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
 
     let database_url = std::env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set");
@@ -93,7 +84,11 @@ pub async fn run() {
 
     // Run Tauri application
     tauri::Builder::default()
-        .plugin(tauri_plugin_log::Builder::new().build())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Debug)
+                .build()
+        )
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
@@ -105,14 +100,6 @@ pub async fn run() {
             get_server_port
         ])
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
-            
             // Configure window
             let window = app.get_webview_window("main").unwrap();
             window.show().unwrap();

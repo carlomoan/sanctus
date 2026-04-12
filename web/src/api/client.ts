@@ -219,13 +219,13 @@ export class ApiClient {
     return this.request<User>('POST', '/users', data);
   }
 
-  async updateUser(id: UUID, data: Partial<User>): Promise<User> {
-    return this.request<User>('PUT', `/users/${id}`, data);
+  async toggleUserStatus(id: UUID, isActive: boolean): Promise<User> {
+    return this.request<User>('PATCH', `/users/${id}`, { is_active: isActive });
   }
 
-  async toggleUserStatus(id: UUID, isActive: boolean): Promise<User> {
-    return this.request<User>('POST', `/users/${id}`, { is_active: isActive });
-  }
+  async updateUser(id: UUID, data: Partial<User>): Promise<User> {
+    return this.request<User>('PUT', `/users/${id}`, data);
+  } 
 
   async deleteUser(id: UUID): Promise<void> {
     return this.request<void>('DELETE', `/users/${id}`);

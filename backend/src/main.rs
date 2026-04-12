@@ -1,6 +1,6 @@
 use axum::{
     extract::State,
-    routing::{get, post, delete, put},
+    routing::{get, post, patch, delete, options, put},
     Router,
     http::{Method, header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT}},
 };
@@ -58,7 +58,7 @@ async fn main() {
         .route("/health", get(health_check))
         .route("/auth/login", post(handlers::auth::login))
         .route("/users", get(handlers::user::list_users).post(handlers::user::create_user))
-        .route("/users/:id", delete(handlers::user::delete_user))
+        .route("/users/:id", put(handlers::user::update_user).patch(handlers::user::toggle_user_status).delete(handlers::user::delete_user))
         .route("/budgets", get(handlers::budget::list_budgets).post(handlers::budget::create_budget))
         .route("/budgets/:id", put(handlers::budget::update_budget))
         .route("/reports/trial-balance", get(handlers::report::get_trial_balance))
@@ -109,7 +109,7 @@ async fn main() {
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
-                .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
+                .allow_methods([Method::GET, Method::PATCH, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
                 .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT]),
         )
         .with_state(state);
