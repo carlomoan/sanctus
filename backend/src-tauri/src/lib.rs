@@ -11,6 +11,28 @@ pub async fn run() {
     use dotenvy::dotenv;
     use tower_http::cors::{CorsLayer, Any};
     use tauri::{Manager, State as TauriState};
+    use dirs;
+
+    fn get_database_url() -> String {
+        // 1. Check environment variable first (dev/server use)
+        if let Ok(url) = std::env::var("DATABASE_URL") {
+            return url;
+        }
+
+        // 2. Check a config file in the user's home directory
+        let config_path = dirs::home_dir()
+            .unwrap_or_default()
+            .join(".config/sanctus/database.conf");
+
+        if config_path.exists() {
+            if let Ok(url) = std::fs::read_to_string(&config_path) {
+                return url.trim().to_string();
+            }
+        }
+
+        // 3. Fall back to a sensible default for local installs
+        "postgresql://postgres:postgres@localhost:5432/sanctus".to_string()
+    }
 
     #[derive(Clone)]
     struct AppState {
@@ -39,8 +61,7 @@ pub async fn run() {
     // Initialize environment variables
     dotenv().ok();
 
-    let database_url = std::env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
+    let database_url = get_database_url();
 
     // Create database connection pool
     let pool = PgPoolOptions::new()
