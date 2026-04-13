@@ -10,14 +10,13 @@ import ReceiptPreview from '../components/ReceiptPreview';
 import classNames from 'classnames';
 import { downloadReceipt, printReceipt, ReceiptFormat } from '../utils/receiptPdf';
 import { useAuth } from '../context/AuthContext';
-import { filterParishesByRole, getEffectiveParishId } from '../utils/parishFilters';
+import { filterParishesByRole } from '../utils/parishFilters';
 
 const Finance = () => {
   const { user } = useAuth();
   const isDioceseAdmin = user?.role === UserRole.SUPER_ADMIN;
   const isViewer = user?.role === UserRole.VIEWER;
   const canCreateFinance = !isViewer;
-  const userParishId = user?.parish_id;
 
   const [parishes, setParishes] = useState<Parish[]>([]);
   const [selectedParishId, setSelectedParishId] = useState<string>('');

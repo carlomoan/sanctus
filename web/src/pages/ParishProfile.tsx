@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   Church, Users, MapPin, Phone, Mail, Calendar, DollarSign, Activity,
   TrendingUp, TrendingDown, Home, Layers, FileText, Settings, ArrowLeft,
-  Award, Globe, Clock, CheckCircle, AlertCircle, User, Building
+  Award, Clock, CheckCircle, AlertCircle, User, Building
 } from 'lucide-react';
 
 interface ParishStats {

@@ -8,7 +8,7 @@ import MemberForm from '../components/MemberForm';
 import DataTable, { Column, BulkAction } from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
 import { useParish } from '../context/ParishContext';
-import { filterParishesByRole, getEffectiveParishId, canAccessParish } from '../utils/parishFilters';
+import { filterParishesByRole } from '../utils/parishFilters';
 
 const Members = () => {
   const { user } = useAuth();

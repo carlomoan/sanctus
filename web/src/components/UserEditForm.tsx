@@ -10,13 +10,17 @@ interface UserEditFormProps {
 }
 
 const UserEditForm = ({ onSubmit, onCancel, user, parishes, dioceses }: UserEditFormProps) => {
+  // Get the diocese_id from the user's parish
+  const userParish = parishes.find(p => p.id === user.parish_id);
+  const userDioceseId = userParish?.diocese_id || '';
+
   const [formData, setFormData] = useState({
     username: user.username,
     email: user.email,
     full_name: user.full_name,
     phone_number: user.phone_number || '',
     role: user.role,
-    diocese_id: user.diocese_id || '',
+    diocese_id: userDioceseId,
     parish_id: user.parish_id || '',
     is_active: user.is_active ?? true,
   });
@@ -30,10 +34,10 @@ const UserEditForm = ({ onSubmit, onCancel, user, parishes, dioceses }: UserEdit
 
   // Reset parish when diocese changes
   useEffect(() => {
-    if (formData.diocese_id && formData.diocese_id !== user.diocese_id) {
+    if (formData.diocese_id && formData.diocese_id !== userDioceseId) {
       setFormData(prev => ({ ...prev, parish_id: '' }));
     }
-  }, [formData.diocese_id, user.diocese_id]);
+  }, [formData.diocese_id, userDioceseId]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -83,8 +87,8 @@ const UserEditForm = ({ onSubmit, onCancel, user, parishes, dioceses }: UserEdit
     try {
       const submissionData = {
         ...formData,
-        parish_id: formData.parish_id === '' ? null : formData.parish_id,
-        diocese_id: formData.diocese_id === '' ? null : formData.diocese_id,
+        parish_id: formData.parish_id === '' ? undefined : formData.parish_id,
+        diocese_id: formData.diocese_id === '' ? undefined : formData.diocese_id,
       };
       await onSubmit(submissionData);
     } catch (err: any) {
@@ -119,8 +123,8 @@ const UserEditForm = ({ onSubmit, onCancel, user, parishes, dioceses }: UserEdit
               if (errors.username) setErrors({ ...errors, username: '' });
             }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.username
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
+              ? 'border-red-300 focus:border-red-500'
+              : 'border-gray-300 focus:border-primary-500'
               }`}
           />
           {errors.username && (
@@ -138,8 +142,8 @@ const UserEditForm = ({ onSubmit, onCancel, user, parishes, dioceses }: UserEdit
               if (errors.email) setErrors({ ...errors, email: '' });
             }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.email
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
+              ? 'border-red-300 focus:border-red-500'
+              : 'border-gray-300 focus:border-primary-500'
               }`}
           />
           {errors.email && (
@@ -157,8 +161,8 @@ const UserEditForm = ({ onSubmit, onCancel, user, parishes, dioceses }: UserEdit
               if (errors.full_name) setErrors({ ...errors, full_name: '' });
             }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.full_name
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
+              ? 'border-red-300 focus:border-red-500'
+              : 'border-gray-300 focus:border-primary-500'
               }`}
           />
           {errors.full_name && (
@@ -183,8 +187,8 @@ const UserEditForm = ({ onSubmit, onCancel, user, parishes, dioceses }: UserEdit
               if (errors.role) setErrors({ ...errors, role: '' });
             }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.role
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
+              ? 'border-red-300 focus:border-red-500'
+              : 'border-gray-300 focus:border-primary-500'
               }`}
           >
             {Object.values(UserRole).map((role) => (
@@ -204,8 +208,8 @@ const UserEditForm = ({ onSubmit, onCancel, user, parishes, dioceses }: UserEdit
               if (errors.diocese_id) setErrors({ ...errors, diocese_id: '' });
             }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.diocese_id
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
+              ? 'border-red-300 focus:border-red-500'
+              : 'border-gray-300 focus:border-primary-500'
               }`}
           >
             <option value="">Select Diocese</option>

@@ -17,7 +17,6 @@ const Budgets = () => {
   const { user } = useAuth();
   const isDioceseAdmin = user?.role === UserRole.SUPER_ADMIN;
   const isViewer = user?.role === UserRole.VIEWER;
-  const userParishId = user?.parish_id;
 
   const fetchParishes = async () => {
     try {

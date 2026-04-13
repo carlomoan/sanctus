@@ -5,8 +5,8 @@ import { DashboardStats, Parish, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
   Users, Church, Coins, FileText, UserPlus, Home, MapPin, Layers, ArrowRight, Search,
-  TrendingUp, TrendingDown, Calendar, DollarSign, Activity, PieChart, BarChart3,
-  UserCheck, Settings, Eye, Edit, Shield, CreditCard, FileSpreadsheet, Award
+  TrendingUp, TrendingDown, Calendar, Activity, PieChart, BarChart3,
+  UserCheck, Settings, Eye, Shield, CreditCard, FileSpreadsheet, Award
 } from 'lucide-react';
 import ImportButton from '../components/ImportButton';
 
@@ -82,7 +82,6 @@ const Dashboard = () => {
     return <div className="text-center py-12 text-red-500">{error}</div>;
   }
 
-  const defaultParishId = parishes[0]?.id;
   const filteredParishes = parishes.filter(p =>
     p.parish_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.parish_code.toLowerCase().includes(searchQuery.toLowerCase())
