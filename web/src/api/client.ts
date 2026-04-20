@@ -212,7 +212,9 @@ export class ApiClient {
 
   // Users
   async listUsers(): Promise<User[]> {
-    return this.request<User[]>('GET', '/users');
+    // Add cache-busting timestamp
+    const timestamp = Date.now();
+    return this.request<User[]>('GET', `/users?t=${timestamp}`);
   }
 
   async createUser(data: any): Promise<User> {
@@ -223,9 +225,13 @@ export class ApiClient {
     return this.request<User>('PATCH', `/users/${id}`, { is_active: isActive });
   }
 
+  async reactivateUser(id: UUID): Promise<User> {
+    return this.request<User>('POST', `/users/${id}/reactivate`);
+  }
+
   async updateUser(id: UUID, data: Partial<User>): Promise<User> {
     return this.request<User>('PUT', `/users/${id}`, data);
-  } 
+  }
 
   async deleteUser(id: UUID): Promise<void> {
     return this.request<void>('DELETE', `/users/${id}`);

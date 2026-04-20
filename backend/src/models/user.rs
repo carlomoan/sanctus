@@ -41,6 +41,7 @@ pub struct UserProfile {
     pub phone_number: Option<String>,
     pub role: UserRole,
     pub profile_photo_url: Option<String>,
+    pub is_active: bool,
 }
 
 #[derive(Debug, Deserialize)]

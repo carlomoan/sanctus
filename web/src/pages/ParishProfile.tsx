@@ -62,13 +62,13 @@ const ParishProfile = () => {
           total_members: parishStats.total_members || 0,
           total_families: parishStats.total_families || 0,
           total_clusters: parishStats.total_clusters || 0,
-          total_sccs: parishStats.total_sccs || 0,
-          monthly_income: parishStats.monthly_income || parishStats.total_income || 0,
-          monthly_expenses: parishStats.monthly_expenses || parishStats.total_expenses || 0,
-          sacraments_this_month: parishStats.sacraments_this_month || 0,
-          attendance_rate: parishStats.member_attendance || 0,
-          active_groups: parishStats.active_groups || 0,
-          upcoming_events: parishStats.upcoming_events || 0
+          total_sccs: 0, // Not available in DashboardStats
+          monthly_income: Number(parishStats.total_income) || 0,
+          monthly_expenses: Number(parishStats.total_expenses) || 0,
+          sacraments_this_month: 0, // Not available in DashboardStats
+          attendance_rate: 0, // Not available in DashboardStats
+          active_groups: 0, // Not available in DashboardStats
+          upcoming_events: 0 // Not available in DashboardStats
         });
       } catch (err) {
         console.error('Failed to load parish data:', err);

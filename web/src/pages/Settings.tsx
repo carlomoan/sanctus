@@ -11,6 +11,7 @@ import { defaultReceiptConfigs, ReceiptConfig } from '../components/CustomReceip
 import IdInitialsConfig from '../components/IdInitialsConfig';
 import { IdConfig } from '../utils/idGenerator';
 import Modal from '../components/Modal';
+import LanguageSelector from '../components/LanguageSelector';
 
 const GROUPS = [
   { id: 'ui', label: 'UI Configuration', icon: Palette },
@@ -387,7 +388,7 @@ export default function Settings() {
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   )}
-                  {setting.type === 'select' && (
+                  {setting.type === 'select' && setting.key !== 'language' && (
                     <select
                       value={values[setting.key] || ''}
                       onChange={e => updateValue(setting.key, e.target.value)}
@@ -395,6 +396,11 @@ export default function Settings() {
                     >
                       {setting.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
+                  )}
+                  {setting.key === 'language' && (
+                    <div>
+                      <LanguageSelector />
+                    </div>
                   )}
                   {setting.type === 'color' && (
                     <div className="flex items-center gap-3">
@@ -426,6 +432,7 @@ export default function Settings() {
                 </div>
               </div>
             ))}
+
           </div>
         </div>
       </div>

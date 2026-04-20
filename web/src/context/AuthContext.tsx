@@ -19,6 +19,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const savedUser = api.getUser();
     if (savedUser) {
+      // Check if JWT token is still valid
+      const token = api.getToken();
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.exp * 1000 < Date.now()) {
+            // Token expired, clear session
+            logout();
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          // Invalid token, clear session
+          logout();
+          setIsLoading(false);
+          return;
+        }
+      }
       setUser(savedUser);
     }
     setIsLoading(false);
@@ -26,6 +44,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     api.setOnUnauthorized(() => {
       setUser(null);
     });
+
+    // Set up idle timeout (30 minutes)
+    const IDLE_TIMEOUT = 30 * 60 * 1000;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        logout();
+      }, IDLE_TIMEOUT);
+    };
+
+    // Reset on any user activity
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(e => window.addEventListener(e, resetTimer));
+    resetTimer(); // start timer
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach(e => window.removeEventListener(e, resetTimer));
+    };
   }, []);
 
   const login = async (data: LoginRequest) => {

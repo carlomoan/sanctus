@@ -100,8 +100,33 @@ const ReceiptBuilder: React.FC<ReceiptBuilderProps> = ({
       member,
       config
     });
-    const filename = `receipt_${transaction.transaction_number.replace(/\//g, '-')}.pdf`;
-    doc.save(filename);
+
+    // Check if running in Tauri
+    if (typeof window !== 'undefined' && window.__TAURI__) {
+      try {
+        const { save } = window.__TAURI__.dialog;
+        const { writeFile } = window.__TAURI__.fs;
+
+        const filename = `receipt_${transaction.transaction_number.replace(/\//g, '-')}.pdf`;
+        const filePath = await save({
+          defaultPath: filename,
+          filters: [{ name: 'PDF', extensions: ['pdf'] }]
+        });
+
+        if (filePath) {
+          const blob = doc.output('blob');
+          const buffer = await blob.arrayBuffer();
+          await writeFile(filePath, new Uint8Array(buffer));
+        }
+      } catch (error) {
+        console.error('Tauri download failed:', error);
+        // Fallback to browser download
+        doc.save(`receipt_${transaction.transaction_number.replace(/\//g, '-')}.pdf`);
+      }
+    } else {
+      // Browser download
+      doc.save(`receipt_${transaction.transaction_number.replace(/\//g, '-')}.pdf`);
+    }
   };
 
   // Print receipt
@@ -112,13 +137,51 @@ const ReceiptBuilder: React.FC<ReceiptBuilderProps> = ({
       member,
       config
     });
-    const blob = doc.output('blob');
-    const url = URL.createObjectURL(blob);
-    const printWindow = window.open(url, '_blank');
-    if (printWindow) {
-      printWindow.addEventListener('load', () => {
-        printWindow.print();
-      });
+
+    // Check if running in Tauri
+    if (typeof window !== 'undefined' && window.__TAURI__) {
+      try {
+        // In Tauri, we can use window.print() if the permissions are set
+        // First create a temporary iframe to load the PDF
+        const blob = doc.output('blob');
+        const url = URL.createObjectURL(blob);
+
+        // Create an iframe to print the PDF
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+
+        iframe.onload = () => {
+          iframe.contentWindow?.print();
+          // Clean up
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            URL.revokeObjectURL(url);
+          }, 1000);
+        };
+      } catch (error) {
+        console.error('Tauri print failed:', error);
+        // Fallback to opening in new window
+        const blob = doc.output('blob');
+        const url = URL.createObjectURL(blob);
+        const printWindow = window.open(url, '_blank');
+        if (printWindow) {
+          printWindow.addEventListener('load', () => {
+            printWindow.print();
+          });
+        }
+      }
+    } else {
+      // Browser approach
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, '_blank');
+      if (printWindow) {
+        printWindow.addEventListener('load', () => {
+          printWindow.print();
+        });
+      }
     }
   };
 
@@ -176,8 +239,8 @@ const ReceiptBuilder: React.FC<ReceiptBuilderProps> = ({
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-2 text-sm font-medium capitalize flex-shrink-0 ${activeTab === tab
-                    ? 'border-b-2 border-blue-500 text-blue-600'
-                    : 'text-gray-600 hover:text-gray-900'
+                  ? 'border-b-2 border-blue-500 text-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
                   }`}
               >
                 {tab}

@@ -638,3 +638,84 @@ export interface AppSetting {
   created_at: ISODateTimeString;
   updated_at: ISODateTimeString;
 }
+
+// Tauri Type Declarations
+declare global {
+  interface Window {
+    __TAURI__?: {
+      window: {
+        getCurrentWindow: () => {
+          minimize: () => Promise<void>;
+          maximize: () => Promise<void>;
+          unmaximize: () => Promise<void>;
+          close: () => Promise<void>;
+          hide: () => Promise<void>;
+          show: () => Promise<void>;
+          isFocused: () => Promise<boolean>;
+          isMaximized: () => Promise<boolean>;
+          isMinimized: () => Promise<boolean>;
+          isDecorated: () => Promise<boolean>;
+          isResizable: () => Promise<boolean>;
+          isVisible: () => Promise<boolean>;
+          setTitle: (title: string) => Promise<void>;
+          center: () => Promise<void>;
+          requestUserAttention: (requestType?: number) => Promise<void>;
+          setResizable: (resizable: boolean) => Promise<void>;
+          setMinimizable: (minimizable: boolean) => Promise<void>;
+          setMaximizable: (maximizable: boolean) => Promise<void>;
+          setClosable: (closable: boolean) => Promise<void>;
+          setDecorations: (decorations: boolean) => Promise<void>;
+          setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>;
+          setContentProtected: (protected_: boolean) => Promise<void>;
+          setSize: (size: { width: number; height: number }) => Promise<void>;
+          setMinSize: (size: { width: number; height: number }) => Promise<void>;
+          setMaxSize: (size: { width: number; height: number }) => Promise<void>;
+          setPosition: (position: { x: number; y: number }) => Promise<void>;
+          setFullscreen: (fullscreen: boolean) => Promise<void>;
+          setFocus: () => Promise<void>;
+          setIcon: (icon: string | string[]) => Promise<void>;
+          setSkipTaskbar: (skip: boolean) => Promise<void>;
+          setCursorGrab: (grab: boolean) => Promise<void>;
+          setCursorVisible: (visible: boolean) => Promise<void>;
+          setCursorIcon: (icon: string) => Promise<void>;
+          setCursorPosition: (position: { x: number; y: number }) => Promise<void>;
+          setIgnoreCursorEvents: (ignore: boolean) => Promise<void>;
+          onCloseRequested: (handler: () => void | Promise<void>) => Promise<() => Promise<void>>;
+        };
+      };
+      dialog: {
+        open: (options: {
+          defaultPath?: string;
+          filters?: Array<{
+            name: string;
+            extensions: string[];
+          }>;
+        }) => Promise<string | null>;
+        save: (options: {
+          defaultPath?: string;
+          filters?: Array<{
+            name: string;
+            extensions: string[];
+          }>;
+        }) => Promise<string | null>;
+        ask: (message: string, title?: string) => Promise<boolean>;
+        confirm: (message: string, title?: string) => Promise<boolean>;
+        message: (message: string, title?: string) => Promise<void>;
+      };
+      fs: {
+        readFile: (path: string) => Promise<Uint8Array>;
+        writeFile: (path: string, contents: Uint8Array) => Promise<void>;
+        readTextFile: (path: string) => Promise<string>;
+        writeTextFile: (path: string, contents: string) => Promise<void>;
+        exists: (path: string) => Promise<boolean>;
+        createDir: (path: string) => Promise<void>;
+        removeDir: (path: string) => Promise<void>;
+        copyFile: (source: string, destination: string) => Promise<void>;
+        removeFile: (path: string) => Promise<void>;
+        renameFile: (oldPath: string, newPath: string) => Promise<void>;
+      };
+    };
+  }
+}
+
+export { };

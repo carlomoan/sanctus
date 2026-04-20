@@ -65,7 +65,8 @@ pub fn create_jwt(user_id: Uuid, role: UserRole, parish_id: Option<Uuid>) -> Res
         exp: expiration,
     };
 
-    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    let secret = env::var("JWT_SECRET")
+        .unwrap_or_else(|_| "default-sanctus-secret-change-me".to_string());
     encode(
         &Header::default(),
         &claims,
@@ -99,7 +100,8 @@ where
         }
 
         let token = &auth_header[7..];
-        let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+        let secret = env::var("JWT_SECRET")
+        .unwrap_or_else(|_| "default-sanctus-secret-change-me".to_string());
 
         let token_data = decode::<Claims>(
             token,
@@ -146,6 +148,7 @@ pub async fn login(
             phone_number: user.phone_number,
             role: user.role,
             profile_photo_url: user.profile_photo_url,
+            is_active: user.is_active,
         },
     }))
 }

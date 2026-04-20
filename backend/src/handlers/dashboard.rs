@@ -66,6 +66,8 @@ pub async fn get_dashboard_stats(
     let stats = DashboardStats {
         total_members,
         active_parishes,
+        total_families: 0, // TODO: Calculate actual families
+        total_clusters: 0, // TODO: Calculate actual clusters
         total_income,
         total_expenses,
         pending_approvals,

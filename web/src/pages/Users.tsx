@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { User, UserRole, Parish, Diocese } from '../types';
-import { Plus, Shield, Trash2, Mail, Phone, Church, Edit, UserCheck, UserX, Settings } from 'lucide-react';
+import { Plus, Trash2, Mail, Phone, Church, Edit, UserCheck, UserX, Settings, RefreshCw } from 'lucide-react';
 import Modal from '../components/Modal';
 import UserForm from '../components/UserForm';
 import UserEditForm from '../components/UserEditForm';
@@ -29,6 +29,14 @@ const Users = () => {
         api.listParishes(),
         api.listDioceses(),
       ]);
+
+      // Debug logging to see what we're getting
+      console.log('Users fetched from API:', usersData);
+      console.log('Number of users:', usersData.length);
+      usersData.forEach((user, index) => {
+        console.log(`User ${index + 1}:`, user);
+      });
+
       setUsers(usersData);
       setParishes(parishesData);
       setDioceses(diocesesData);
@@ -161,12 +169,28 @@ const Users = () => {
     }
   };
 
-  if (currentUser?.role !== UserRole.SUPER_ADMIN) {
+  const handleReactivateUser = async (user: User) => {
+    try {
+      await api.reactivateUser(user.id);
+
+      // Refetch all users to get latest data from database
+      await fetchData();
+
+      // Show success message
+      alert(`User ${user.username} reactivated successfully`);
+    } catch (err: any) {
+      console.error('Failed to reactivate user:', err);
+      alert('Failed to reactivate user. Please try again later.');
+    }
+  };
+
+  if (currentUser?.role !== UserRole.SUPER_ADMIN && currentUser?.role !== UserRole.PARISH_ADMIN) {
     return (
-      <div className="text-center py-12">
-        <Shield className="mx-auto h-12 w-12 text-red-500" />
-        <h2 className="mt-2 text-lg font-medium text-gray-900">Access Denied</h2>
-        <p className="mt-1 text-sm text-gray-500">Only SuperAdmins can manage users.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You don't have permission to access user management.</p>
+        </div>
       </div>
     );
   }
@@ -243,14 +267,39 @@ const Users = () => {
                   >
                     <Settings size={18} />
                   </button>
-                  <button
-                    onClick={() => handleToggleUserStatus(user)}
-                    disabled={user.id === currentUser.id}
-                    className="p-2 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors disabled:opacity-30"
-                    title={user.is_active ? 'Deactivate User' : 'Activate User'}
-                  >
-                    {user.is_active ? <UserX size={18} /> : <UserCheck size={18} />}
-                  </button>
+
+                  {/* Show different buttons based on user status and current user role */}
+                  {!user.is_active && currentUser?.role === UserRole.SUPER_ADMIN ? (
+                    // SuperAdmin can reactivate deleted users
+                    <button
+                      onClick={() => handleReactivateUser(user)}
+                      className="p-2 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors"
+                      title="Reactivate User"
+                    >
+                      <RefreshCw size={18} />
+                    </button>
+                  ) : user.is_active ? (
+                    // Active users can be deactivated
+                    <button
+                      onClick={() => handleToggleUserStatus(user)}
+                      disabled={user.id === currentUser.id}
+                      className="p-2 text-gray-400 hover:text-orange-600 rounded-full hover:bg-orange-50 transition-colors disabled:opacity-30"
+                      title="Deactivate User"
+                    >
+                      <UserX size={18} />
+                    </button>
+                  ) : (
+                    // Inactive users (Parish Admin view) can be activated
+                    <button
+                      onClick={() => handleToggleUserStatus(user)}
+                      disabled={user.id === currentUser.id}
+                      className="p-2 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors disabled:opacity-30"
+                      title="Activate User"
+                    >
+                      <UserCheck size={18} />
+                    </button>
+                  )}
+
                   <button
                     onClick={() => handleChangeRole(user)}
                     disabled={user.id === currentUser.id}
@@ -263,8 +312,8 @@ const Users = () => {
                 <button
                   onClick={() => handleDeleteUser(user.id)}
                   disabled={user.id === currentUser.id}
-                  className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors disabled:opacity-30"
-                  title="Delete User"
+                  className="p-2 text-red-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors disabled:opacity-30"
+                  title={currentUser?.role === UserRole.SUPER_ADMIN ? 'Permanently Delete User' : 'Deactivate User'}
                 >
                   <Trash2 size={18} />
                 </button>

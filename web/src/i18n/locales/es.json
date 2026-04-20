@@ -1,0 +1,113 @@
+{
+  "navigation": {
+    "dashboard": "Tablero",
+    "members": "Miembros",
+    "finance": "Finanzas",
+    "sacraments": "Sacramentos",
+    "reports": "Informes",
+    "settings": "Configuración",
+    "users": "Gestión de Usuarios",
+    "logout": "Cerrar Sesión"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "username": "Nombre de Usuario",
+    "password": "Contraseña",
+    "email": "Email",
+    "rememberMe": "Recordarme",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "loginSuccess": "Inicio de sesión exitoso",
+    "loginFailed": "Inicio de sesión fallido",
+    "invalidCredentials": "Credenciales inválidas"
+  },
+  "dashboard": {
+    "welcome": "Bienvenido de vuelta",
+    "totalMembers": "Total de Miembros",
+    "activeParishes": "Parroquias Activas",
+    "totalIncome": "Ingresos Totales",
+    "totalExpenses": "Gastos Totales",
+    "pendingApprovals": "Aprobaciones Pendientes"
+  },
+  "users": {
+    "userManagement": "Gestión de Usuarios",
+    "createUser": "Crear Usuario",
+    "editUser": "Editar Usuario",
+    "deleteUser": "Eliminar Usuario",
+    "username": "Nombre de Usuario",
+    "email": "Email",
+    "fullName": "Nombre Completo",
+    "phoneNumber": "Número de Teléfono",
+    "role": "Rol",
+    "status": "Estado",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "activateUser": "Activar Usuario",
+    "deactivateUser": "Desactivar Usuario",
+    "reactivateUser": "Reactivar Usuario",
+    "permanentlyDeleteUser": "Eliminar Permanentemente el Usuario",
+    "userCreated": "Usuario creado exitosamente",
+    "userUpdated": "Usuario actualizado exitosamente",
+    "userDeleted": "Usuario eliminado exitosamente",
+    "userReactivated": "Usuario reactivado exitosamente"
+  },
+  "parish": {
+    "parishProfile": "Perfil de la Parroquia",
+    "parishName": "Nombre de la Parroquia",
+    "parishAddress": "Dirección de la Parroquia",
+    "parishPhone": "Teléfono de la Parroquia",
+    "parishEmail": "Email de la Parroquia",
+    "totalFamilies": "Total de Familias",
+    "totalClusters": "Total de Clusters",
+    "monthlyIncome": "Ingresos Mensuales",
+    "monthlyExpenses": "Gastos Mensuales"
+  },
+  "receipt": {
+    "receiptBuilder": "Generador de Recibos",
+    "download": "Descargar",
+    "print": "Imprimir",
+    "preview": "Vista Previa",
+    "receiptNumber": "Número de Recibo",
+    "amount": "Cantidad",
+    "donor": "Donante",
+    "date": "Fecha",
+    "downloadReceipt": "Descargar Recibo",
+    "printReceipt": "Imprimir Recibo"
+  },
+  "audit": {
+    "auditLogs": "Registros de Auditoría",
+    "actionType": "Tipo de Acción",
+    "tableName": "Nombre de la Tabla",
+    "user": "Usuario",
+    "date": "Fecha",
+    "oldValues": "Valores Antiguos",
+    "newValues": "Nuevos Valores",
+    "noLogsFound": "No se encontraron registros de auditoría"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "create": "Crear",
+    "update": "Actualizar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "confirm": "Confirmar",
+    "yes": "Sí",
+    "no": "No",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior"
+  },
+  "roles": {
+    "superAdmin": "Super Administrador",
+    "parishAdmin": "Administrador de Parroquia",
+    "accountant": "Contador",
+    "secretary": "Secretario",
+    "viewer": "Visualizador"
+  }
+}

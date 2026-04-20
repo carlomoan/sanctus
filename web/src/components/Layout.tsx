@@ -147,12 +147,13 @@ const Layout = () => {
             {isSidebarOpen ? (
               <h1 className="text-xl font-bold text-primary-600 truncate">{appName}</h1>
             ) : (
-              !logoUrl && <span className="text-xl font-bold text-primary-600 mx-auto">{appName.charAt(0)}</span>
+              <h1 className="text-xl font-bold text-primary-600 hidden">{appName}</h1>
             )}
           </div>
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-1 rounded-md hover:bg-gray-100/10 text-sidebar-text opacity-70 hover:opacity-100"
+            className="p-2 rounded-md hover:bg-gray-100/10 transition-colors text-sidebar-text"
+            title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           >
             {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>

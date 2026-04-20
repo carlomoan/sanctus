@@ -1,43 +1,41 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
-    use axum::{
-        extract::State,
-        routing::get,
-        Router,
-        http::{Method, header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT}},
-    };
     use std::net::SocketAddr;
-    use sqlx::postgres::{PgPool, PgPoolOptions};
+    use sqlx::postgres::PgPoolOptions;
     use dotenvy::dotenv;
-    use tower_http::cors::{CorsLayer, Any};
     use tauri::{Manager, State as TauriState};
     use dirs;
 
-    fn get_database_url() -> String {
-        // 1. Check environment variable first (dev/server use)
-        if let Ok(url) = std::env::var("DATABASE_URL") {
-            return url;
-        }
-
-        // 2. Check a config file in the user's home directory
+    fn load_config() {
         let config_path = dirs::home_dir()
             .unwrap_or_default()
             .join(".config/sanctus/database.conf");
 
         if config_path.exists() {
-            if let Ok(url) = std::fs::read_to_string(&config_path) {
-                return url.trim().to_string();
+            if let Ok(content) = std::fs::read_to_string(&config_path) {
+                for line in content.lines() {
+                    let line = line.trim();
+                    if line.is_empty() || line.starts_with('#') { continue; }
+                    if let Some((key, value)) = line.split_once('=') {
+                        std::env::set_var(key.trim(), value.trim());
+                    }
+                }
             }
         }
+    }
 
-        // 3. Fall back to a sensible default for local installs
+    fn get_database_url() -> String {
+        // 1. Check environment variable first (should be set by load_config())
+        if let Ok(url) = std::env::var("DATABASE_URL") {
+            return url;
+        }
+
+        // 2. Fall back to a sensible default for local installs
         "postgresql://postgres:postgres@localhost:5432/sanctus".to_string()
     }
 
-    #[derive(Clone)]
-    struct AppState {
-        db: PgPool,
-    }
+    // Load configuration first
+    load_config();
 
     // Tauri commands for frontend integration
     #[tauri::command]
@@ -46,7 +44,7 @@ pub async fn run() {
     }
 
     #[tauri::command]
-    async fn check_backend_health(state: TauriState<'_, AppState>) -> Result<String, String> {
+    async fn check_backend_health(state: TauriState<'_, sanctus_backend::AppState>) -> Result<String, String> {
         match sqlx::query("SELECT 1").execute(&state.db).await {
             Ok(_) => Ok("Database is healthy".to_string()),
             Err(e) => Err(format!("Database is unhealthy: {}", e)),
@@ -76,31 +74,14 @@ pub async fn run() {
         .await
         .expect("Failed to run migrations");
 
-    let state = AppState { db: pool };
-
-    // Create Axum router with basic routes for now
-    // We'll expand this to include all backend routes
-    let app = Router::new()
-        .route("/", get(|| async { "Sanctus Backend Running!" }))
-        .route("/health", get(|State(state): State<AppState>| async move {
-            match sqlx::query("SELECT 1").execute(&state.db).await {
-                Ok(_) => "Database is healthy",
-                Err(_) => "Database is unhealthy",
-            }
-        }))
-        .layer(
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
-                .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT]),
-        )
-        .with_state(state.clone());
+    let backend_state = sanctus_backend::AppState { db: pool.clone() };
+    let app = sanctus_backend::router::build_router(backend_state);
 
     // Start backend server in background
     tokio::spawn(async move {
         let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
         let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-        axum::serve(listener, app).await.unwrap();
+        let _: () = axum::serve(listener, app).await.unwrap();
     });
 
     // Run Tauri application
@@ -114,7 +95,7 @@ pub async fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
-        .manage(state)
+        .manage(sanctus_backend::AppState { db: pool })
         .invoke_handler(tauri::generate_handler![
             get_app_version,
             check_backend_health,

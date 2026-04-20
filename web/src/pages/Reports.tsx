@@ -45,7 +45,9 @@ const Reports = () => {
   };
 
   const fetchReport = async () => {
-    if (!selectedParishId) return;
+    // SuperAdmin must pick a parish for financial reports,
+    // but audit log can show all parishes
+    if (!selectedParishId && reportType !== 'audit-log') return;
     setLoading(true);
     try {
       switch (reportType) {
@@ -66,17 +68,23 @@ const Reports = () => {
           break;
         case 'audit-log':
           {
-            const [logs, usersData] = await Promise.all([
-              api.listAuditLogs({
-                parish_id: selectedParishId || undefined,
-                action_type: auditActionFilter || undefined,
-                table_name: auditTableFilter || undefined,
-                limit: 200,
-              }),
-              users.length === 0 ? api.listUsers() : Promise.resolve(users),
-            ]);
+            const logs = await api.listAuditLogs({
+              parish_id: selectedParishId || undefined,
+              action_type: auditActionFilter || undefined,
+              table_name: auditTableFilter || undefined,
+              limit: 200,
+            });
             setAuditLogs(logs);
-            if (users.length === 0) setUsers(usersData);
+
+            // Only fetch users if SuperAdmin and not already loaded
+            if (users.length === 0 && user?.role === UserRole.SUPER_ADMIN) {
+              try {
+                const usersData = await api.listUsers();
+                setUsers(usersData);
+              } catch {
+                // ParishAdmin can't list users — that's fine, just show IDs
+              }
+            }
           }
           break;
       }

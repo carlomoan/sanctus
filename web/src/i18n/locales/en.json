@@ -1,0 +1,113 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "members": "Members",
+    "finance": "Finance",
+    "sacraments": "Sacraments",
+    "reports": "Reports",
+    "settings": "Settings",
+    "users": "User Management",
+    "logout": "Logout"
+  },
+  "auth": {
+    "login": "Login",
+    "username": "Username",
+    "password": "Password",
+    "email": "Email",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "loginSuccess": "Login successful",
+    "loginFailed": "Login failed",
+    "invalidCredentials": "Invalid credentials"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "totalMembers": "Total Members",
+    "activeParishes": "Active Parishes",
+    "totalIncome": "Total Income",
+    "totalExpenses": "Total Expenses",
+    "pendingApprovals": "Pending Approvals"
+  },
+  "users": {
+    "userManagement": "User Management",
+    "createUser": "Create User",
+    "editUser": "Edit User",
+    "deleteUser": "Delete User",
+    "username": "Username",
+    "email": "Email",
+    "fullName": "Full Name",
+    "phoneNumber": "Phone Number",
+    "role": "Role",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "activateUser": "Activate User",
+    "deactivateUser": "Deactivate User",
+    "reactivateUser": "Reactivate User",
+    "permanentlyDeleteUser": "Permanently Delete User",
+    "userCreated": "User created successfully",
+    "userUpdated": "User updated successfully",
+    "userDeleted": "User deleted successfully",
+    "userReactivated": "User reactivated successfully"
+  },
+  "parish": {
+    "parishProfile": "Parish Profile",
+    "parishName": "Parish Name",
+    "parishAddress": "Parish Address",
+    "parishPhone": "Parish Phone",
+    "parishEmail": "Parish Email",
+    "totalFamilies": "Total Families",
+    "totalClusters": "Total Clusters",
+    "monthlyIncome": "Monthly Income",
+    "monthlyExpenses": "Monthly Expenses"
+  },
+  "receipt": {
+    "receiptBuilder": "Receipt Builder",
+    "download": "Download",
+    "print": "Print",
+    "preview": "Preview",
+    "receiptNumber": "Receipt Number",
+    "amount": "Amount",
+    "donor": "Donor",
+    "date": "Date",
+    "downloadReceipt": "Download Receipt",
+    "printReceipt": "Print Receipt"
+  },
+  "audit": {
+    "auditLogs": "Audit Logs",
+    "actionType": "Action Type",
+    "tableName": "Table Name",
+    "user": "User",
+    "date": "Date",
+    "oldValues": "Old Values",
+    "newValues": "New Values",
+    "noLogsFound": "No audit logs found"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous"
+  },
+  "roles": {
+    "superAdmin": "Super Admin",
+    "parishAdmin": "Parish Admin",
+    "accountant": "Accountant",
+    "secretary": "Secretary",
+    "viewer": "Viewer"
+  }
+}

@@ -21,7 +21,9 @@ import RoleManagement from './pages/RoleManagement';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { ParishProvider } from './context/ParishContext';
-import './App.css'
+import { useEffect } from 'react';
+import './App.css';
+import './i18n'; // Initialize i18n
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -41,9 +43,49 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Handle session cleanup when Tauri window is closed
+const TauriWindowCloseHandler = () => {
+  const { logout } = useAuth();
+
+  useEffect(() => {
+    // Check if we're running in Tauri
+    if (typeof window !== 'undefined' && window.__TAURI__) {
+      const { getCurrentWindow } = window.__TAURI__.window;
+
+      const setupCloseHandler = async () => {
+        try {
+          const appWindow = getCurrentWindow();
+
+          const unlisten = await appWindow.onCloseRequested(async () => {
+            // Clear session before closing
+            logout();
+          });
+
+          return unlisten;
+        } catch (error) {
+          console.warn('Failed to setup window close handler:', error);
+        }
+      };
+
+      const cleanupPromise = setupCloseHandler();
+
+      return () => {
+        cleanupPromise.then(unlisten => {
+          if (unlisten) {
+            unlisten();
+          }
+        });
+      };
+    }
+  }, [logout]);
+
+  return null;
+};
+
 function App() {
   return (
     <AuthProvider>
+      <TauriWindowCloseHandler />
       <ParishProvider>
         <SettingsProvider>
           <Router>

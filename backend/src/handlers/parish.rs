@@ -4,7 +4,9 @@ use axum::{
     Json,
 };
 use uuid::Uuid;
-use crate::{AppState, models::parish::{Parish, CreateParishRequest, UpdateParishRequest}, handlers::auth::AuthUser, models::user::UserRole};
+use crate::{AppState, models::parish::{Parish, CreateParishRequest, UpdateParishRequest}, handlers::auth::AuthUser, models::user::UserRole, models::dashboard::DashboardStats};
+use rust_decimal::Decimal;
+use sqlx::Row;
 
 pub async fn list_parishes(
     _auth: AuthUser,
@@ -154,4 +156,62 @@ pub async fn delete_parish(
     }
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn get_parish_stats(
+    auth: AuthUser,
+    State(state): State<AppState>,
+    Path(parish_id): Path<Uuid>,
+) -> Result<Json<DashboardStats>, (StatusCode, String)> {
+    // Check permissions - SuperAdmin can see any parish, others only their own
+    if auth.role != UserRole::SuperAdmin && auth.parish_id != Some(parish_id) {
+        return Err((StatusCode::FORBIDDEN, "You don't have permission to view this parish's stats".to_string()));
+    }
+
+    // Total Members
+    let total_members: i64 = sqlx::query("SELECT COUNT(*) as count FROM member WHERE parish_id = $1 AND deleted_at IS NULL AND is_active = TRUE")
+        .bind(parish_id).fetch_one(&state.db).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .try_get("count").unwrap_or(0);
+
+    // Active Parishes (will be 1 for specific parish)
+    let active_parishes: i64 = sqlx::query("SELECT COUNT(*) as count FROM parish WHERE id = $1 AND deleted_at IS NULL AND is_active = TRUE")
+        .bind(parish_id).fetch_one(&state.db).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .try_get("count").unwrap_or(0);
+
+    // Total Families
+    let total_families: i64 = sqlx::query("SELECT COUNT(*) as count FROM family WHERE parish_id = $1 AND deleted_at IS NULL AND is_active = TRUE")
+        .bind(parish_id).fetch_one(&state.db).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .try_get("count").unwrap_or(0);
+
+    // Total Clusters
+    let total_clusters: i64 = sqlx::query("SELECT COUNT(*) as count FROM cluster WHERE parish_id = $1 AND deleted_at IS NULL AND is_active = TRUE")
+        .bind(parish_id).fetch_one(&state.db).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .try_get("count").unwrap_or(0);
+
+    // Financials
+    let income_record = sqlx::query("SELECT COALESCE(SUM(amount), 0) as total FROM income_transaction WHERE parish_id = $1 AND deleted_at IS NULL")
+        .bind(parish_id).fetch_one(&state.db).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let total_income: Decimal = income_record.try_get("total").unwrap_or(Decimal::ZERO);
+
+    let expense_record = sqlx::query("SELECT COALESCE(SUM(amount), 0) as total FROM expense_voucher WHERE parish_id = $1 AND deleted_at IS NULL AND approval_status = 'APPROVED'")
+        .bind(parish_id).fetch_one(&state.db).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let total_expenses: Decimal = expense_record.try_get("total").unwrap_or(Decimal::ZERO);
+
+    let stats = DashboardStats {
+        total_members,
+        active_parishes,
+        total_families,
+        total_clusters,
+        total_income,
+        total_expenses,
+        pending_approvals: 0, // TODO: Calculate actual pending approvals
+    };
+
+    Ok(Json(stats))
 }

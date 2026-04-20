@@ -1,0 +1,113 @@
+{
+  "navigation": {
+    "dashboard": "Dashibodi",
+    "members": "Wanachama",
+    "finance": "Fedha",
+    "sacraments": "Sakramenti",
+    "reports": "Ripoti",
+    "settings": "Mipangilio",
+    "users": "Usimamizi wa Watumiaji",
+    "logout": "Toka"
+  },
+  "auth": {
+    "login": "Ingia",
+    "username": "Jina la Mtumiaji",
+    "password": "Nenosiri",
+    "email": "Barua pepe",
+    "rememberMe": "Nikumbuke",
+    "forgotPassword": "Umesahau nenosiri?",
+    "loginSuccess": "Umeingia kwa mafanikio",
+    "loginFailed": "Imeshindwa kuingia",
+    "invalidCredentials": "Hati batili"
+  },
+  "dashboard": {
+    "welcome": "Karibu tena",
+    "totalMembers": "Jumla ya Wanachama",
+    "activeParishes": "Parokia Zenye Shughuli",
+    "totalIncome": "Mapato Yote",
+    "totalExpenses": "Matumizi Yote",
+    "pendingApprovals": "Idhini Inasubiri"
+  },
+  "users": {
+    "userManagement": "Usimamizi wa Watumiaji",
+    "createUser": "Unda Mtumiaji",
+    "editUser": "Hariri Mtumiaji",
+    "deleteUser": "Futa Mtumiaji",
+    "username": "Jina la Mtumiaji",
+    "email": "Barua pepe",
+    "fullName": "Jina Kamili",
+    "phoneNumber": "Namba ya Simu",
+    "role": "Jukumu",
+    "status": "Hali",
+    "active": "Amilifu",
+    "inactive": "Haiamilifu",
+    "activateUser": "Washa Mtumiaji",
+    "deactivateUser": "Zima Mtumiaji",
+    "reactivateUser": "Washa Upya Mtumiaji",
+    "permanentlyDeleteUser": "Futa Mtumiaji Kwa Muda Mrefu",
+    "userCreated": "Mtumiaji ameundwa kwa mafanikio",
+    "userUpdated": "Mtumiaji amesasishwa kwa mafanikio",
+    "userDeleted": "Mtumiaji amefutwa kwa mafanikio",
+    "userReactivated": "Mtumiaji amewashwa upya kwa mafanikio"
+  },
+  "parish": {
+    "parishProfile": "Wasifu wa Parokia",
+    "parishName": "Jina la Parokia",
+    "parishAddress": "Anwani ya Parokia",
+    "parishPhone": "Simu ya Parokia",
+    "parishEmail": "Barua pepe ya Parokia",
+    "totalFamilies": "Jumla ya Familia",
+    "totalClusters": "Jumla ya Makundi",
+    "monthlyIncome": "Mapato ya Kila Mwezi",
+    "monthlyExpenses": "Matumizi ya Kila Mwezi"
+  },
+  "receipt": {
+    "receiptBuilder": "Kijenzi cha Risiti",
+    "download": "Pakua",
+    "print": "Chapisha",
+    "preview": "Onyesha Kabla",
+    "receiptNumber": "Namba ya Risiti",
+    "amount": "Kiasi",
+    "donor": "Mtoaji",
+    "date": "Tarehe",
+    "downloadReceipt": "Pakua Risiti",
+    "printReceipt": "Chapisha Risiti"
+  },
+  "audit": {
+    "auditLogs": "Kumbukumbu za Ukaguzi",
+    "actionType": "Aina ya Tendo",
+    "tableName": "Jina la Jedwali",
+    "user": "Mtumiaji",
+    "date": "Tarehe",
+    "oldValues": "Thamani za Zamani",
+    "newValues": "Thamani Mpya",
+    "noLogsFound": "Hakuna kumbukumbu za ukaguzi zilizopatikana"
+  },
+  "common": {
+    "save": "Hifadhi",
+    "cancel": "Ghairi",
+    "edit": "Hariri",
+    "delete": "Futa",
+    "create": "Unda",
+    "update": "Sasisha",
+    "search": "Tafuta",
+    "filter": "Chuja",
+    "loading": "Inapakia...",
+    "error": "Hitilafu",
+    "success": "Mafanikio",
+    "confirm": "Thibitisha",
+    "yes": "Ndiyo",
+    "no": "Hapana",
+    "close": "Funga",
+    "back": "Rudi",
+    "next": "Ifuatayo",
+    "previous": "Iliyotangulia"
+  },
+  "roles": {
+    "superAdmin": "Mkuu wa Utawala",
+    "parishAdmin": "Mkuu wa Parokia",
+    "accountant": "Mhasibu",
+    "secretary": "Katibu",
+    "viewer": "Mtazamaji"
+  }
+}
