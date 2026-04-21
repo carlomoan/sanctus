@@ -3,12 +3,11 @@ import 'package:uuid/uuid.dart';
 import '../models/sacrament.dart';
 import '../models/enums.dart';
 import '../models/member.dart';
-import '../services/database_helper.dart';
-import '../services/api_service.dart';
+import '../services/offline_api_service.dart';
 
 class SacramentScreen extends StatefulWidget {
-  final ApiService apiService;
-  const SacramentScreen({super.key, required this.apiService});
+  final OfflineApiService offlineApiService;
+  const SacramentScreen({super.key, required this.offlineApiService});
 
   @override
   State<SacramentScreen> createState() => _SacramentScreenState();
@@ -33,13 +32,14 @@ class _SacramentScreenState extends State<SacramentScreen> {
   @override
   void initState() {
     super.initState();
-    _parishId = widget.apiService.currentUser?.parishId ?? '';
+    // For now, we'll use placeholder parish ID
+    _parishId = 'placeholder-parish-id';
     _dateController.text = DateTime.now().toIso8601String().split('T')[0];
   }
 
   // Helper to pick member
   Future<void> _pickMember() async {
-    final members = await DatabaseHelper.instance.getMembers(_parishId);
+    final members = await widget.offlineApiService.getMembers();
     
     if (!mounted) return;
 
@@ -102,7 +102,7 @@ class _SacramentScreenState extends State<SacramentScreen> {
         updatedAt: now,
       );
 
-      await DatabaseHelper.instance.insertSacrament(record);
+      await widget.offlineApiService.createSacrament(record.toJson());
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

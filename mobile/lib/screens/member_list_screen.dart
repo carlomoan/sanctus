@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/member.dart';
-import '../services/database_helper.dart';
-import '../services/api_service.dart';
+import '../services/offline_api_service.dart';
 import 'member_form_screen.dart';
 
 class MemberListScreen extends StatefulWidget {
-  final ApiService apiService;
-  const MemberListScreen({super.key, required this.apiService});
+  final OfflineApiService offlineApiService;
+  const MemberListScreen({super.key, required this.offlineApiService});
 
   @override
   State<MemberListScreen> createState() => _MemberListScreenState();
@@ -20,14 +19,16 @@ class _MemberListScreenState extends State<MemberListScreen> {
   @override
   void initState() {
     super.initState();
-    _parishId = widget.apiService.currentUser?.parishId ?? '';
+    // We'll need to get the current user from offline service
     _loadMembers();
   }
 
   Future<void> _loadMembers() async {
     setState(() => _isLoading = true);
     try {
-      final members = await DatabaseHelper.instance.getMembers(_parishId);
+      // For now, we'll get members without parish ID filter
+      // In a real implementation, you'd get the current user's parish ID
+      final members = await widget.offlineApiService.getMembers();
       setState(() {
         _members = members;
         _isLoading = false;

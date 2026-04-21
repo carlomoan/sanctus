@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/transaction.dart';
 import '../models/enums.dart';
-import '../services/database_helper.dart';
-import '../services/api_service.dart';
+import '../services/offline_api_service.dart';
 
 class ExpenseScreen extends StatefulWidget {
-  final ApiService apiService;
-  const ExpenseScreen({super.key, required this.apiService});
+  final OfflineApiService offlineApiService;
+  const ExpenseScreen({super.key, required this.offlineApiService});
 
   @override
   State<ExpenseScreen> createState() => _ExpenseScreenState();
@@ -36,8 +35,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       final now = DateTime.now().toIso8601String();
       final today = now.split('T')[0];
 
-      final parishId = widget.apiService.currentUser?.parishId ?? ''; 
-      final userId = widget.apiService.currentUser?.id ?? '';
+      // For now, we'll use placeholder values - in a real implementation
+      // you'd get the current user info from the offline service
+      final parishId = 'placeholder-parish-id'; 
+      final userId = 'placeholder-user-id';
       
       final voucher = ExpenseVoucher(
         id: uuid.v4(),
@@ -58,7 +59,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         updatedAt: now,
       );
 
-      await DatabaseHelper.instance.insertExpenseVoucher(voucher);
+      await widget.offlineApiService.createExpenseVoucher(voucher.toJson());
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

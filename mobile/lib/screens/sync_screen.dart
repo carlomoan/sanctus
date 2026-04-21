@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
-import '../services/sync_service.dart';
+import '../services/offline_api_service.dart';
 
 class SyncScreen extends StatefulWidget {
-  final ApiService apiService;
-  const SyncScreen({super.key, required this.apiService});
+  final OfflineApiService offlineApiService;
+  const SyncScreen({super.key, required this.offlineApiService});
 
   @override
   State<SyncScreen> createState() => _SyncScreenState();
@@ -20,13 +19,8 @@ class _SyncScreenState extends State<SyncScreen> {
       _status = 'Syncing...';
     });
 
-    final syncService = SyncService(
-      apiService: widget.apiService,
-      deviceId: 'device-001', // Should be properly generated/stored
-    );
-
     try {
-      await syncService.sync();
+      await widget.offlineApiService.triggerSync();
       if (mounted) {
         setState(() {
           _status = 'Sync completed';

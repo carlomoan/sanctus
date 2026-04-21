@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import '../services/offline_api_service.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  final ApiService apiService;
+  final OfflineApiService offlineApiService;
 
-  const LoginScreen({Key? key, required this.apiService}) : super(key: key);
+  const LoginScreen({Key? key, required this.offlineApiService}) : super(key: key);
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isOffline = false;
 
   void _login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -27,30 +28,35 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await widget.apiService.login(
+      final response = await widget.offlineApiService.login(
         _usernameController.text,
         _passwordController.text,
       );
-      
-      if (!mounted) return;
 
-      // Navigate to Home on success
+      if (response.token.startsWith('offline-token')) {
+        setState(() {
+          _isOffline = true;
+          _errorMessage = 'Working in offline mode. Some features may be limited.';
+        });
+      }
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => HomeScreen(apiService: widget.apiService),
+          builder: (context) => HomeScreen(
+            offlineApiService: widget.offlineApiService,
+            user: response.user,
+            isOffline: _isOffline,
+          ),
         ),
       );
     } catch (e) {
-      if (!mounted) return;
       setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _errorMessage = 'Login failed: ${e.toString()}';
       });
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -92,24 +98,41 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 48),
+                if (_errorMessage != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: _isOffline ? Colors.orange.shade50 : Colors.red.shade50,
+                      border: Border.all(
+                        color: _isOffline ? Colors.orange.shade200 : Colors.red.shade200,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isOffline ? Icons.cloud_off : Icons.error,
+                          color: _isOffline ? Colors.orange : Colors.red,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: TextStyle(
+                              color: _isOffline ? Colors.orange.shade800 : Colors.red.shade800,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 Form(
                   key: _formKey,
                   child: Column(
                     children: [
-                      if (_errorMessage != null)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.red[50],
-                            border: Border.all(color: Colors.red[200]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _errorMessage!,
-                            style: TextStyle(color: Colors.red[700]),
-                          ),
-                        ),
                       TextFormField(
                         controller: _usernameController,
                         decoration: const InputDecoration(
@@ -119,45 +142,53 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter username or email';
+                            return 'Please enter your username or email';
                           }
                           return null;
                         },
+                        enabled: !_isLoading,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _passwordController,
-                        obscureText: true,
                         decoration: const InputDecoration(
                           labelText: 'Password',
                           prefixIcon: Icon(Icons.lock),
                           border: OutlineInputBorder(),
                         ),
+                        obscureText: true,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your password';
                           }
                           return null;
                         },
+                        enabled: !_isLoading,
                       ),
                       const SizedBox(height: 24),
                       SizedBox(
-                        width: double.infinity,
+                        height: 50,
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           child: _isLoading
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
                                 )
                               : const Text(
-                                  'Sign In',
-                                  style: TextStyle(fontSize: 18),
+                                  'Login',
+                                  style: TextStyle(fontSize: 16),
                                 ),
                         ),
                       ),
@@ -170,5 +201,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }

@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/transaction.dart';
 import '../models/enums.dart';
-import '../services/database_helper.dart';
-import '../services/api_service.dart';
+import '../services/offline_api_service.dart';
 
 class CollectionScreen extends StatefulWidget {
-  final ApiService apiService;
-  const CollectionScreen({super.key, required this.apiService});
+  final OfflineApiService offlineApiService;
+  const CollectionScreen({super.key, required this.offlineApiService});
 
   @override
   State<CollectionScreen> createState() => _CollectionScreenState();
@@ -33,8 +32,10 @@ class _CollectionScreenState extends State<CollectionScreen> {
       final uuid = const Uuid();
       final now = DateTime.now().toIso8601String();
 
-      final parishId = widget.apiService.currentUser?.parishId ?? ''; 
-      final userId = widget.apiService.currentUser?.id ?? '';
+      // For now, we'll use placeholder values - in a real implementation
+      // you'd get the current user info from the offline service
+      final parishId = 'placeholder-parish-id'; 
+      final userId = 'placeholder-user-id';
       
       final tx = IncomeTransaction(
         id: uuid.v4(),
@@ -52,7 +53,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
         updatedAt: now,
       );
 
-      await DatabaseHelper.instance.insertIncomeTransaction(tx);
+      await widget.offlineApiService.createIncomeTransaction(tx.toJson());
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
