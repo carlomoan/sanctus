@@ -49,6 +49,12 @@ pub fn require_role(
     }
 }
 
+/// Check that the user has read permissions (all authenticated users)
+pub fn require_read(_auth: &AuthUser) -> Result<(), (StatusCode, String)> {
+    // All authenticated users have read permissions
+    Ok(())
+}
+
 /// Check that the user can write (create/update/delete) data.
 /// Viewers cannot write.
 pub fn require_write(auth: &AuthUser) -> Result<(), (StatusCode, String)> {
@@ -72,3 +78,6 @@ pub fn require_admin(auth: &AuthUser) -> Result<(), (StatusCode, String)> {
 pub fn require_super_admin(auth: &AuthUser) -> Result<(), (StatusCode, String)> {
     require_role(auth, &[UserRole::SuperAdmin])
 }
+
+#[cfg(test)]
+mod tests;

@@ -17,3 +17,5 @@ pub mod setting;
 pub mod rbac;
 pub mod permission;
 pub mod audit;
+pub mod event;
+pub mod liturgical;

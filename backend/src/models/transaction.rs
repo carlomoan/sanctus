@@ -56,6 +56,14 @@ pub enum ApprovalStatus {
     Cancelled,
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "income_type", rename_all = "SCREAMING_SNAKE_CASE")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum IncomeType {
+    Individual,
+    Group,
+}
+
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct IncomeTransaction {
     pub id: Uuid,
@@ -66,6 +74,7 @@ pub struct IncomeTransaction {
     pub category: TransactionCategory,
     pub amount: Decimal,
     pub payment_method: PaymentMethod,
+    pub income_type: IncomeType,
     pub transaction_date: NaiveDate,
     pub transaction_time: Option<NaiveTime>,
     pub description: Option<String>,

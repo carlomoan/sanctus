@@ -3,15 +3,28 @@ import { api } from '../api/client';
 import { Diocese } from '../types';
 import { Plus, Search, MapPin, Phone, Mail, Edit, Trash2, Building } from 'lucide-react';
 import Modal from '../components/Modal';
+import { useAuth } from '../context/AuthContext';
 
 const API_BASE_URL = 'http://localhost:3000';
 
 const Dioceses = () => {
+  const { user } = useAuth();
   const [dioceses, setDioceses] = useState<Diocese[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDiocese, setSelectedDiocese] = useState<Diocese | undefined>(undefined);
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    bishop_name: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check if user is SuperAdmin
+  const isSuperAdmin = user?.role === 'SuperAdmin';
 
   const fetchDioceses = async () => {
     try {
@@ -31,11 +44,25 @@ const Dioceses = () => {
 
   const handleCreate = () => {
     setSelectedDiocese(undefined);
+    setFormData({
+      name: '',
+      address: '',
+      phone: '',
+      email: '',
+      bishop_name: '',
+    });
     setIsModalOpen(true);
   };
 
   const handleEdit = (diocese: Diocese) => {
     setSelectedDiocese(diocese);
+    setFormData({
+      name: diocese.name || '',
+      address: diocese.address || '',
+      phone: diocese.phone || '',
+      email: diocese.email || '',
+      bishop_name: diocese.bishop_name || '',
+    });
     setIsModalOpen(true);
   };
 
@@ -52,6 +79,31 @@ const Dioceses = () => {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      if (selectedDiocese) {
+        // Update existing diocese
+        const updatedDiocese = await api.updateDiocese(selectedDiocese.id, formData);
+        setDioceses(dioceses.map(d => d.id === selectedDiocese.id ? updatedDiocese : d));
+        alert('Diocese updated successfully');
+      } else {
+        // Create new diocese
+        const newDiocese = await api.createDiocese(formData);
+        setDioceses([...dioceses, newDiocese]);
+        alert('Diocese created successfully');
+      }
+      setIsModalOpen(false);
+    } catch (err: any) {
+      console.error('Failed to save diocese:', err);
+      alert(err.message || 'Failed to save diocese');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -59,13 +111,15 @@ const Dioceses = () => {
           <Building size={24} />
           Dioceses
         </h1>
-        <button
-          onClick={handleCreate}
-          className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors"
-        >
-          <Plus size={20} />
-          Add Diocese
-        </button>
+        {isSuperAdmin && (
+          <button
+            onClick={handleCreate}
+            className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors"
+          >
+            <Plus size={20} />
+            Add Diocese
+          </button>
+        )}
       </div>
 
       {/* Search and Filter */}
@@ -156,20 +210,24 @@ const Dioceses = () => {
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-2">
-                <button
-                  onClick={() => handleEdit(diocese)}
-                  className="p-2 text-gray-400 hover:text-primary-600 rounded-full hover:bg-primary-50 transition-colors"
-                  title="Edit"
-                >
-                  <Edit size={18} />
-                </button>
-                <button
-                  onClick={() => handleDelete(diocese.id)}
-                  className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 size={18} />
-                </button>
+                {isSuperAdmin && (
+                  <>
+                    <button
+                      onClick={() => handleEdit(diocese)}
+                      className="p-2 text-gray-400 hover:text-primary-600 rounded-full hover:bg-primary-50 transition-colors"
+                      title="Edit"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(diocese.id)}
+                      className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -181,11 +239,90 @@ const Dioceses = () => {
         onClose={() => setIsModalOpen(false)}
         title={selectedDiocese ? 'Edit Diocese' : 'Add New Diocese'}
       >
-        <div className="text-center py-8 text-gray-500">
-          <Building size={48} className="mx-auto mb-4 text-gray-300" />
-          <p>Diocese form component not yet implemented.</p>
-          <p className="text-sm mt-2">This would include fields for name, code, bishop, address, etc.</p>
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Diocese Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Enter diocese name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Address
+            </label>
+            <textarea
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              rows={3}
+              placeholder="Enter diocese address"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone
+            </label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Enter phone number"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Enter email address"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Bishop Name
+            </label>
+            <input
+              type="text"
+              value={formData.bishop_name}
+              onChange={(e) => setFormData({ ...formData, bishop_name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="Enter bishop name"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+            >
+              {isSubmitting ? 'Saving...' : (selectedDiocese ? 'Update' : 'Create')}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

@@ -111,6 +111,18 @@ export class ApiClient {
     return this.request<Diocese[]>('GET', '/dioceses');
   }
 
+  async getDiocese(id: UUID): Promise<Diocese> {
+    return this.request<Diocese>('GET', `/dioceses/${id}`);
+  }
+
+  async createDiocese(diocese: Partial<Diocese>): Promise<Diocese> {
+    return this.request<Diocese>('POST', '/dioceses', diocese);
+  }
+
+  async updateDiocese(id: UUID, diocese: Partial<Diocese>): Promise<Diocese> {
+    return this.request<Diocese>('PUT', `/dioceses/${id}`, diocese);
+  }
+
   async deleteDiocese(id: UUID): Promise<void> {
     return this.request<void>('DELETE', `/dioceses/${id}`);
   }

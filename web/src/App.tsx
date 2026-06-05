@@ -10,6 +10,8 @@ import Budgets from './pages/Budgets';
 import Reports from './pages/Reports';
 import DataImport from './pages/DataImport';
 import Sacraments from './pages/Sacraments';
+import Events from './pages/Events';
+import LiturgicalCalendar from './pages/LiturgicalCalendar';
 import Users from './pages/Users';
 import Clusters from './pages/Clusters';
 import Families from './pages/Families';
@@ -109,6 +111,8 @@ function App() {
                 <Route path="members" element={<Members />} />
                 <Route path="members/:id" element={<MemberProfile />} />
                 <Route path="sacraments" element={<Sacraments />} />
+                <Route path="events" element={<Events />} />
+                <Route path="liturgical-calendar" element={<LiturgicalCalendar />} />
                 <Route path="finance" element={<Finance />} />
                 <Route path="budgets" element={<Budgets />} />
                 <Route path="reports" element={<Reports />} />

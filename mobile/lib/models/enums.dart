@@ -77,6 +77,42 @@ enum UserRole {
   VIEWER,
 }
 
+enum EventScope {
+  DIOCESE,
+  PARISH,
+}
+
+enum EventType {
+  MASS,
+  MEETING,
+  CONFERENCE,
+  RETREAT,
+  WORKSHOP,
+  SOCIAL,
+  FUNDRAISING,
+  ANNIVERSARY,
+  FEAST_DAY,
+  OTHER,
+}
+
+enum EventStatus {
+  PLANNED,
+  SCHEDULED,
+  IN_PROGRESS,
+  COMPLETED,
+  CANCELLED,
+  POSTPONED,
+}
+
+enum RecurrencePattern {
+  NONE,
+  DAILY,
+  WEEKLY,
+  MONTHLY,
+  YEARLY,
+  CUSTOM,
+}
+
 String enumToString(Object o) => o.toString().split('.').last;
 
 T enumFromString<T>(List<T> values, String value) {

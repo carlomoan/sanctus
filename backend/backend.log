@@ -1,3 +1,36 @@
+nohup: ignoring input
+warning: unused imports: `ACCEPT`, `AUTHORIZATION`, `CONTENT_TYPE`, `Method`, `Router`, `delete`, `extract::State`, `get`, `options`, `patch`, `post`, and `put`
+ --> src/main.rs:2:5
+  |
+2 |     extract::State,
+  |     ^^^^^^^^^^^^^^
+3 |     routing::{get, post, patch, delete, options, put},
+  |               ^^^  ^^^^  ^^^^^  ^^^^^^  ^^^^^^^  ^^^
+4 |     Router,
+  |     ^^^^^^
+5 |     http::{Method, header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT}},
+  |            ^^^^^^           ^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `PgPool`
+ --> src/main.rs:9:22
+  |
+9 | use sqlx::postgres::{PgPool, PgPoolOptions};
+  |                      ^^^^^^
+
+warning: unused imports: `Any` and `CorsLayer`
+  --> src/main.rs:11:24
+   |
+11 | use tower_http::cors::{CorsLayer, Any};
+   |                        ^^^^^^^^^  ^^^
+
+warning: unused import: `tower_http::services::ServeDir`
+  --> src/main.rs:12:5
+   |
+12 | use tower_http::services::ServeDir;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 warning: struct `RolePermission` is never constructed
   --> src/models/permission.rs:28:12
    |
@@ -12,17 +45,17 @@ warning: struct `UserPermissionOverride` is never constructed
 36 | pub struct UserPermissionOverride {
    |            ^^^^^^^^^^^^^^^^^^^^^^
 
-warning: `sanctus_backend` (bin "sanctus_backend") generated 2 warnings
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.22s
+warning: `sanctus_backend` (bin "sanctus_backend") generated 6 warnings (run `cargo fix --bin "sanctus_backend" -p sanctus_backend` to apply 4 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.31s
 warning: the following packages contain code that will be rejected by a future version of Rust: sqlx-postgres v0.7.4
 note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
      Running `target/debug/sanctus_backend`
-[2m2026-03-09T20:13:08.214616Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Connecting to database...
-[2m2026-03-09T20:13:08.427175Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Database connection established
-[2m2026-03-09T20:13:08.427215Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Running database migrations...
-[2m2026-03-09T20:13:08.456183Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Migrations applied successfully
-[2m2026-03-09T20:13:08.465413Z[0m [34mDEBUG[0m [2msanctus_backend[0m[2m:[0m listening on 127.0.0.1:3000
+[2m2026-04-24T12:11:57.981847Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Connecting to database...
+[2m2026-04-24T12:11:59.163234Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Database connection established
+[2m2026-04-24T12:11:59.164463Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Running database migrations...
+[2m2026-04-24T12:11:59.205800Z[0m [32m INFO[0m [2msanctus_backend[0m[2m:[0m Migrations applied successfully
+[2m2026-04-24T12:11:59.238094Z[0m [34mDEBUG[0m [2msanctus_backend[0m[2m:[0m listening on 127.0.0.1:3000
 
-thread 'main' (36278) panicked at src/main.rs:119:62:
+thread 'main' (37523) panicked at src/main.rs:59:62:
 called `Result::unwrap()` on an `Err` value: Os { code: 98, kind: AddrInUse, message: "Address already in use" }
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

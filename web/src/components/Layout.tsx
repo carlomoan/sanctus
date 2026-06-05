@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Church, Coins, Menu, X, Scroll, LogOut, ShieldCheck, Wallet, FileBarChart, Upload, Network, Home, Settings, ChevronDown, ChevronRight, LucideIcon, Shield, Building } from 'lucide-react';
+import { LayoutDashboard, Users, Church, Coins, Menu, X, Scroll, LogOut, ShieldCheck, Wallet, FileBarChart, Upload, Network, Home, Settings, ChevronDown, ChevronRight, LucideIcon, Shield, Building, Calendar, CalendarDays, Church as LiturgicalIcon } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import classNames from 'classnames';
 import { useAuth } from '../context/AuthContext';
@@ -91,11 +91,12 @@ const Layout = () => {
 
     // Ministry — admins, secretaries, viewers
     if (canManagePeople || isViewer) {
-      sections.push({
-        id: 'ministry', label: 'Ministry', items: [
-          { name: 'Sacraments', href: '/sacraments', icon: Scroll },
-        ]
-      });
+      const ministryItems: NavItem[] = [
+        { name: 'Sacraments', href: '/sacraments', icon: Scroll },
+        { name: 'Events', href: '/events', icon: Calendar },
+        { name: 'Liturgical Calendar', href: '/liturgical-calendar', icon: LiturgicalIcon },
+      ];
+      sections.push({ id: 'ministry', label: 'Ministry', items: ministryItems });
     }
 
     // Finance — admins, accountants, viewers (read-only)

@@ -4,10 +4,24 @@ import { api } from '../api/client';
 import { DashboardStats, Parish, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
-  Users, Church, Coins, FileText, UserPlus, Home, MapPin, Layers, ArrowRight, Search,
-  TrendingUp, TrendingDown, Calendar, Activity, PieChart, BarChart3,
-  UserCheck, Settings, Eye, Shield, CreditCard, FileSpreadsheet, Award
+  Users,
+  Calendar,
+  Clock,
+  MapPin,
+  TrendingUp,
+  Church,
+  Star,
+  Globe,
+  Building,
+  ChevronRight,
+  CalendarDays,
+  Repeat,
+  Coins, FileText, UserPlus, Home, Layers, ArrowRight, Search,
+  TrendingDown, Activity, PieChart, BarChart3,
+  UserCheck, Settings, Eye, Shield, CreditCard, FileSpreadsheet, Award,
+  MapPin as MapPinIcon, Church as LiturgicalIcon, Bell
 } from 'lucide-react';
+import { format, addDays, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import ImportButton from '../components/ImportButton';
 
 interface RoleBasedStats extends DashboardStats {
@@ -18,11 +32,39 @@ interface RoleBasedStats extends DashboardStats {
   pending_tasks?: number;
 }
 
+interface UpcomingEvent {
+  id: string;
+  title: string;
+  description?: string;
+  start_date: string;
+  start_time?: string;
+  end_time?: string;
+  location?: string;
+  is_recurring: boolean;
+  current_participants: number;
+  max_participants?: number;
+  status: 'draft' | 'published' | 'cancelled';
+  scope: 'diocese' | 'parish';
+}
+
+interface LiturgicalDay {
+  id: string;
+  date: string;
+  title: string;
+  description: string;
+  feast_type: 'SOLEMNITY' | 'FEAST' | 'MEMORIAL' | 'OPTIONAL_MEMORIAL';
+  liturgical_season: 'ADVENT' | 'CHRISTMAS' | 'LENT' | 'HOLY_WEEK' | 'EASTER' | 'ORDINARY_TIME';
+  liturgical_color: 'WHITE' | 'RED' | 'GREEN' | 'VIOLET' | 'ROSE' | 'BLACK' | 'GOLD';
+  rank: number;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [stats, setStats] = useState<RoleBasedStats | null>(null);
   const [parishes, setParishes] = useState<Parish[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
+  const [liturgicalDays, setLiturgicalDays] = useState<LiturgicalDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,8 +100,80 @@ const Dashboard = () => {
           filteredStats = { ...s };
         }
 
+        // Mock data for upcoming events
+        const mockUpcomingEvents: UpcomingEvent[] = [
+          {
+            id: '1',
+            title: 'Sunday Mass',
+            description: 'Weekly Sunday Mass celebration',
+            start_date: new Date().toISOString(),
+            start_time: '09:00',
+            end_time: '10:30',
+            location: 'Main Church',
+            participants: 150,
+            max_participants: 200,
+            status: 'published',
+            is_recurring: true,
+            scope: 'parish'
+          },
+          {
+            id: '2',
+            title: 'Diocese Youth Conference',
+            description: 'Annual youth conference for all parishes',
+            start_date: addDays(new Date(), 3).toISOString(),
+            start_time: '09:00',
+            end_time: '17:00',
+            location: 'Diocese Center',
+            participants: 350,
+            max_participants: 500,
+            status: 'published',
+            is_recurring: false,
+            scope: 'diocese'
+          },
+          {
+            id: '3',
+            title: 'Bible Study Group',
+            description: 'Weekly Bible study and discussion',
+            start_date: addDays(new Date(), 2).toISOString(),
+            start_time: '19:00',
+            end_time: '20:30',
+            location: 'Parish Hall',
+            participants: 25,
+            max_participants: 30,
+            status: 'published',
+            is_recurring: true,
+            scope: 'parish'
+          }
+        ];
+
+        // Mock liturgical days data
+        const mockLiturgicalDays: LiturgicalDay[] = [
+          {
+            id: '1',
+            date: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
+            title: 'St. Joseph',
+            description: 'Spouse of the Blessed Virgin Mary',
+            feast_type: 'SOLEMNITY',
+            liturgical_season: 'LENT',
+            liturgical_color: 'WHITE',
+            rank: 1
+          },
+          {
+            id: '2',
+            date: format(addDays(new Date(), 5), 'yyyy-MM-dd'),
+            title: 'Annunciation',
+            description: 'Annunciation of the Lord',
+            feast_type: 'SOLEMNITY',
+            liturgical_season: 'LENT',
+            liturgical_color: 'WHITE',
+            rank: 1
+          }
+        ];
+
         setStats(filteredStats);
         setParishes(accessibleParishes);
+        setUpcomingEvents(mockUpcomingEvents);
+        setLiturgicalDays(mockLiturgicalDays);
       } catch (err) {
         console.error('Failed to load dashboard stats:', err);
         setError('Failed to load dashboard statistics');
@@ -634,6 +748,172 @@ const Dashboard = () => {
           )}
         </div>
       )}
+
+      {/* Upcoming Events & Liturgical Information */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Upcoming Events */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <CalendarDays className="h-5 w-5 mr-2 text-primary-600" />
+              Upcoming Events
+            </h2>
+            <button
+              onClick={() => navigate('/events')}
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+            >
+              View All
+            </button>
+          </div>
+
+          {upcomingEvents.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <CalendarDays size={32} className="mx-auto text-gray-300 mb-2" />
+              <p>No upcoming events</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {upcomingEvents.slice(0, 3).map(event => {
+                const eventDate = new Date(event.start_date);
+                const isEventToday = isToday(eventDate);
+                const isEventTomorrow = isTomorrow(eventDate);
+                const isEventThisWeek = isThisWeek(eventDate);
+
+                return (
+                  <div key={event.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-semibold ${isEventToday ? 'bg-red-500' : isEventTomorrow ? 'bg-orange-500' : 'bg-blue-500'
+                      }`}>
+                      {format(eventDate, 'd')}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center">
+                        <h3 className="text-sm font-medium text-gray-900 truncate">{event.title}</h3>
+                        {event.is_recurring && <Repeat className="h-3 w-3 ml-1 text-primary-600" />}
+                      </div>
+                      <div className="flex items-center mt-1">
+                        {event.scope === 'diocese' ? (
+                          <div className="flex items-center text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full mr-2">
+                            <Globe className="h-2 w-2 mr-1" />
+                            Diocese
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full mr-2">
+                            <Building className="h-2 w-2 mr-1" />
+                            Parish
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 truncate">{event.description}</p>
+                      <div className="flex items-center mt-1 text-xs text-gray-500">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {event.start_time} {event.end_time && `- ${event.end_time}`}
+                        <MapPin className="h-3 w-3 ml-2 mr-1" />
+                        {event.location}
+                      </div>
+                      <div className="flex items-center mt-1 text-xs text-gray-500">
+                        <Users className="h-3 w-3 mr-1" />
+                        {event.current_participants}
+                        {event.max_participants && `/${event.max_participants}`}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${event.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                        {event.status}
+                      </span>
+                      {event.is_recurring && (
+                        <span className="text-xs text-gray-500 mt-1">Recurring</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Liturgical Information */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <LiturgicalIcon className="h-5 w-5 mr-2 text-purple-600" />
+              Liturgical Calendar
+            </h2>
+            <button
+              onClick={() => navigate('/liturgical-calendar')}
+              className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+            >
+              View Calendar
+            </button>
+          </div>
+
+          {liturgicalDays.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <LiturgicalIcon size={32} className="mx-auto text-gray-300 mb-2" />
+              <p>No upcoming liturgical days</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {liturgicalDays.slice(0, 3).map(day => {
+                const dayDate = new Date(day.date);
+                const isDayToday = isToday(dayDate);
+                const isDayTomorrow = isTomorrow(dayDate);
+
+                const getSeasonColor = (season: string) => {
+                  switch (season) {
+                    case 'ADVENT': return 'bg-purple-100 text-purple-800 border-purple-200';
+                    case 'CHRISTMAS': return 'bg-red-100 text-red-800 border-red-200';
+                    case 'LENT': return 'bg-gray-100 text-gray-800 border-gray-200';
+                    case 'HOLY_WEEK': return 'bg-red-100 text-red-800 border-red-200';
+                    case 'EASTER': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                    case 'ORDINARY_TIME': return 'bg-green-100 text-green-800 border-green-200';
+                    default: return 'bg-gray-100 text-gray-800 border-gray-200';
+                  }
+                };
+
+                const getLiturgicalColor = (color: string) => {
+                  switch (color) {
+                    case 'WHITE': return 'bg-white border-gray-300';
+                    case 'RED': return 'bg-red-500';
+                    case 'GREEN': return 'bg-green-500';
+                    case 'VIOLET': return 'bg-purple-500';
+                    case 'ROSE': return 'bg-pink-300';
+                    case 'BLACK': return 'bg-black';
+                    case 'GOLD': return 'bg-yellow-400';
+                    default: return 'bg-gray-400';
+                  }
+                };
+
+                return (
+                  <div key={day.id} className="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all cursor-pointer">
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold ${isDayToday ? 'bg-purple-600' : isDayTomorrow ? 'bg-purple-500' : 'bg-purple-400'
+                      }`}>
+                      {format(dayDate, 'd')}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-gray-900 truncate flex items-center">
+                        {day.feast_type === 'SOLEMNITY' && <Star className="h-4 w-4 mr-1 text-yellow-500" />}
+                        {day.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 truncate">{day.description}</p>
+                      <div className="flex items-center mt-1 space-x-2">
+                        <span className={`text-xs px-2 py-1 rounded-full border ${getSeasonColor(day.liturgical_season)}`}>
+                          {day.liturgical_season}
+                        </span>
+                        <span className="text-xs text-gray-500">{day.feast_type}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <div className={`w-6 h-6 rounded-full border ${getLiturgicalColor(day.liturgical_color)}`} />
+                      <span className="text-xs text-gray-500 mt-1">{day.liturgical_color}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Quick Navigation */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

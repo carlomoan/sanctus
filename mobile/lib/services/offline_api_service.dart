@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:async/async.dart' show unawaited;
 import 'database_service.dart';
 import 'api_service.dart';
 import 'sync_service.dart';
@@ -14,6 +16,7 @@ import '../models/sacrament.dart';
 import '../models/transaction.dart';
 import '../models/budget.dart';
 import '../models/diocese.dart';
+import '../models/event.dart';
 
 class OfflineApiService {
   final DatabaseService _databaseService = DatabaseService.instance;
@@ -25,17 +28,18 @@ class OfflineApiService {
   // Authentication
   Future<AuthResponse> login(String usernameOrEmail, String password) async {
     try {
+      // Try online login with timeout
       final response = await _apiService.login(usernameOrEmail, password);
       
       // Store user session locally
       await _storeUserSession(response.user, response.token);
       
-      // Trigger initial sync
-      await _syncService.startSync();
+      // Trigger sync in background (non-blocking)
+      unawaited(_syncService.startSync());
       
       return response;
     } catch (e) {
-      // Check if we have offline credentials
+      // If online login fails, quickly check offline credentials
       final offlineUser = await _getOfflineUser(usernameOrEmail, password);
       if (offlineUser != null) {
         return AuthResponse(
@@ -463,6 +467,205 @@ class OfflineApiService {
 
   Future<void> triggerSync() async {
     await _syncService.startSync();
+  }
+
+  // Events methods with offline support
+  Future<List<Event>> getEvents({
+    String? parishId,
+    String? dioceseId,
+    String? scope,
+    String? status,
+    String? eventType,
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      // Try to get from API first if online
+      final events = await _apiService.getEvents(
+        parishId: parishId,
+        dioceseId: dioceseId,
+        scope: scope,
+        status: status,
+        eventType: eventType,
+        startDate: startDate,
+        endDate: endDate,
+      );
+      
+      // Store events locally for offline access
+      for (final event in events) {
+        await _databaseService.insertEvent(event);
+      }
+      
+      return events;
+    } catch (e) {
+      // If API fails, get from local database
+      return await _databaseService.getEvents(
+        parishId: parishId,
+        dioceseId: dioceseId,
+        scope: scope,
+        status: status,
+        eventType: eventType,
+      );
+    }
+  }
+
+  Future<Event> getEvent(String eventId) async {
+    try {
+      // Try to get from API first if online
+      final event = await _apiService.getEvent(eventId);
+      
+      // Update local cache
+      await _databaseService.updateEvent(event);
+      
+      return event;
+    } catch (e) {
+      // If API fails, get from local database
+      final events = await _databaseService.getEvents();
+      final localEvent = events.where((e) => e.id == eventId).firstOrNull;
+      if (localEvent != null) {
+        return localEvent;
+      }
+      rethrow;
+    }
+  }
+
+  Future<Event> createEvent(CreateEventRequest eventRequest) async {
+    final user = currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    // Create event with temporary ID
+    final tempId = _generateId();
+    final event = Event(
+      id: tempId,
+      parishId: eventRequest.parishId,
+      dioceseId: eventRequest.dioceseId,
+      scope: eventRequest.scope,
+      title: eventRequest.title,
+      description: eventRequest.description,
+      eventType: eventRequest.eventType,
+      eventStatus: EventStatus.PLANNED,
+      startDate: eventRequest.startDate,
+      startTime: eventRequest.startTime,
+      endDate: eventRequest.endDate,
+      endTime: eventRequest.endTime,
+      location: eventRequest.location,
+      maxParticipants: eventRequest.maxParticipants,
+      currentParticipants: 0,
+      registrationRequired: eventRequest.registrationRequired,
+      registrationDeadline: eventRequest.registrationDeadline,
+      feeAmount: eventRequest.feeAmount,
+      isPublic: eventRequest.isPublic,
+      isLiturgical: eventRequest.isLiturgical,
+      recurrencePattern: eventRequest.recurrencePattern,
+      recurrenceEndDate: eventRequest.recurrenceEndDate,
+      notes: eventRequest.notes,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    // Store locally first
+    await _databaseService.insertEvent(event);
+
+    try {
+      // Try to sync with API
+      final createdEvent = await _apiService.createEvent(eventRequest);
+      
+      // Update local record with server ID and data
+      await _databaseService.deleteEvent(tempId); // Remove temp record
+      await _databaseService.insertEvent(createdEvent); // Add server record
+      
+      return createdEvent;
+    } catch (e) {
+      // If API fails, return local event (will be synced later)
+      return event;
+    }
+  }
+
+  Future<Event> updateEvent(String eventId, UpdateEventRequest updateRequest) async {
+    try {
+      // Try to update via API first
+      final updatedEvent = await _apiService.updateEvent(eventId, updateRequest);
+      
+      // Update local cache
+      await _databaseService.updateEvent(updatedEvent);
+      
+      return updatedEvent;
+    } catch (e) {
+      // If API fails, mark for later sync
+      final events = await _databaseService.getEvents();
+      final localEvent = events.where((e) => e.id == eventId).firstOrNull;
+      if (localEvent != null) {
+        // Update local event with new data
+        final updatedLocalEvent = localEvent.copyWith(
+          title: updateRequest.title,
+          description: updateRequest.description,
+          eventType: updateRequest.eventType,
+          eventStatus: updateRequest.eventStatus,
+          startDate: updateRequest.startDate ?? localEvent.startDate,
+          startTime: updateRequest.startTime,
+          endDate: updateRequest.endDate ?? localEvent.endDate,
+          endTime: updateRequest.endTime,
+          location: updateRequest.location,
+          maxParticipants: updateRequest.maxParticipants,
+          registrationRequired: updateRequest.registrationRequired,
+          registrationDeadline: updateRequest.registrationDeadline,
+          feeAmount: updateRequest.feeAmount,
+          isPublic: updateRequest.isPublic,
+          isLiturgical: updateRequest.isLiturgical,
+          recurrencePattern: updateRequest.recurrencePattern ?? localEvent.recurrencePattern,
+          recurrenceEndDate: updateRequest.recurrenceEndDate,
+          notes: updateRequest.notes,
+          updatedAt: DateTime.now(),
+        );
+        
+        await _databaseService.updateEvent(updatedLocalEvent);
+        return updatedLocalEvent;
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    try {
+      // Try to delete via API first
+      await _apiService.deleteEvent(eventId);
+      
+      // Delete from local database
+      await _databaseService.deleteEvent(eventId);
+    } catch (e) {
+      // If API fails, mark for deletion locally
+      await _databaseService.deleteEvent(eventId);
+    }
+  }
+
+  Future<List<EventParticipant>> getEventParticipants(String eventId) async {
+    try {
+      // Try to get from API first if online
+      return await _apiService.getEventParticipants(eventId);
+    } catch (e) {
+      // If API fails, return empty list (participants not cached locally for simplicity)
+      return [];
+    }
+  }
+
+  Future<EventParticipant> registerForEvent(String eventId, Map<String, dynamic> registrationData) async {
+    try {
+      // Try to register via API first
+      return await _apiService.registerForEvent(eventId, registrationData);
+    } catch (e) {
+      // If API fails, throw error (registration requires server validation)
+      rethrow;
+    }
+  }
+
+  Future<void> unregisterFromEvent(String eventId, String participantId) async {
+    try {
+      // Try to unregister via API first
+      await _apiService.unregisterFromEvent(eventId, participantId);
+    } catch (e) {
+      // If API fails, throw error (unregistration requires server validation)
+      rethrow;
+    }
   }
 
   Stream<SyncStatus> get syncStatusStream => _syncService.syncStatusStream;

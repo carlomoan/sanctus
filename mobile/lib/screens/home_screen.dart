@@ -4,6 +4,7 @@ import 'sync_screen.dart';
 import 'member_list_screen.dart';
 import 'expense_screen.dart';
 import 'sacrament_screen.dart';
+import 'events_screen.dart';
 import '../services/offline_api_service.dart';
 import '../services/sync_service.dart';
 import '../models/user.dart';
@@ -185,6 +186,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => MemberListScreen(
+                        offlineApiService: widget.offlineApiService,
+                      ),
+                    ),
+                  ),
+                ),
+                _buildActionCard(
+                  context,
+                  'Events',
+                  Icons.event,
+                  Colors.orange,
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EventsScreen(
                         offlineApiService: widget.offlineApiService,
                       ),
                     ),

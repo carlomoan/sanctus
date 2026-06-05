@@ -10,6 +10,7 @@ import '../models/cluster.dart';
 import '../models/scc.dart';
 import '../models/family.dart';
 import '../models/budget.dart';
+import '../models/event.dart';
 
 class ApiService {
   final String baseUrl;
@@ -47,6 +48,11 @@ class ApiService {
         'username_or_email': usernameOrEmail,
         'password': password,
       }),
+    ).timeout(
+      const Duration(seconds: 30), // 30 second timeout
+      onTimeout: () {
+        throw http.ClientException('Connection timeout after 30 seconds');
+      },
     );
 
     if (response.statusCode == 200) {
@@ -442,7 +448,134 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to get sync status');
+      throw Exception('Failed to get sync status: ${response.body}');
+    }
+  }
+
+  // Events endpoints
+  Future<List<Event>> getEvents({
+    String? parishId,
+    String? dioceseId,
+    String? scope,
+    String? status,
+    String? eventType,
+    String? startDate,
+    String? endDate,
+  }) async {
+    String query = '';
+    if (parishId != null) query += 'parish_id=$parishId&';
+    if (dioceseId != null) query += 'diocese_id=$dioceseId&';
+    if (scope != null) query += 'scope=$scope&';
+    if (status != null) query += 'status=$status&';
+    if (eventType != null) query += 'event_type=$eventType&';
+    if (startDate != null) query += 'start_date=$startDate&';
+    if (endDate != null) query += 'end_date=$endDate&';
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/events${query.isNotEmpty ? '?$query' : ''}'),
+      headers: _getHeaders(),
+    );
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => Event.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load events: ${response.body}');
+    }
+  }
+
+  Future<Event> getEvent(String eventId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/events/$eventId'),
+      headers: _getHeaders(),
+    );
+    if (response.statusCode == 200) {
+      return Event.fromJson(jsonDecode(response.body));
+    } else if (response.statusCode == 404) {
+      throw Exception('Event not found');
+    } else {
+      throw Exception('Failed to load event: ${response.body}');
+    }
+  }
+
+  Future<Event> createEvent(CreateEventRequest event) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/events'),
+      headers: _getHeaders(),
+      body: jsonEncode(event.toJson()),
+    );
+    if (response.statusCode == 201) {
+      return Event.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to create event: ${response.body}');
+    }
+  }
+
+  Future<Event> updateEvent(String eventId, UpdateEventRequest event) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/events/$eventId'),
+      headers: _getHeaders(),
+      body: jsonEncode(event.toJson()),
+    );
+    if (response.statusCode == 200) {
+      return Event.fromJson(jsonDecode(response.body));
+    } else if (response.statusCode == 404) {
+      throw Exception('Event not found');
+    } else {
+      throw Exception('Failed to update event: ${response.body}');
+    }
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/events/$eventId'),
+      headers: _getHeaders(),
+    );
+    if (response.statusCode == 204) {
+      return;
+    } else if (response.statusCode == 404) {
+      throw Exception('Event not found');
+    } else {
+      throw Exception('Failed to delete event: ${response.body}');
+    }
+  }
+
+  Future<List<EventParticipant>> getEventParticipants(String eventId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/events/$eventId/participants'),
+      headers: _getHeaders(),
+    );
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => EventParticipant.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load event participants: ${response.body}');
+    }
+  }
+
+  Future<EventParticipant> registerForEvent(String eventId, Map<String, dynamic> registrationData) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/events/$eventId/participants'),
+      headers: _getHeaders(),
+      body: jsonEncode(registrationData),
+    );
+    if (response.statusCode == 201) {
+      return EventParticipant.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to register for event: ${response.body}');
+    }
+  }
+
+  Future<void> unregisterFromEvent(String eventId, String participantId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/events/$eventId/participants/$participantId'),
+      headers: _getHeaders(),
+    );
+    if (response.statusCode == 204) {
+      return;
+    } else if (response.statusCode == 404) {
+      throw Exception('Registration not found');
+    } else {
+      throw Exception('Failed to unregister from event: ${response.body}');
     }
   }
 }
