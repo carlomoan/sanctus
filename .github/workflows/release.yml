@@ -44,7 +44,6 @@ jobs:
         with:
           workspaces: |
             backend
-            web/src-tauri
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -55,9 +54,11 @@ jobs:
         working-directory: web
         run: npm install
 
-      - name: Build Backend (Sidecar)
+      - name: Build backend
+        run: cargo build --release --target x86_64-pc-windows-msvc
         working-directory: backend
-        run: cargo build --release --target ${{ matrix.backend_target }}
+        env:
+          SQLX_OFFLINE: true
 
       - name: Prepare Sidecar
         shell: bash
