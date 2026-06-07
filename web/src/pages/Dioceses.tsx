@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Diocese } from '../types';
+import { Diocese, UserRole } from '../types';
 import { Plus, Search, MapPin, Phone, Mail, Edit, Trash2, Building } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
@@ -15,16 +15,16 @@ const Dioceses = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDiocese, setSelectedDiocese] = useState<Diocese | undefined>(undefined);
   const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    phone: '',
-    email: '',
+    diocese_name: '',
+    headquarters_address: '',
+    contact_phone: '',
+    contact_email: '',
     bishop_name: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Check if user is SuperAdmin
-  const isSuperAdmin = user?.role === 'SuperAdmin';
+  // Fixed: use exact UserRole enum value from types.ts
+  const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
 
   const fetchDioceses = async () => {
     try {
@@ -45,10 +45,10 @@ const Dioceses = () => {
   const handleCreate = () => {
     setSelectedDiocese(undefined);
     setFormData({
-      name: '',
-      address: '',
-      phone: '',
-      email: '',
+      diocese_name: '',
+      headquarters_address: '',
+      contact_phone: '',
+      contact_email: '',
       bishop_name: '',
     });
     setIsModalOpen(true);
@@ -56,11 +56,12 @@ const Dioceses = () => {
 
   const handleEdit = (diocese: Diocese) => {
     setSelectedDiocese(diocese);
+    // Fixed: use actual Diocese field names from types.ts
     setFormData({
-      name: diocese.name || '',
-      address: diocese.address || '',
-      phone: diocese.phone || '',
-      email: diocese.email || '',
+      diocese_name: diocese.diocese_name || '',
+      headquarters_address: diocese.headquarters_address || '',
+      contact_phone: diocese.contact_phone || '',
+      contact_email: diocese.contact_email || '',
       bishop_name: diocese.bishop_name || '',
     });
     setIsModalOpen(true);
@@ -79,18 +80,15 @@ const Dioceses = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
       if (selectedDiocese) {
-        // Update existing diocese
         const updatedDiocese = await api.updateDiocese(selectedDiocese.id, formData);
         setDioceses(dioceses.map(d => d.id === selectedDiocese.id ? updatedDiocese : d));
         alert('Diocese updated successfully');
       } else {
-        // Create new diocese
         const newDiocese = await api.createDiocese(formData);
         setDioceses([...dioceses, newDiocese]);
         alert('Diocese created successfully');
@@ -122,7 +120,7 @@ const Dioceses = () => {
         )}
       </div>
 
-      {/* Search and Filter */}
+      {/* Search */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -150,12 +148,19 @@ const Dioceses = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {dioceses.map((diocese) => (
-            <div key={diocese.id} className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+            <div
+              key={diocese.id}
+              className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
+            >
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {diocese.logo_url ? (
-                      <img src={`${API_BASE_URL}${diocese.logo_url}`} alt="Logo" className="h-12 w-12 object-cover rounded-lg" />
+                      <img
+                        src={`${API_BASE_URL}${diocese.logo_url}`}
+                        alt="Logo"
+                        className="h-12 w-12 object-cover rounded-lg"
+                      />
                     ) : (
                       <Building size={24} className="text-gray-400" />
                     )}
@@ -165,7 +170,8 @@ const Dioceses = () => {
                     <p className="text-sm text-gray-500">{diocese.diocese_code}</p>
                   </div>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${diocese.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${diocese.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                  }`}>
                   {diocese.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
@@ -179,19 +185,19 @@ const Dioceses = () => {
                 )}
                 {diocese.headquarters_address && (
                   <div className="flex items-center gap-2">
-                    <MapPin size={16} className="text-gray-400" />
+                    <MapPin size={16} className="text-gray-400 flex-shrink-0" />
                     <span>{diocese.headquarters_address}</span>
                   </div>
                 )}
                 {diocese.contact_phone && (
                   <div className="flex items-center gap-2">
-                    <Phone size={16} className="text-gray-400" />
+                    <Phone size={16} className="text-gray-400 flex-shrink-0" />
                     <span>{diocese.contact_phone}</span>
                   </div>
                 )}
                 {diocese.contact_email && (
                   <div className="flex items-center gap-2">
-                    <Mail size={16} className="text-gray-400" />
+                    <Mail size={16} className="text-gray-400 flex-shrink-0" />
                     <span>{diocese.contact_email}</span>
                   </div>
                 )}
@@ -234,6 +240,7 @@ const Dioceses = () => {
         </div>
       )}
 
+      {/* Create / Edit Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -247,8 +254,8 @@ const Dioceses = () => {
             <input
               type="text"
               required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={formData.diocese_name}
+              onChange={(e) => setFormData({ ...formData, diocese_name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Enter diocese name"
             />
@@ -256,25 +263,25 @@ const Dioceses = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Address
+              Headquarters Address
             </label>
             <textarea
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              value={formData.headquarters_address}
+              onChange={(e) => setFormData({ ...formData, headquarters_address: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               rows={3}
-              placeholder="Enter diocese address"
+              placeholder="Enter headquarters address"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Phone
+              Contact Phone
             </label>
             <input
               type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              value={formData.contact_phone}
+              onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Enter phone number"
             />
@@ -282,12 +289,12 @@ const Dioceses = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              Contact Email
             </label>
             <input
               type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              value={formData.contact_email}
+              onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               placeholder="Enter email address"
             />
@@ -319,7 +326,7 @@ const Dioceses = () => {
               disabled={isSubmitting}
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
             >
-              {isSubmitting ? 'Saving...' : (selectedDiocese ? 'Update' : 'Create')}
+              {isSubmitting ? 'Saving...' : selectedDiocese ? 'Update' : 'Create'}
             </button>
           </div>
         </form>

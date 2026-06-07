@@ -1,5 +1,5 @@
-use serde::Serialize;
 use rust_decimal::Decimal;
+use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct DashboardStats {

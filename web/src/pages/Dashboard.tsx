@@ -13,15 +13,14 @@ import {
   Star,
   Globe,
   Building,
-  ChevronRight,
-  CalendarDays,
   Repeat,
   Coins, FileText, UserPlus, Home, Layers, ArrowRight, Search,
   TrendingDown, Activity, PieChart, BarChart3,
   UserCheck, Settings, Eye, Shield, CreditCard, FileSpreadsheet, Award,
-  MapPin as MapPinIcon, Church as LiturgicalIcon, Bell
+  Church as LiturgicalIcon,
+  CalendarDays
 } from 'lucide-react';
-import { format, addDays, isToday, isTomorrow, isThisWeek } from 'date-fns';
+import { format, addDays, isToday, isTomorrow } from 'date-fns';
 import ImportButton from '../components/ImportButton';
 
 interface RoleBasedStats extends DashboardStats {
@@ -42,7 +41,7 @@ interface UpcomingEvent {
   location?: string;
   is_recurring: boolean;
   current_participants: number;
-  max_participants?: number;
+  max_participants?: number;   // was 'participants' — fixed to match type
   status: 'draft' | 'published' | 'cancelled';
   scope: 'diocese' | 'parish';
 }
@@ -69,38 +68,23 @@ const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter parishes based on user role
   const getAccessibleParishes = (allParishes: Parish[]) => {
     if (!user) return [];
-
-    // Super admins can see all parishes
-    if (user.role === UserRole.SUPER_ADMIN) {
-      return allParishes;
-    }
-
-    // Other roles can only see their assigned parish and only active ones
-    return allParishes.filter(p =>
-      p.id === user.parish_id && p.is_active
-    );
+    if (user.role === UserRole.SUPER_ADMIN) return allParishes;
+    return allParishes.filter(p => p.id === user.parish_id && p.is_active);
   };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [s, allParishes] = await Promise.all([api.getDashboardStats(), api.listParishes()]);
-
-        // Filter parishes based on user role
         const accessibleParishes = getAccessibleParishes(allParishes);
-
-        // Get stats for user's parish if not super admin
         let filteredStats = s;
         if (user?.role !== UserRole.SUPER_ADMIN && user?.parish_id) {
-          // TODO: Implement parish-specific stats endpoint
-          // For now, use the general stats but they should be filtered by parish
           filteredStats = { ...s };
         }
 
-        // Mock data for upcoming events
+        // Fixed: use max_participants instead of participants
         const mockUpcomingEvents: UpcomingEvent[] = [
           {
             id: '1',
@@ -110,8 +94,8 @@ const Dashboard = () => {
             start_time: '09:00',
             end_time: '10:30',
             location: 'Main Church',
-            participants: 150,
             max_participants: 200,
+            current_participants: 150,
             status: 'published',
             is_recurring: true,
             scope: 'parish'
@@ -124,8 +108,8 @@ const Dashboard = () => {
             start_time: '09:00',
             end_time: '17:00',
             location: 'Diocese Center',
-            participants: 350,
             max_participants: 500,
+            current_participants: 350,
             status: 'published',
             is_recurring: false,
             scope: 'diocese'
@@ -138,15 +122,14 @@ const Dashboard = () => {
             start_time: '19:00',
             end_time: '20:30',
             location: 'Parish Hall',
-            participants: 25,
             max_participants: 30,
+            current_participants: 25,
             status: 'published',
             is_recurring: true,
             scope: 'parish'
           }
         ];
 
-        // Mock liturgical days data
         const mockLiturgicalDays: LiturgicalDay[] = [
           {
             id: '1',
@@ -203,7 +186,6 @@ const Dashboard = () => {
 
   const getRoleSpecificQuickActions = () => {
     const actions = [];
-
     switch (user?.role) {
       case UserRole.SUPER_ADMIN:
         actions.push(
@@ -214,7 +196,6 @@ const Dashboard = () => {
           { icon: BarChart3, label: 'All Reports', path: '/reports', color: 'green' }
         );
         break;
-
       case UserRole.PARISH_ADMIN:
         actions.push(
           { icon: UserPlus, label: 'Add Member', path: '/members', color: 'blue' },
@@ -224,7 +205,6 @@ const Dashboard = () => {
           { icon: Eye, label: 'Parish Profile', path: '/parish-profile', color: 'indigo' }
         );
         break;
-
       case UserRole.ACCOUNTANT:
         actions.push(
           { icon: Coins, label: 'Record Income', path: '/finance?tab=income', color: 'green' },
@@ -234,7 +214,6 @@ const Dashboard = () => {
           { icon: FileSpreadsheet, label: 'Budget Management', path: '/budgets', color: 'blue' }
         );
         break;
-
       case UserRole.SECRETARY:
         actions.push(
           { icon: UserPlus, label: 'Add Member', path: '/members', color: 'blue' },
@@ -244,7 +223,6 @@ const Dashboard = () => {
           { icon: Award, label: 'Certificates', path: '/certificates', color: 'green' }
         );
         break;
-
       case UserRole.VIEWER:
         actions.push(
           { icon: Eye, label: 'View Members', path: '/members', color: 'blue' },
@@ -253,202 +231,56 @@ const Dashboard = () => {
           { icon: Calendar, label: 'View Calendar', path: '/calendar', color: 'green' }
         );
         break;
-
       default:
-        actions.push(
-          { icon: Eye, label: 'View Dashboard', path: '/dashboard', color: 'gray' }
-        );
+        actions.push({ icon: Eye, label: 'View Dashboard', path: '/dashboard', color: 'gray' });
     }
-
     return actions;
   };
 
   const getRoleSpecificStats = () => {
     const stats_cards = [];
-
     switch (user?.role) {
       case UserRole.SUPER_ADMIN:
         stats_cards.push(
-          {
-            title: 'Total Parishes',
-            value: (stats?.active_parishes || 0).toLocaleString(),
-            subtitle: 'Across diocese',
-            icon: Church,
-            color: 'indigo',
-            trend: stats?.parish_growth ? { value: stats.parish_growth, isPositive: stats.parish_growth > 0 } : undefined
-          },
-          {
-            title: 'Total Members',
-            value: (stats?.total_members || 0).toLocaleString(),
-            subtitle: 'Registered parishioners',
-            icon: Users,
-            color: 'blue',
-            trend: stats?.parish_growth ? { value: stats.parish_growth, isPositive: stats.parish_growth > 0 } : undefined
-          },
-          {
-            title: 'Total Income',
-            value: Number(stats?.total_income || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }),
-            subtitle: 'All parishes combined',
-            icon: Coins,
-            color: 'green',
-            trend: undefined // TODO: Add income trend from backend
-          },
-          {
-            title: 'Active Users',
-            value: '124', // TODO: Get from backend
-            subtitle: 'System users',
-            icon: UserCheck,
-            color: 'purple',
-            trend: undefined // TODO: Add user trend from backend
-          }
+          { title: 'Total Parishes', value: (stats?.active_parishes || 0).toLocaleString(), subtitle: 'Across diocese', icon: Church, color: 'indigo', trend: stats?.parish_growth ? { value: stats.parish_growth, isPositive: stats.parish_growth > 0 } : undefined },
+          { title: 'Total Members', value: (stats?.total_members || 0).toLocaleString(), subtitle: 'Registered parishioners', icon: Users, color: 'blue', trend: undefined },
+          { title: 'Total Income', value: Number(stats?.total_income || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }), subtitle: 'All parishes combined', icon: Coins, color: 'green', trend: undefined },
+          { title: 'Active Users', value: '124', subtitle: 'System users', icon: UserCheck, color: 'purple', trend: undefined }
         );
         break;
-
       case UserRole.PARISH_ADMIN:
         stats_cards.push(
-          {
-            title: 'Parish Members',
-            value: (stats?.total_members || 0).toLocaleString(),
-            subtitle: 'Registered members',
-            icon: Users,
-            color: 'blue',
-            trend: stats?.parish_growth ? { value: stats.parish_growth, isPositive: stats.parish_growth > 0 } : undefined
-          },
-          {
-            title: 'Monthly Income',
-            value: Number(stats?.monthly_income || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }),
-            subtitle: 'This month',
-            icon: TrendingUp,
-            color: 'green',
-            trend: undefined // TODO: Add monthly income trend from backend
-          },
-          {
-            title: 'Attendance Rate',
-            value: stats?.member_attendance ? `${stats.member_attendance}%` : '0%',
-            subtitle: 'Average Sunday attendance',
-            icon: Activity,
-            color: 'purple',
-            trend: undefined // TODO: Add attendance trend from backend
-          },
-          {
-            title: 'Families',
-            value: (stats?.total_families || 0).toLocaleString(),
-            subtitle: 'Registered families',
-            icon: Home,
-            color: 'amber',
-            trend: undefined // TODO: Add families trend from backend
-          }
+          { title: 'Parish Members', value: (stats?.total_members || 0).toLocaleString(), subtitle: 'Registered members', icon: Users, color: 'blue', trend: undefined },
+          { title: 'Monthly Income', value: Number(stats?.monthly_income || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }), subtitle: 'This month', icon: TrendingUp, color: 'green', trend: undefined },
+          { title: 'Attendance Rate', value: stats?.member_attendance ? `${stats.member_attendance}%` : '0%', subtitle: 'Average Sunday attendance', icon: Activity, color: 'purple', trend: undefined },
+          { title: 'Families', value: (stats?.total_families || 0).toLocaleString(), subtitle: 'Registered families', icon: Home, color: 'amber', trend: undefined }
         );
         break;
-
       case UserRole.ACCOUNTANT:
         stats_cards.push(
-          {
-            title: 'Monthly Income',
-            value: Number(stats?.monthly_income || stats?.total_income || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }),
-            subtitle: 'This month',
-            icon: TrendingUp,
-            color: 'green',
-            trend: undefined // TODO: Add monthly income trend from backend
-          },
-          {
-            title: 'Monthly Expenses',
-            value: Number(stats?.monthly_expenses || stats?.total_expenses || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }),
-            subtitle: 'This month',
-            icon: TrendingDown,
-            color: 'red',
-            trend: undefined // TODO: Add expenses trend from backend
-          },
-          {
-            title: 'Pending Vouchers',
-            value: (stats?.pending_approvals || 0).toLocaleString(),
-            subtitle: 'Need approval',
-            icon: FileText,
-            color: 'orange',
-            trend: undefined
-          },
-          {
-            title: 'Budget Used',
-            value: stats?.budget_used_percentage ? `${stats.budget_used_percentage}%` : '0%',
-            subtitle: 'Of annual budget',
-            icon: PieChart,
-            color: 'purple',
-            trend: undefined
-          }
+          { title: 'Monthly Income', value: Number(stats?.monthly_income || stats?.total_income || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }), subtitle: 'This month', icon: TrendingUp, color: 'green', trend: undefined },
+          { title: 'Monthly Expenses', value: Number(stats?.monthly_expenses || stats?.total_expenses || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }), subtitle: 'This month', icon: TrendingDown, color: 'red', trend: undefined },
+          { title: 'Pending Vouchers', value: (stats?.pending_approvals || 0).toLocaleString(), subtitle: 'Need approval', icon: FileText, color: 'orange', trend: undefined },
+          { title: 'Budget Used', value: stats?.budget_used_percentage ? `${stats.budget_used_percentage}%` : '0%', subtitle: 'Of annual budget', icon: PieChart, color: 'purple', trend: undefined }
         );
         break;
-
       case UserRole.SECRETARY:
         stats_cards.push(
-          {
-            title: 'Parish Members',
-            value: (stats?.total_members || 0).toLocaleString(),
-            subtitle: 'Registered members',
-            icon: Users,
-            color: 'blue',
-            trend: undefined // TODO: Add members trend from backend
-          },
-          {
-            title: 'Sacraments This Month',
-            value: (stats?.sacraments_this_month || 0).toLocaleString(),
-            subtitle: 'Baptisms, marriages, etc.',
-            icon: Layers,
-            color: 'amber',
-            trend: undefined // TODO: Add sacraments trend from backend
-          },
-          {
-            title: 'Pending Tasks',
-            value: (stats?.pending_tasks || 0).toLocaleString(),
-            subtitle: 'Need attention',
-            icon: FileText,
-            color: 'orange',
-            trend: undefined
-          },
-          {
-            title: 'Certificates Issued',
-            value: '0', // TODO: Get from backend
-            subtitle: 'This month',
-            icon: Award,
-            color: 'green',
-            trend: undefined // TODO: Add certificates trend from backend
-          }
+          { title: 'Parish Members', value: (stats?.total_members || 0).toLocaleString(), subtitle: 'Registered members', icon: Users, color: 'blue', trend: undefined },
+          { title: 'Sacraments This Month', value: (stats?.sacraments_this_month || 0).toLocaleString(), subtitle: 'Baptisms, marriages, etc.', icon: Layers, color: 'amber', trend: undefined },
+          { title: 'Pending Tasks', value: (stats?.pending_tasks || 0).toLocaleString(), subtitle: 'Need attention', icon: FileText, color: 'orange', trend: undefined },
+          { title: 'Certificates Issued', value: '0', subtitle: 'This month', icon: Award, color: 'green', trend: undefined }
         );
         break;
-
       case UserRole.VIEWER:
         stats_cards.push(
-          {
-            title: 'Parish Members',
-            value: (stats?.total_members || 0).toLocaleString(),
-            subtitle: 'Total registered',
-            icon: Users,
-            color: 'blue'
-          },
-          {
-            title: 'Mass Schedule',
-            value: '0', // TODO: Get from backend
-            subtitle: 'This week',
-            icon: Calendar,
-            color: 'purple'
-          },
-          {
-            title: 'Events',
-            value: (stats?.upcoming_events || 0).toLocaleString(),
-            subtitle: 'Upcoming',
-            icon: Activity,
-            color: 'green'
-          },
-          {
-            title: 'Announcements',
-            value: '0', // TODO: Get from backend
-            subtitle: 'Latest updates',
-            icon: FileText,
-            color: 'amber'
-          }
+          { title: 'Parish Members', value: (stats?.total_members || 0).toLocaleString(), subtitle: 'Total registered', icon: Users, color: 'blue', trend: undefined },
+          { title: 'Mass Schedule', value: '0', subtitle: 'This week', icon: Calendar, color: 'purple', trend: undefined },
+          { title: 'Events', value: (stats?.upcoming_events || 0).toLocaleString(), subtitle: 'Upcoming', icon: Activity, color: 'green', trend: undefined },
+          { title: 'Announcements', value: '0', subtitle: 'Latest updates', icon: FileText, color: 'amber', trend: undefined }
         );
         break;
     }
-
     return stats_cards;
   };
 
@@ -467,9 +299,34 @@ const Dashboard = () => {
     return colors[color] || colors.blue;
   };
 
+  const getSeasonColor = (season: string) => {
+    switch (season) {
+      case 'ADVENT': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'CHRISTMAS': return 'bg-red-100 text-red-800 border-red-200';
+      case 'LENT': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'HOLY_WEEK': return 'bg-red-100 text-red-800 border-red-200';
+      case 'EASTER': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'ORDINARY_TIME': return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getLiturgicalColorClass = (color: string) => {
+    switch (color) {
+      case 'WHITE': return 'bg-white border-gray-300';
+      case 'RED': return 'bg-red-500';
+      case 'GREEN': return 'bg-green-500';
+      case 'VIOLET': return 'bg-purple-500';
+      case 'ROSE': return 'bg-pink-300';
+      case 'BLACK': return 'bg-black';
+      case 'GOLD': return 'bg-yellow-400';
+      default: return 'bg-gray-400';
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header with Welcome Message */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
@@ -483,7 +340,6 @@ const Dashboard = () => {
             {user?.role === UserRole.VIEWER && 'Parish Information'}
           </p>
         </div>
-
         {user?.role === UserRole.SUPER_ADMIN && (
           <div className="relative w-full sm:w-64">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -498,12 +354,11 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Enhanced Stats Cards with Trends */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {getRoleSpecificStats().map((stat, index) => {
           const colors = getColorClasses(stat.color);
           const Icon = stat.icon;
-
           return (
             <div
               key={index}
@@ -513,7 +368,6 @@ const Dashboard = () => {
                 else if (stat.title.includes('Parishes')) navigate('/parishes');
                 else if (stat.title.includes('Income') || stat.title.includes('Expenses')) navigate('/finance');
                 else if (stat.title.includes('Vouchers')) navigate('/finance?tab=pending');
-                else if (stat.title.includes('Reports')) navigate('/reports');
               }}
             >
               <div className="flex-1">
@@ -522,8 +376,7 @@ const Dashboard = () => {
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-gray-400 text-xs">{stat.subtitle}</span>
                   {stat.trend && (
-                    <span className={`flex items-center gap-1 text-xs ${stat.trend.isPositive ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                    <span className={`flex items-center gap-1 text-xs ${stat.trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
                       {stat.trend.isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                       {stat.trend.value}%
                     </span>
@@ -538,14 +391,13 @@ const Dashboard = () => {
         })}
       </div>
 
-      {/* Role-Specific Quick Actions */}
+      {/* Quick Actions */}
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {getRoleSpecificQuickActions().map((action, index) => {
             const colors = getColorClasses(action.color);
             const Icon = action.icon;
-
             return (
               <button
                 key={index}
@@ -562,9 +414,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Analytics Section - Enhanced */}
+      {/* Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Financial Performance Chart */}
         {(user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.PARISH_ADMIN || user?.role === UserRole.ACCOUNTANT) && (
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Performance</h3>
@@ -578,7 +429,6 @@ const Dashboard = () => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-green-600 h-2 rounded-full" style={{ width: stats?.monthly_income ? '75%' : '0%' }}></div>
               </div>
-
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Expense Control</span>
                 <span className="text-sm font-medium text-orange-600">
@@ -588,7 +438,6 @@ const Dashboard = () => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-orange-600 h-2 rounded-full" style={{ width: stats?.monthly_expenses ? '45%' : '0%' }}></div>
               </div>
-
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Budget Utilization</span>
                 <span className="text-sm font-medium text-blue-600">
@@ -602,7 +451,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Parish Activity */}
         {(user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.PARISH_ADMIN || user?.role === UserRole.SECRETARY) && (
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Parish Activity</h3>
@@ -616,7 +464,6 @@ const Dashboard = () => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-green-600 h-2 rounded-full" style={{ width: `${stats?.member_attendance || 0}%` }}></div>
               </div>
-
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Sacraments This Month</span>
                 <span className="text-sm font-medium text-purple-600">
@@ -626,7 +473,6 @@ const Dashboard = () => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div className="bg-purple-600 h-2 rounded-full" style={{ width: stats?.sacraments_this_month ? '40%' : '0%' }}></div>
               </div>
-
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Community Engagement</span>
                 <span className="text-sm font-medium text-blue-600">
@@ -645,7 +491,7 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Parishes List - Only for Super Admin */}
+      {/* Parishes List */}
       {user?.role === UserRole.SUPER_ADMIN && (
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">All Parishes ({filteredParishes.length})</h2>
@@ -672,14 +518,11 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span className={`flex items-center gap-1 ${parish.is_active ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                    <span className={`flex items-center gap-1 ${parish.is_active ? 'text-green-600' : 'text-red-600'}`}>
                       <Activity size={14} />
                       {parish.is_active ? 'Active' : 'Inactive'}
                     </span>
-                    {parish.contact_phone && (
-                      <span>{parish.contact_phone}</span>
-                    )}
+                    {parish.contact_phone && <span>{parish.contact_phone}</span>}
                   </div>
                 </div>
               ))}
@@ -688,7 +531,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Parish Profile Button - For non-super admins */}
+      {/* Parish Profile for non-super admins */}
       {user?.role !== UserRole.SUPER_ADMIN && parishes.length > 0 && (
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
@@ -707,7 +550,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Bulk Import - Only for Admin roles */}
+      {/* Bulk Import */}
       {(user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.PARISH_ADMIN) && (
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">Bulk Import</h2>
@@ -719,53 +562,28 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="flex flex-wrap gap-3">
-              <ImportButton
-                label="Import Members"
-                onImport={async (file) => api.importMembers(file, parishes[0].id)}
-                templateColumns={['member_code', 'first_name', 'last_name']}
-              />
-              <ImportButton
-                label="Import Clusters"
-                onImport={async (file) => api.importClusters(file, parishes[0].id)}
-                templateColumns={['cluster_code', 'cluster_name', 'location_description', 'leader_name']}
-              />
-              <ImportButton
-                label="Import SCCs"
-                onImport={async (file) => api.importSccs(file, parishes[0].id)}
-                templateColumns={['scc_code', 'scc_name', 'cluster_code', 'patron_saint', 'leader_name', 'location_description', 'meeting_day', 'meeting_time']}
-              />
-              <ImportButton
-                label="Import Families"
-                onImport={async (file) => api.importFamilies(file, parishes[0].id)}
-                templateColumns={['family_code', 'family_name', 'scc_code', 'physical_address', 'primary_phone', 'email', 'notes']}
-              />
-              <ImportButton
-                label="Import Transactions"
-                onImport={async (file) => api.importTransactions(file, parishes[0].id)}
-                templateColumns={['category', 'amount', 'payment_method', 'date(YYYY-MM-DD)', 'description']}
-              />
+              <ImportButton label="Import Members" onImport={async (file) => api.importMembers(file, parishes[0].id)} templateColumns={['member_code', 'first_name', 'last_name']} />
+              <ImportButton label="Import Clusters" onImport={async (file) => api.importClusters(file, parishes[0].id)} templateColumns={['cluster_code', 'cluster_name', 'location_description', 'leader_name']} />
+              <ImportButton label="Import SCCs" onImport={async (file) => api.importSccs(file, parishes[0].id)} templateColumns={['scc_code', 'scc_name', 'cluster_code', 'patron_saint', 'leader_name', 'location_description', 'meeting_day', 'meeting_time']} />
+              <ImportButton label="Import Families" onImport={async (file) => api.importFamilies(file, parishes[0].id)} templateColumns={['family_code', 'family_name', 'scc_code', 'physical_address', 'primary_phone', 'email', 'notes']} />
+              <ImportButton label="Import Transactions" onImport={async (file) => api.importTransactions(file, parishes[0].id)} templateColumns={['category', 'amount', 'payment_method', 'date(YYYY-MM-DD)', 'description']} />
             </div>
           )}
         </div>
       )}
 
-      {/* Upcoming Events & Liturgical Information */}
+      {/* Upcoming Events & Liturgical Calendar */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming Events */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <CalendarDays className="h-5 w-5 mr-2 text-primary-600" />
               Upcoming Events
             </h2>
-            <button
-              onClick={() => navigate('/events')}
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-            >
+            <button onClick={() => navigate('/events')} className="text-sm text-primary-600 hover:text-primary-700 font-medium">
               View All
             </button>
           </div>
-
           {upcomingEvents.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <CalendarDays size={32} className="mx-auto text-gray-300 mb-2" />
@@ -777,12 +595,9 @@ const Dashboard = () => {
                 const eventDate = new Date(event.start_date);
                 const isEventToday = isToday(eventDate);
                 const isEventTomorrow = isTomorrow(eventDate);
-                const isEventThisWeek = isThisWeek(eventDate);
-
                 return (
                   <div key={event.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-semibold ${isEventToday ? 'bg-red-500' : isEventTomorrow ? 'bg-orange-500' : 'bg-blue-500'
-                      }`}>
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-semibold ${isEventToday ? 'bg-red-500' : isEventTomorrow ? 'bg-orange-500' : 'bg-blue-500'}`}>
                       {format(eventDate, 'd')}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -793,13 +608,11 @@ const Dashboard = () => {
                       <div className="flex items-center mt-1">
                         {event.scope === 'diocese' ? (
                           <div className="flex items-center text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full mr-2">
-                            <Globe className="h-2 w-2 mr-1" />
-                            Diocese
+                            <Globe className="h-2 w-2 mr-1" />Diocese
                           </div>
                         ) : (
                           <div className="flex items-center text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full mr-2">
-                            <Building className="h-2 w-2 mr-1" />
-                            Parish
+                            <Building className="h-2 w-2 mr-1" />Parish
                           </div>
                         )}
                       </div>
@@ -813,17 +626,15 @@ const Dashboard = () => {
                       <div className="flex items-center mt-1 text-xs text-gray-500">
                         <Users className="h-3 w-3 mr-1" />
                         {event.current_participants}
-                        {event.max_participants && `/${event.max_participants}`}
+                        {/* Fixed: use optional chaining for max_participants */}
+                        {(event.max_participants ?? 0) > 0 && `/${event.max_participants}`}
                       </div>
                     </div>
                     <div className="flex flex-col items-end">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${event.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${event.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                         {event.status}
                       </span>
-                      {event.is_recurring && (
-                        <span className="text-xs text-gray-500 mt-1">Recurring</span>
-                      )}
+                      {event.is_recurring && <span className="text-xs text-gray-500 mt-1">Recurring</span>}
                     </div>
                   </div>
                 );
@@ -832,21 +643,16 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Liturgical Information */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <LiturgicalIcon className="h-5 w-5 mr-2 text-purple-600" />
               Liturgical Calendar
             </h2>
-            <button
-              onClick={() => navigate('/liturgical-calendar')}
-              className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-            >
+            <button onClick={() => navigate('/liturgical-calendar')} className="text-sm text-purple-600 hover:text-purple-700 font-medium">
               View Calendar
             </button>
           </div>
-
           {liturgicalDays.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <LiturgicalIcon size={32} className="mx-auto text-gray-300 mb-2" />
@@ -858,36 +664,9 @@ const Dashboard = () => {
                 const dayDate = new Date(day.date);
                 const isDayToday = isToday(dayDate);
                 const isDayTomorrow = isTomorrow(dayDate);
-
-                const getSeasonColor = (season: string) => {
-                  switch (season) {
-                    case 'ADVENT': return 'bg-purple-100 text-purple-800 border-purple-200';
-                    case 'CHRISTMAS': return 'bg-red-100 text-red-800 border-red-200';
-                    case 'LENT': return 'bg-gray-100 text-gray-800 border-gray-200';
-                    case 'HOLY_WEEK': return 'bg-red-100 text-red-800 border-red-200';
-                    case 'EASTER': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                    case 'ORDINARY_TIME': return 'bg-green-100 text-green-800 border-green-200';
-                    default: return 'bg-gray-100 text-gray-800 border-gray-200';
-                  }
-                };
-
-                const getLiturgicalColor = (color: string) => {
-                  switch (color) {
-                    case 'WHITE': return 'bg-white border-gray-300';
-                    case 'RED': return 'bg-red-500';
-                    case 'GREEN': return 'bg-green-500';
-                    case 'VIOLET': return 'bg-purple-500';
-                    case 'ROSE': return 'bg-pink-300';
-                    case 'BLACK': return 'bg-black';
-                    case 'GOLD': return 'bg-yellow-400';
-                    default: return 'bg-gray-400';
-                  }
-                };
-
                 return (
                   <div key={day.id} className="flex items-start space-x-3 p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all cursor-pointer">
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold ${isDayToday ? 'bg-purple-600' : isDayTomorrow ? 'bg-purple-500' : 'bg-purple-400'
-                      }`}>
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold ${isDayToday ? 'bg-purple-600' : isDayTomorrow ? 'bg-purple-500' : 'bg-purple-400'}`}>
                       {format(dayDate, 'd')}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -904,7 +683,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="flex flex-col items-end">
-                      <div className={`w-6 h-6 rounded-full border ${getLiturgicalColor(day.liturgical_color)}`} />
+                      <div className={`w-6 h-6 rounded-full border ${getLiturgicalColorClass(day.liturgical_color)}`} />
                       <span className="text-xs text-gray-500 mt-1">{day.liturgical_color}</span>
                     </div>
                   </div>
@@ -927,7 +706,6 @@ const Dashboard = () => {
           </div>
           <ArrowRight size={20} className="text-gray-400 group-hover:text-primary-600" />
         </button>
-
         {user?.role !== UserRole.VIEWER && (
           <button
             onClick={() => navigate('/settings')}

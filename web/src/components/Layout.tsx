@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Church, Coins, Menu, X, Scroll, LogOut, ShieldCheck, Wallet, FileBarChart, Upload, Network, Home, Settings, ChevronDown, ChevronRight, LucideIcon, Shield, Building, Calendar, CalendarDays, Church as LiturgicalIcon } from 'lucide-react';
+import { LayoutDashboard, Users, Church, Coins, Menu, X, Scroll, LogOut, ShieldCheck, Wallet, FileBarChart, Upload, Network, Home, Settings, ChevronDown, ChevronRight, LucideIcon, Shield, Building, Calendar, Church as LiturgicalIcon } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import classNames from 'classnames';
 import { useAuth } from '../context/AuthContext';
