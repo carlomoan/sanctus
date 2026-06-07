@@ -37,6 +37,7 @@ lerna-debug.log*
 target/
 Cargo.lock
 **/target/
+web/src-tauri/target/
 
 # Flutter/Dart build artifacts
 .dart_tool/
