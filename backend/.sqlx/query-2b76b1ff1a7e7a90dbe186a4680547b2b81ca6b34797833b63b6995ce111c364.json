@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO member (parish_id, member_code, first_name, last_name)\n                VALUES ($1, $2, $3, $4)\n                ON CONFLICT (parish_id, member_code) DO NOTHING\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2b76b1ff1a7e7a90dbe186a4680547b2b81ca6b34797833b63b6995ce111c364"
+}

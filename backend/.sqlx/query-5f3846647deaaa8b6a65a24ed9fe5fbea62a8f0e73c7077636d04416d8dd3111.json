@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COALESCE(SUM(amount), 0) as \"total!\" FROM expense_voucher\n           WHERE parish_id = $1 AND approval_status = 'APPROVED' AND paid = FALSE AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total!",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5f3846647deaaa8b6a65a24ed9fe5fbea62a8f0e73c7077636d04416d8dd3111"
+}

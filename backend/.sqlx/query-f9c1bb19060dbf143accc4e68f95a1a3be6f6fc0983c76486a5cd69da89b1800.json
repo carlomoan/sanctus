@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT category as \"category: String\", SUM(amount) as \"total!\"\n        FROM budget\n        WHERE parish_id = $1 AND fiscal_year = $2 AND deleted_at IS NULL\n        GROUP BY category\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "category: String",
+        "type_info": {
+          "Custom": {
+            "name": "transaction_category",
+            "kind": {
+              "Enum": [
+                "TITHE",
+                "OFFERTORY",
+                "THANKSGIVING",
+                "DONATION",
+                "FUNDRAISING",
+                "MASS_OFFERING",
+                "WEDDING_FEE",
+                "BAPTISM_FEE",
+                "FUNERAL_FEE",
+                "CERTIFICATE_FEE",
+                "RENT_INCOME",
+                "INVESTMENT_INCOME",
+                "OTHER_INCOME",
+                "SALARY_EXPENSE",
+                "UTILITIES_EXPENSE",
+                "MAINTENANCE_EXPENSE",
+                "SUPPLIES_EXPENSE",
+                "DIOCESAN_LEVY",
+                "CHARITY_EXPENSE",
+                "CONSTRUCTION_EXPENSE",
+                "OTHER_EXPENSE"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "total!",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "f9c1bb19060dbf143accc4e68f95a1a3be6f6fc0983c76486a5cd69da89b1800"
+}
