@@ -51,6 +51,10 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      # ← ADD THIS
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.target }}
+        
       # ── 4. Rust cache (backend only — src-tauri is inside backend/) ────────
       - name: Rust cache
         uses: swatinem/rust-cache@v2
