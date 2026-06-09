@@ -21,6 +21,7 @@ import {
   Family, CreateFamilyRequest, UpdateFamilyRequest,
   Permission, RoleWithPermissions, CustomRole, CreateRoleRequest, UpdateRoleRequest,
   UserPermissionOverride, GrantUserOverrideRequest, RevokeUserOverrideRequest,
+  ChurchEvent, LiturgicalCalendarEntry, Notification,
 } from '../types';
 
 const API_BASE_URL = 'http://localhost:3000';
@@ -195,6 +196,13 @@ export class ApiClient {
     return this.request<void>('DELETE', `/sacraments/${id}`);
   }
 
+  async importSacraments(file: File, parishId: UUID): Promise<ImportResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('parish_id', parishId);
+    return this.request<ImportResponse>('POST', '/sacraments/import', formData, true);
+  }
+
   // Transactions
   async listIncomeTransactions(parishId?: UUID): Promise<IncomeTransaction[]> {
     const query = parishId ? `?parish_id=${parishId}` : '';
@@ -339,11 +347,11 @@ export class ApiClient {
     return this.request<any[]>('GET', `/settings${query}`);
   }
 
-  async upsertSetting(data: { parish_id?: UUID; setting_key: string; setting_value: string; setting_group?: string; description?: string }): Promise<any> {
+  async upsertSetting(data: { parish_id?: UUID; diocese_id?: UUID; setting_key: string; setting_value: string; setting_group?: string; description?: string }): Promise<any> {
     return this.request<any>('POST', '/settings', data);
   }
 
-  async bulkUpsertSettings(settings: { parish_id?: UUID; setting_key: string; setting_value: string; setting_group?: string; description?: string }[]): Promise<any[]> {
+  async bulkUpsertSettings(settings: { parish_id?: UUID; diocese_id?: UUID; setting_key: string; setting_value: string; setting_group?: string; description?: string }[]): Promise<any[]> {
     return this.request<any[]>('POST', '/settings/bulk', { settings });
   }
 
@@ -501,6 +509,28 @@ export class ApiClient {
     const formData = new FormData();
     formData.append('file', file);
     return this.requestMultipart<{ url: string }>('POST', '/upload/user/photo', formData);
+  }
+
+  // Events
+  async listEvents(params?: Record<string, string | number>): Promise<ChurchEvent[]> {
+    const query = params ? '?' + Object.entries(params).map(([k, v]) => `${k}=${v}`).join('&') : '';
+    return this.request<ChurchEvent[]>('GET', `/events${query}`);
+  }
+  async getEvent(id: UUID): Promise<ChurchEvent> { return this.request<ChurchEvent>('GET', `/events/${id}`); }
+  async createEvent(data: any): Promise<ChurchEvent> { return this.request<ChurchEvent>('POST', '/events', data); }
+  async updateEvent(id: UUID, data: any): Promise<ChurchEvent> { return this.request<ChurchEvent>('PUT', `/events/${id}`, data); }
+  async deleteEvent(id: UUID): Promise<void> { return this.request<void>('DELETE', `/events/${id}`); }
+
+  // Liturgical Calendar
+  async listLiturgicalCalendar(params?: Record<string, string | number>): Promise<LiturgicalCalendarEntry[]> {
+    const query = params ? '?' + Object.entries(params).map(([k, v]) => `${k}=${v}`).join('&') : '';
+    return this.request<LiturgicalCalendarEntry[]>('GET', `/liturgical-calendar${query}`);
+  }
+
+  // Notifications
+  async listNotifications(params?: Record<string, string | number>): Promise<Notification[]> {
+    const query = params ? '?' + Object.entries(params).map(([k, v]) => `${k}=${v}`).join('&') : '';
+    return this.request<Notification[]>('GET', `/notifications${query}`);
   }
 
   private async requestMultipart<T>(method: string, endpoint: string, body: FormData): Promise<T> {

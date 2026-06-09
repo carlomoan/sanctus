@@ -1,20 +1,20 @@
+use crate::models::user::{AuthResponse, LoginRequest, User, UserProfile, UserRole};
+use crate::AppState;
 use axum::{
+    async_trait,
     extract::{FromRequestParts, State},
     http::{header, request::Parts, StatusCode},
-    async_trait,
     Json,
 };
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use serde::{Deserialize, Serialize};
-use std::env;
-use crate::models::user::{UserRole, UserProfile, LoginRequest, AuthResponse, User};
-use crate::AppState;
-use uuid::Uuid;
-use chrono::Utc;
+use base64::{engine::general_purpose, Engine as _};
 use bcrypt::verify;
+use chrono::Utc;
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use pbkdf2::pbkdf2_hmac;
+use serde::{Deserialize, Serialize};
 use sha2::Sha256;
-use base64::{Engine as _, engine::general_purpose};
+use std::env;
+use uuid::Uuid;
 
 fn verify_password(password: &str, hash: &str) -> bool {
     // Temporary bypass for admin user to demonstrate performance improvement
@@ -24,27 +24,29 @@ fn verify_password(password: &str, hash: &str) -> bool {
         if parts.len() == 4 {
             let iterations: u32 = parts[1].parse().unwrap_or(0);
             if iterations > 100000 {
-                tracing::debug!("Admin user with high PBKDF2 iterations detected, using fast verification");
+                tracing::debug!(
+                    "Admin user with high PBKDF2 iterations detected, using fast verification"
+                );
                 return true;
             }
         }
     }
-    
+
     if hash.starts_with("pbkdf2_sha256$") {
         let parts: Vec<&str> = hash.split('$').collect();
         if parts.len() != 4 {
             return false;
         }
         let iterations: u32 = parts[1].parse().unwrap_or(0);
-        
+
         // For very high iteration counts, use a timeout approach
-        let safe_iterations = if iterations > 100000 { 
+        let safe_iterations = if iterations > 100000 {
             // For extremely high iteration counts, use a more reasonable limit
-            50000 
-        } else { 
-            iterations 
+            50000
+        } else {
+            iterations
         };
-        
+
         let salt = parts[2];
         let expected_hash_b64 = parts[3];
 
@@ -57,21 +59,20 @@ fn verify_password(password: &str, hash: &str) -> bool {
         );
 
         let dk_b64 = general_purpose::STANDARD.encode(dk);
-        tracing::debug!("PBKDF2 verification: original_iterations={}, safe_iterations={}", iterations, safe_iterations);
-        
+        tracing::debug!(
+            "PBKDF2 verification: original_iterations={}, safe_iterations={}",
+            iterations,
+            safe_iterations
+        );
+
         // If we reduced iterations, the hash won't match exactly
         // For now, let's try with the original iterations but with a timeout
         if iterations > 50000 {
             // Use a more reasonable iteration count for performance
             let mut dk_fast = [0u8; 32];
-            pbkdf2_hmac::<Sha256>(
-                password.as_bytes(),
-                salt.as_bytes(),
-                50000,
-                &mut dk_fast,
-            );
+            pbkdf2_hmac::<Sha256>(password.as_bytes(), salt.as_bytes(), 50000, &mut dk_fast);
             let _dk_fast_b64 = general_purpose::STANDARD.encode(dk_fast);
-            
+
             // For the admin user specifically, let's do a direct comparison with reduced iterations
             // This is a temporary fix - in production, users should be migrated to bcrypt
             if password == "Admin@123" && iterations > 100000 {
@@ -79,10 +80,10 @@ fn verify_password(password: &str, hash: &str) -> bool {
                 return true;
             }
         }
-        
+
         return dk_b64 == expected_hash_b64;
     }
-    
+
     let result = verify(password, hash).unwrap_or(false);
     tracing::debug!("Bcrypt verification result: {}", result);
     result
@@ -96,7 +97,11 @@ pub struct Claims {
     pub exp: usize,
 }
 
-pub fn create_jwt(user_id: Uuid, role: UserRole, parish_id: Option<Uuid>) -> Result<String, StatusCode> {
+pub fn create_jwt(
+    user_id: Uuid,
+    role: UserRole,
+    parish_id: Option<Uuid>,
+) -> Result<String, StatusCode> {
     let expiration = Utc::now()
         .checked_add_signed(chrono::Duration::hours(24))
         .expect("valid timestamp")
@@ -109,8 +114,8 @@ pub fn create_jwt(user_id: Uuid, role: UserRole, parish_id: Option<Uuid>) -> Res
         exp: expiration,
     };
 
-    let secret = env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "default-sanctus-secret-change-me".to_string());
+    let secret =
+        env::var("JWT_SECRET").unwrap_or_else(|_| "default-sanctus-secret-change-me".to_string());
     encode(
         &Header::default(),
         &claims,
@@ -119,6 +124,7 @@ pub fn create_jwt(user_id: Uuid, role: UserRole, parish_id: Option<Uuid>) -> Res
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
+#[derive(Clone)]
 pub struct AuthUser {
     pub user_id: Uuid,
     pub role: UserRole,
@@ -137,15 +143,21 @@ where
             .headers
             .get(header::AUTHORIZATION)
             .and_then(|value| value.to_str().ok())
-            .ok_or((StatusCode::UNAUTHORIZED, "Missing authorization header".to_string()))?;
+            .ok_or((
+                StatusCode::UNAUTHORIZED,
+                "Missing authorization header".to_string(),
+            ))?;
 
         if !auth_header.starts_with("Bearer ") {
-            return Err((StatusCode::UNAUTHORIZED, "Invalid authorization header".to_string()));
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                "Invalid authorization header".to_string(),
+            ));
         }
 
         let token = &auth_header[7..];
         let secret = env::var("JWT_SECRET")
-        .unwrap_or_else(|_| "default-sanctus-secret-change-me".to_string());
+            .unwrap_or_else(|_| "default-sanctus-secret-change-me".to_string());
 
         let token_data = decode::<Claims>(
             token,
@@ -179,7 +191,8 @@ pub async fn login(
         return Err((StatusCode::UNAUTHORIZED, "Invalid credentials".to_string()));
     }
 
-    let token = create_jwt(user.id, user.role, user.parish_id).map_err(|s| (s, "Internal server error".to_string()))?;
+    let token = create_jwt(user.id, user.role, user.parish_id)
+        .map_err(|s| (s, "Internal server error".to_string()))?;
 
     Ok(Json(AuthResponse {
         token,

@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-use chrono::{DateTime, Utc};
-use sqlx::FromRow;
-use rust_decimal::Decimal;
 use crate::models::transaction::TransactionCategory;
+use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Budget {
@@ -34,4 +34,25 @@ pub struct CreateBudgetRequest {
 pub struct UpdateBudgetRequest {
     pub amount: Option<Decimal>,
     pub description: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BudgetUtilization {
+    pub category: TransactionCategory,
+    pub budget_amount: Decimal,
+    pub actual_spent: Decimal,
+    pub remaining: Decimal,
+    pub utilization_percentage: f64,
+    pub fiscal_year: i32,
+    pub fiscal_month: Option<i32>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BudgetPerformance {
+    pub total_budget: Decimal,
+    pub total_spent: Decimal,
+    pub total_remaining: Decimal,
+    pub overall_utilization: f64,
+    pub categories: Vec<BudgetUtilization>,
+    pub fiscal_year: i32,
 }

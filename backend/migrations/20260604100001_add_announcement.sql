@@ -1,6 +1,6 @@
 -- Announcement Table
 CREATE TABLE announcement (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     parish_id UUID REFERENCES parish(id) ON DELETE CASCADE,    -- null if diocese-wide
     diocese_id UUID REFERENCES diocese(id) ON DELETE CASCADE,
     announcement_type VARCHAR(30) NOT NULL CHECK (announcement_type IN ('PARISH', 'DIOCESE', 'EVENT', 'LITURGICAL')),

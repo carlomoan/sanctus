@@ -20,12 +20,24 @@ import MemberProfile from './pages/MemberProfile';
 import UserProfile from './pages/UserProfile';
 import Settings from './pages/Settings';
 import RoleManagement from './pages/RoleManagement';
+import Announcements from './pages/Announcements';
+import Attendance from './pages/Attendance';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { SettingsProvider } from './context/SettingsContext';
+import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { ParishProvider } from './context/ParishContext';
 import { useEffect } from 'react';
 import './App.css';
 import './i18n'; // Initialize i18n
+
+// Component to update document title based on app settings
+function DocumentTitleUpdater() {
+  const { getSetting } = useSettings();
+  useEffect(() => {
+    const appName = getSetting('ui.app_name') || 'Sanctus';
+    document.title = `${appName} - Parish Management`;
+  }, [getSetting]);
+  return null;
+}
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -90,6 +102,7 @@ function App() {
       <TauriWindowCloseHandler />
       <ParishProvider>
         <SettingsProvider>
+          <DocumentTitleUpdater />
           <Router>
             <Routes>
               <Route path="/login" element={<Login />} />
@@ -113,6 +126,8 @@ function App() {
                 <Route path="sacraments" element={<Sacraments />} />
                 <Route path="events" element={<Events />} />
                 <Route path="liturgical-calendar" element={<LiturgicalCalendar />} />
+                <Route path="announcements" element={<Announcements />} />
+                <Route path="attendance" element={<Attendance />} />
                 <Route path="finance" element={<Finance />} />
                 <Route path="budgets" element={<Budgets />} />
                 <Route path="reports" element={<Reports />} />

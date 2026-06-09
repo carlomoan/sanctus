@@ -28,30 +28,30 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background-main flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h1 className="text-center text-3xl font-extrabold text-primary-600">Sanctus</h1>
-        <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
+        <h1 className="text-center text-3xl font-extrabold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">Sanctus</h1>
+        <h2 className="mt-6 text-center text-2xl font-bold text-secondary-800">
           Sign in to your account
         </h2>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100">
+        <div className="bg-white py-8 px-4 shadow-card rounded-card sm:px-10 border border-sidebar-border">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+              <div className="bg-danger/10 border border-danger/20 text-danger px-4 py-3 rounded-card text-sm">
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="username" className="block text-sm font-medium text-secondary-700">
                 Username or Email
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <Mail className="h-5 w-5 text-secondary-400" />
                 </div>
                 <input
                   id="username"
@@ -60,19 +60,19 @@ const Login = () => {
                   required
                   value={usernameOrEmail}
                   onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="appearance-none block w-full pl-10 px-3 py-2.5 border border-sidebar-border rounded-lg shadow-sm placeholder-secondary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm transition-all duration-200"
                   placeholder="admin@stmarys.org"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-secondary-700">
                 Password
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-secondary-400" />
                 </div>
                 <input
                   id="password"
@@ -81,7 +81,7 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="appearance-none block w-full pl-10 px-3 py-2.5 border border-sidebar-border rounded-lg shadow-sm placeholder-secondary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm transition-all duration-200"
                   placeholder="••••••••"
                 />
               </div>
@@ -91,7 +91,7 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-colors"
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all duration-200"
               >
                 {loading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

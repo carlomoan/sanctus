@@ -18,21 +18,33 @@
     /* UI Configuration Defaults */
     --color-sidebar-bg: #FFFFFF;
     --color-sidebar-text: #4B5563;
-    /* gray-600 */
     --color-sidebar-active-bg: #F0F9FF;
-    /* primary-50 fallback */
-
     --color-topbar-bg: #FFFFFF;
     --color-topbar-text: #111827;
-    /* gray-900 */
-
     --color-footer-bg: #F9FAFB;
-    /* gray-50 */
     --color-footer-text: #6B7280;
-    /* gray-500 */
   }
 
   body {
     @apply bg-gray-50 text-gray-900;
+  }
+}
+
+@layer utilities {
+  /* Elevation Shadow System */
+  .shadow-elevation-1 {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  }
+  .shadow-elevation-2 {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+  .shadow-elevation-3 {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+  .shadow-elevation-4 {
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+  .shadow-elevation-5 {
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
   }
 }

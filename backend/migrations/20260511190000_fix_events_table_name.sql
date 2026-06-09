@@ -65,7 +65,9 @@ END $$;
 
 -- Update triggers to use the correct table name if needed
 DROP TRIGGER IF EXISTS trigger_event_updated_at ON event;
-CREATE TRIGGER IF NOT EXISTS trigger_event_updated_at
+DROP TRIGGER IF EXISTS trigger_event_updated_at ON events;
+
+CREATE TRIGGER trigger_event_updated_at
     BEFORE UPDATE ON events
     FOR EACH ROW
     EXECUTE FUNCTION update_event_updated_at();

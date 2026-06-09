@@ -244,7 +244,7 @@ export default function Clusters() {
               <select
                 value={activeParishId || ''}
                 onChange={(e) => setActiveParish(e.target.value || null)}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="border-slate-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">All Parishes</option>
                 {parishes.map(parish => (
@@ -349,7 +349,7 @@ export default function Clusters() {
             <select
               value={selectedParishForImport}
               onChange={(e) => setSelectedParishForImport(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+              className="mt-1 block w-full rounded-md border-slate-200 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
               required
             >
               <option value="">Select Parish</option>
@@ -414,7 +414,7 @@ export default function Clusters() {
             <select
               value={selectedClusterForImport}
               onChange={(e) => setSelectedClusterForImport(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+              className="mt-1 block w-full rounded-md border-slate-200 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
               required
             >
               <option value="">Select Cluster</option>

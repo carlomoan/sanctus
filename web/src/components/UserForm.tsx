@@ -104,17 +104,17 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* General Error Message */}
       {errors.submit && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="text-sm text-red-800">{errors.submit}</div>
+        <div className="bg-danger/10 border border-danger/20 rounded-card p-4">
+          <div className="text-sm text-danger">{errors.submit}</div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Username</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Username</label>
           <input
             type="text"
             required
@@ -123,17 +123,17 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
               setFormData({ ...formData, username: e.target.value });
               if (errors.username) setErrors({ ...errors, username: '' });
             }}
-            className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.username
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
+            className={`mt-1 block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200 ${errors.username
+              ? 'border-danger focus:border-danger'
+              : 'border-sidebar-border'
               }`}
           />
           {errors.username && (
-            <p className="mt-1 text-sm text-red-600">{errors.username}</p>
+            <p className="mt-1 text-sm text-danger">{errors.username}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Email</label>
           <input
             type="email"
             required
@@ -142,17 +142,17 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
               setFormData({ ...formData, email: e.target.value });
               if (errors.email) setErrors({ ...errors, email: '' });
             }}
-            className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.email
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
+            className={`mt-1 block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200 ${errors.email
+              ? 'border-danger focus:border-danger'
+              : 'border-sidebar-border'
               }`}
           />
           {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+            <p className="mt-1 text-sm text-danger">{errors.email}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Password</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Password</label>
           <input
             type="password"
             required
@@ -161,17 +161,17 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
               setFormData({ ...formData, password: e.target.value });
               if (errors.password) setErrors({ ...errors, password: '' });
             }}
-            className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.password
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
+            className={`mt-1 block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200 ${errors.password
+              ? 'border-danger focus:border-danger'
+              : 'border-sidebar-border'
               }`}
           />
           {errors.password && (
-            <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+            <p className="mt-1 text-sm text-danger">{errors.password}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Full Name</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Full Name</label>
           <input
             type="text"
             required
@@ -180,35 +180,35 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
               setFormData({ ...formData, full_name: e.target.value });
               if (errors.full_name) setErrors({ ...errors, full_name: '' });
             }}
-            className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.full_name
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
+            className={`mt-1 block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200 ${errors.full_name
+              ? 'border-danger focus:border-danger'
+              : 'border-sidebar-border'
               }`}
           />
           {errors.full_name && (
-            <p className="mt-1 text-sm text-red-600">{errors.full_name}</p>
+            <p className="mt-1 text-sm text-danger">{errors.full_name}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Phone Number</label>
           <input
             type="text"
             value={formData.phone_number}
             onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Role</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Role</label>
           <select
             value={formData.role}
             onChange={(e) => {
               setFormData({ ...formData, role: e.target.value as UserRole });
               if (errors.role) setErrors({ ...errors, role: '' });
             }}
-            className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.role
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
+            className={`mt-1 block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200 ${errors.role
+              ? 'border-danger focus:border-danger'
+              : 'border-sidebar-border'
               }`}
           >
             {Object.values(UserRole).map((role) => (
@@ -216,20 +216,20 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
             ))}
           </select>
           {errors.role && (
-            <p className="mt-1 text-sm text-red-600">{errors.role}</p>
+            <p className="mt-1 text-sm text-danger">{errors.role}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Diocese</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Diocese</label>
           <select
             value={formData.diocese_id}
             onChange={(e) => {
               setFormData({ ...formData, diocese_id: e.target.value });
               if (errors.diocese_id) setErrors({ ...errors, diocese_id: '' });
             }}
-            className={`mt-1 block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm ${errors.diocese_id
-                ? 'border-red-300 focus:border-red-500'
-                : 'border-gray-300 focus:border-primary-500'
+            className={`mt-1 block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200 ${errors.diocese_id
+              ? 'border-danger focus:border-danger'
+              : 'border-sidebar-border'
               }`}
           >
             <option value="">Select Diocese</option>
@@ -238,16 +238,16 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
             ))}
           </select>
           {errors.diocese_id && (
-            <p className="mt-1 text-sm text-red-600">{errors.diocese_id}</p>
+            <p className="mt-1 text-sm text-danger">{errors.diocese_id}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Parish (Optional)</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Parish (Optional)</label>
           <select
             value={formData.parish_id}
             onChange={(e) => setFormData({ ...formData, parish_id: e.target.value })}
             disabled={!formData.diocese_id}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm disabled:bg-gray-100"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 disabled:bg-background-light disabled:cursor-not-allowed transition-all duration-200"
           >
             <option value="">
               {formData.diocese_id ? 'Select Parish' : 'First select a diocese'}
@@ -256,7 +256,7 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
               <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
             ))}
           </select>
-          <p className="text-xs text-gray-500 mt-1">Leave empty for diocese-level user</p>
+          <p className="text-xs text-secondary-500 mt-1">Leave empty for diocese-level user</p>
         </div>
       </div>
 
@@ -264,14 +264,14 @@ const UserForm = ({ onSubmit, onCancel, parishes, dioceses }: UserFormProps) => 
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm"
+          className="inline-flex justify-center rounded-lg border border-sidebar-border shadow-sm px-4 py-2.5 bg-white text-base font-medium text-secondary-700 hover:bg-background-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm transition-all duration-200"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm disabled:opacity-50"
+          className="inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-base font-semibold text-white hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:text-sm disabled:opacity-50 transition-all duration-200"
         >
           {loading ? 'Creating...' : 'Create User'}
         </button>

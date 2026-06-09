@@ -1,85 +1,318 @@
+use crate::{handlers, sync, AppState};
 use axum::{
-    routing::{get, post, put, delete},
+    http::{
+        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
+        Method,
+    },
+    routing::{delete, get, post, put},
     Router,
-    http::{Method, header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT}},
 };
-use tower_http::cors::{CorsLayer, Any};
+use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
-use crate::{AppState, handlers, sync};
 
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/", get(|| async { "Sanctus Backend Running!" }))
-        .route("/health", get(|axum::extract::State(s): axum::extract::State<AppState>| async move {
-            match sqlx::query("SELECT 1").execute(&s.db).await {
-                Ok(_) => "Database is healthy",
-                Err(_) => "Database is unhealthy",
-            }
-        }))
+        .route(
+            "/health",
+            get(
+                |axum::extract::State(s): axum::extract::State<AppState>| async move {
+                    match sqlx::query("SELECT 1").execute(&s.db).await {
+                        Ok(_) => "Database is healthy",
+                        Err(_) => "Database is unhealthy",
+                    }
+                },
+            ),
+        )
         .route("/auth/login", post(handlers::auth::login))
-        .route("/users", get(handlers::user::list_users).post(handlers::user::create_user))
-        .route("/users/:id", put(handlers::user::update_user).patch(handlers::user::toggle_user_status).delete(handlers::user::delete_user))
-        .route("/users/:id/reactivate", post(handlers::user::reactivate_user))
-        .route("/budgets", get(handlers::budget::list_budgets).post(handlers::budget::create_budget))
+        .route(
+            "/users",
+            get(handlers::user::list_users).post(handlers::user::create_user),
+        )
+        .route(
+            "/users/:id",
+            put(handlers::user::update_user)
+                .patch(handlers::user::toggle_user_status)
+                .delete(handlers::user::delete_user),
+        )
+        .route(
+            "/users/:id/reactivate",
+            post(handlers::user::reactivate_user),
+        )
+        .route(
+            "/budgets",
+            get(handlers::budget::list_budgets).post(handlers::budget::create_budget),
+        )
         .route("/budgets/:id", put(handlers::budget::update_budget))
-        .route("/reports/trial-balance", get(handlers::report::get_trial_balance))
-        .route("/reports/income-expenditure", get(handlers::report::get_income_expenditure))
-        .route("/reports/budget-vs-actual", get(handlers::report::get_budget_vs_actual))
-        .route("/reports/balance-sheet", get(handlers::report::get_balance_sheet))
+        .route(
+            "/budgets/utilization",
+            get(handlers::budget::get_budget_utilization),
+        )
+        .route(
+            "/reports/trial-balance",
+            get(handlers::report::get_trial_balance),
+        )
+        .route(
+            "/reports/income-expenditure",
+            get(handlers::report::get_income_expenditure),
+        )
+        .route(
+            "/reports/budget-vs-actual",
+            get(handlers::report::get_budget_vs_actual),
+        )
+        .route(
+            "/reports/balance-sheet",
+            get(handlers::report::get_balance_sheet),
+        )
         .route("/reports/cash-flow", get(handlers::report::get_cash_flow))
         .route("/import/members", post(handlers::import::import_members))
-        .route("/import/transactions", post(handlers::import::import_transactions))
+        .route(
+            "/import/transactions",
+            post(handlers::import::import_transactions),
+        )
         .route("/import/clusters", post(handlers::import::import_clusters))
         .route("/import/sccs", post(handlers::import::import_sccs))
         .route("/import/families", post(handlers::import::import_families))
         .route("/sync", post(sync::sync_handler))
         .route("/dashboard", get(handlers::dashboard::get_dashboard_stats))
-        .route("/dioceses", get(handlers::diocese::list_dioceses).post(handlers::diocese::create_diocese))
-        .route("/dioceses/:id", get(handlers::diocese::get_diocese).put(handlers::diocese::update_diocese).delete(handlers::diocese::delete_diocese))
-        .route("/parishes", get(handlers::parish::list_parishes).post(handlers::parish::create_parish))
-        .route("/parishes/:id", get(handlers::parish::get_parish).put(handlers::parish::update_parish).delete(handlers::parish::delete_parish))
-        .route("/parishes/:id/stats", get(handlers::parish::get_parish_stats))
-        .route("/members", get(handlers::member::list_members).post(handlers::member::create_member))
-        .route("/members/:id", get(handlers::member::get_member).put(handlers::member::update_member).delete(handlers::member::delete_member))
-        .route("/transactions/income", get(handlers::transaction::list_income_transactions).post(handlers::transaction::create_income_transaction))
-        .route("/transactions/income/:id", get(handlers::transaction::get_income_transaction))
-        .route("/transactions/expense", get(handlers::transaction::list_expense_vouchers).post(handlers::transaction::create_expense_voucher))
-        .route("/transactions/expense/:id", get(handlers::transaction::get_expense_voucher))
-        .route("/sacraments", get(handlers::sacrament::list_sacraments).post(handlers::sacrament::create_sacrament))
-        .route("/sacraments/:id", get(handlers::sacrament::get_sacrament).put(handlers::sacrament::update_sacrament).delete(handlers::sacrament::delete_sacrament))
-        .route("/clusters", get(handlers::cluster::list_clusters).post(handlers::cluster::create_cluster))
-        .route("/clusters/:id", get(handlers::cluster::get_cluster).put(handlers::cluster::update_cluster).delete(handlers::cluster::delete_cluster))
-        .route("/sccs", get(handlers::scc::list_sccs).post(handlers::scc::create_scc))
-        .route("/sccs/:id", get(handlers::scc::get_scc).put(handlers::scc::update_scc).delete(handlers::scc::delete_scc))
-        .route("/families", get(handlers::family::list_families).post(handlers::family::create_family))
-        .route("/families/:id", get(handlers::family::get_family).put(handlers::family::update_family).delete(handlers::family::delete_family))
-        .route("/settings", get(handlers::setting::list_settings).post(handlers::setting::upsert_setting))
-        .route("/settings/bulk", post(handlers::setting::bulk_upsert_settings))
+        .route(
+            "/dioceses",
+            get(handlers::diocese::list_dioceses).post(handlers::diocese::create_diocese),
+        )
+        .route(
+            "/dioceses/:id",
+            get(handlers::diocese::get_diocese)
+                .put(handlers::diocese::update_diocese)
+                .delete(handlers::diocese::delete_diocese),
+        )
+        .route(
+            "/parishes",
+            get(handlers::parish::list_parishes).post(handlers::parish::create_parish),
+        )
+        .route(
+            "/parishes/:id",
+            get(handlers::parish::get_parish)
+                .put(handlers::parish::update_parish)
+                .delete(handlers::parish::delete_parish),
+        )
+        .route(
+            "/parishes/:id/stats",
+            get(handlers::parish::get_parish_stats),
+        )
+        .route(
+            "/members",
+            get(handlers::member::list_members).post(handlers::member::create_member),
+        )
+        .route(
+            "/members/:id",
+            get(handlers::member::get_member)
+                .put(handlers::member::update_member)
+                .delete(handlers::member::delete_member),
+        )
+        .route(
+            "/transactions/income",
+            get(handlers::transaction::list_income_transactions)
+                .post(handlers::transaction::create_income_transaction),
+        )
+        .route(
+            "/transactions/income/:id",
+            get(handlers::transaction::get_income_transaction),
+        )
+        .route(
+            "/transactions/expense",
+            get(handlers::transaction::list_expense_vouchers)
+                .post(handlers::transaction::create_expense_voucher),
+        )
+        .route(
+            "/transactions/expense/:id",
+            get(handlers::transaction::get_expense_voucher),
+        )
+        .route(
+            "/sacraments",
+            get(handlers::sacrament::list_sacraments).post(handlers::sacrament::create_sacrament),
+        )
+        .route(
+            "/sacraments/:id",
+            get(handlers::sacrament::get_sacrament)
+                .put(handlers::sacrament::update_sacrament)
+                .delete(handlers::sacrament::delete_sacrament),
+        )
+        .route(
+            "/clusters",
+            get(handlers::cluster::list_clusters).post(handlers::cluster::create_cluster),
+        )
+        .route(
+            "/clusters/:id",
+            get(handlers::cluster::get_cluster)
+                .put(handlers::cluster::update_cluster)
+                .delete(handlers::cluster::delete_cluster),
+        )
+        .route(
+            "/sccs",
+            get(handlers::scc::list_sccs).post(handlers::scc::create_scc),
+        )
+        .route(
+            "/sccs/:id",
+            get(handlers::scc::get_scc)
+                .put(handlers::scc::update_scc)
+                .delete(handlers::scc::delete_scc),
+        )
+        .route(
+            "/families",
+            get(handlers::family::list_families).post(handlers::family::create_family),
+        )
+        .route(
+            "/families/:id",
+            get(handlers::family::get_family)
+                .put(handlers::family::update_family)
+                .delete(handlers::family::delete_family),
+        )
+        .route(
+            "/settings",
+            get(handlers::setting::list_settings).post(handlers::setting::upsert_setting),
+        )
+        .route(
+            "/settings/bulk",
+            post(handlers::setting::bulk_upsert_settings),
+        )
         .route("/permissions", get(handlers::permission::list_permissions))
-        .route("/roles", get(handlers::permission::list_roles).post(handlers::permission::create_role))
-        .route("/roles/:id", get(handlers::permission::get_role).put(handlers::permission::update_role).delete(handlers::permission::delete_role))
-        .route("/roles/:id/permissions", put(handlers::permission::set_role_permissions))
-        .route("/user-overrides", get(handlers::permission::list_user_overrides).post(handlers::permission::grant_user_overrides))
-        .route("/user-overrides/revoke", post(handlers::permission::revoke_user_overrides))
-        .route("/user-overrides/:id", delete(handlers::permission::revoke_single_override))
+        .route(
+            "/roles",
+            get(handlers::permission::list_roles).post(handlers::permission::create_role),
+        )
+        .route(
+            "/roles/:id",
+            get(handlers::permission::get_role)
+                .put(handlers::permission::update_role)
+                .delete(handlers::permission::delete_role),
+        )
+        .route(
+            "/roles/:id/permissions",
+            put(handlers::permission::set_role_permissions),
+        )
+        .route(
+            "/user-overrides",
+            get(handlers::permission::list_user_overrides)
+                .post(handlers::permission::grant_user_overrides),
+        )
+        .route(
+            "/user-overrides/revoke",
+            post(handlers::permission::revoke_user_overrides),
+        )
+        .route(
+            "/user-overrides/:id",
+            delete(handlers::permission::revoke_single_override),
+        )
         .route("/audit-logs", get(handlers::audit::list_audit_logs))
-        .route("/events", get(handlers::event::list_events).post(handlers::event::create_event))
-        .route("/events/:id", get(handlers::event::get_event).put(handlers::event::update_event).delete(handlers::event::delete_event))
-        .route("/events/:id/participants", get(handlers::event::list_event_participants).post(handlers::event::add_event_participant))
-        .route("/events/:id/participants/:participant_id", delete(handlers::event::remove_event_participant))
-        .route("/liturgical-calendar", get(handlers::liturgical::list_liturgical_calendar).post(handlers::liturgical::create_liturgical_entry))
-        .route("/liturgical-calendar/:id", put(handlers::liturgical::update_liturgical_entry).delete(handlers::liturgical::delete_liturgical_entry))
-        .route("/recurring-patterns", get(handlers::liturgical::list_recurring_patterns).post(handlers::liturgical::create_recurring_pattern))
-        .route("/recurring-patterns/generate", post(handlers::liturgical::generate_events_from_pattern))
-        .route("/generated-events", get(handlers::liturgical::get_generated_events))
-        .route("/upload/parish/:id/logo", post(handlers::upload::upload_parish_logo))
-        .route("/upload/member/:id/photo", post(handlers::upload::upload_member_photo))
-        .route("/upload/user/photo", post(handlers::upload::upload_user_photo))
+        .route(
+            "/events",
+            get(handlers::event::list_events).post(handlers::event::create_event),
+        )
+        .route(
+            "/events/:id",
+            get(handlers::event::get_event)
+                .put(handlers::event::update_event)
+                .delete(handlers::event::delete_event),
+        )
+        .route(
+            "/events/:id/participants",
+            get(handlers::event::list_event_participants)
+                .post(handlers::event::add_event_participant),
+        )
+        .route(
+            "/events/:id/participants/:participant_id",
+            delete(handlers::event::remove_event_participant),
+        )
+        .route(
+            "/liturgical-calendar",
+            get(handlers::liturgical::list_liturgical_calendar)
+                .post(handlers::liturgical::create_liturgical_entry),
+        )
+        .route(
+            "/liturgical-calendar/:id",
+            put(handlers::liturgical::update_liturgical_entry)
+                .delete(handlers::liturgical::delete_liturgical_entry),
+        )
+        .route(
+            "/recurring-patterns",
+            get(handlers::liturgical::list_recurring_patterns)
+                .post(handlers::liturgical::create_recurring_pattern),
+        )
+        .route(
+            "/recurring-patterns/generate",
+            post(handlers::liturgical::generate_events_from_pattern),
+        )
+        .route(
+            "/generated-events",
+            get(handlers::liturgical::get_generated_events),
+        )
+        .route(
+            "/announcements",
+            get(handlers::announcement::list_announcements)
+                .post(handlers::announcement::create_announcement),
+        )
+        .route(
+            "/announcements/:id",
+            get(handlers::announcement::get_announcement)
+                .put(handlers::announcement::update_announcement)
+                .delete(handlers::announcement::delete_announcement),
+        )
+        .route(
+            "/announcements/:id/publish",
+            post(handlers::announcement::publish_announcement),
+        )
+        .route(
+            "/attendance",
+            get(handlers::attendance::list_attendance)
+                .post(handlers::attendance::create_attendance),
+        )
+        .route(
+            "/attendance/bulk",
+            post(handlers::attendance::bulk_create_attendance),
+        )
+        .route(
+            "/attendance/stats",
+            get(handlers::attendance::get_attendance_stats),
+        )
+        .route(
+            "/attendance/:id",
+            get(handlers::attendance::get_attendance)
+                .put(handlers::attendance::update_attendance)
+                .delete(handlers::attendance::delete_attendance),
+        )
+        .route(
+            "/notifications",
+            get(handlers::notification::list_notifications),
+        )
+        .route("/notifications/sms", post(handlers::notification::send_sms))
+        .route(
+            "/notifications/sms/bulk",
+            post(handlers::notification::bulk_send_sms),
+        )
+        .route(
+            "/upload/parish/:id/logo",
+            post(handlers::upload::upload_parish_logo),
+        )
+        .route(
+            "/upload/member/:id/photo",
+            post(handlers::upload::upload_member_photo),
+        )
+        .route(
+            "/upload/user/photo",
+            post(handlers::upload::upload_user_photo),
+        )
         .nest_service("/uploads", ServeDir::new("uploads"))
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
-                .allow_methods([Method::GET, Method::POST, Method::PUT, Method::PATCH, Method::DELETE, Method::OPTIONS])
+                .allow_methods([
+                    Method::GET,
+                    Method::POST,
+                    Method::PUT,
+                    Method::PATCH,
+                    Method::DELETE,
+                    Method::OPTIONS,
+                ])
                 .allow_headers([AUTHORIZATION, CONTENT_TYPE, ACCEPT]),
         )
         .with_state(state)

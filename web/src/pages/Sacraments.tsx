@@ -5,6 +5,7 @@ import { Plus, Search, Filter, Calendar, Edit, Trash2, Scroll, Download } from '
 import Modal from '../components/Modal';
 import SacramentForm from '../components/SacramentForm';
 import DataTable, { Column, BulkAction } from '../components/DataTable';
+import ImportButton from '../components/ImportButton';
 import { useAuth } from '../context/AuthContext';
 import { useParish } from '../context/ParishContext';
 import { filterParishesByRole } from '../utils/parishFilters';
@@ -22,6 +23,8 @@ const Sacraments = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSacrament, setSelectedSacrament] = useState<SacramentRecord | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedParishForImport, setSelectedParishForImport] = useState<string>('');
 
   // Get parish ID from context
   const parishId = getEffectiveParishId();
@@ -214,7 +217,7 @@ const Sacraments = () => {
               <select
                 value={activeParishId || ''}
                 onChange={(e) => setActiveParish(e.target.value || null)}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="border-slate-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">All Parishes</option>
                 {parishes.map(parish => (
@@ -225,14 +228,24 @@ const Sacraments = () => {
           )}
         </div>
         {!isViewer && (
-          <button
-            onClick={handleCreate}
-            disabled={!parishId && !isDioceseAdmin}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus size={20} />
-            Record Sacrament
-          </button>
+          <div className="flex gap-2">
+            <ImportButton
+              label="Import"
+              onImport={async (_file) => {
+                setShowImportModal(true);
+                return { success_count: 0, errors: [] };
+              }}
+              templateColumns={['sacrament_type', 'sacrament_date', 'certificate_number', 'church_name', 'officiating_minister', 'member_id']}
+            />
+            <button
+              onClick={handleCreate}
+              disabled={!parishId && !isDioceseAdmin}
+              className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus size={20} />
+              Record Sacrament
+            </button>
+          </div>
         )}
       </div>
 
@@ -300,6 +313,71 @@ const Sacraments = () => {
             parishId={parishId}
           />
         )}
+      </Modal>
+
+      {/* Import Modal */}
+      <Modal
+        isOpen={showImportModal}
+        onClose={() => { setShowImportModal(false); setSelectedParishForImport(''); }}
+        title="Import Sacraments - Select Parish"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Select the parish for which you want to import sacrament records:
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Parish *</label>
+            <select
+              value={selectedParishForImport}
+              onChange={(e) => setSelectedParishForImport(e.target.value)}
+              className="mt-1 block w-full rounded-md border-slate-200 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+              required
+            >
+              <option value="">Select Parish</option>
+              {parishes.map(p => (
+                <option key={p.id} value={p.id}>{p.parish_name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <button
+              onClick={() => { setShowImportModal(false); setSelectedParishForImport(''); }}
+              className="px-4 py-2 border rounded-md text-sm text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (!selectedParishForImport) {
+                  alert('Please select a parish');
+                  return;
+                }
+                // Trigger actual file selection
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.csv,.xlsx';
+                input.onchange = async (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0];
+                  if (file) {
+                    try {
+                      const res = await api.importSacraments(file, selectedParishForImport);
+                      await fetchSacraments();
+                      alert(`Successfully imported ${res.success_count} sacrament records${res.errors.length > 0 ? `. ${res.errors.length} errors occurred.` : ''}`);
+                    } catch (err: any) {
+                      alert('Import failed: ' + err.message);
+                    }
+                  }
+                };
+                input.click();
+                setShowImportModal(false);
+                setSelectedParishForImport('');
+              }}
+              className="px-4 py-2 rounded-md text-sm text-white bg-primary-600 hover:bg-primary-700"
+            >
+              Next: Select File
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

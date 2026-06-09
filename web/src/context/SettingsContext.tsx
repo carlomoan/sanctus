@@ -129,9 +129,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const allColorVars = [
       '--color-primary-50', '--color-primary-100', '--color-primary-200', '--color-primary-300',
       '--color-primary-400', '--color-primary-500', '--color-primary-600', '--color-primary-700',
-      '--color-primary-800', '--color-primary-900', '--color-sidebar-bg', '--color-sidebar-text',
-      '--color-sidebar-active-bg', '--color-topbar-bg', '--color-topbar-text',
-      '--color-footer-bg', '--color-footer-text'
+      '--color-primary-800', '--color-primary-900',
+      '--color-sidebar-bg', '--color-sidebar-text', '--color-sidebar-active-bg', '--color-sidebar-border',
+      '--color-topbar-bg', '--color-topbar-text', '--color-topbar-border',
+      '--color-background-main', '--color-background-light', '--color-background-dark',
+      '--color-text-primary', '--color-text-secondary', '--color-text-muted',
+      '--color-border-primary', '--color-border-secondary',
+      '--color-success', '--color-warning', '--color-info', '--color-danger',
+      '--color-footer-bg', '--color-footer-text', '--color-footer-border'
     ];
     allColorVars.forEach(varName => root.style.removeProperty(varName));
 
@@ -146,22 +151,60 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     }
 
-    // Apply other UI colors
+    // Apply secondary color palette if set
+    const secondaryHex = currentSettings['ui.secondary_color'];
+    if (secondaryHex) {
+      const palette = generateColorPalette(secondaryHex);
+      if (palette) {
+        Object.entries(palette).forEach(([shade, rgb]) => {
+          root.style.setProperty(`--color-secondary-${shade}`, `${rgb.r} ${rgb.g} ${rgb.b}`);
+        });
+      }
+    }
+
+    // Apply UI section colors
     const colorSettings = [
+      // Sidebar colors
       { key: 'ui.sidebar_bg', var: '--color-sidebar-bg' },
       { key: 'ui.sidebar_text', var: '--color-sidebar-text' },
       { key: 'ui.sidebar_active_bg', var: '--color-sidebar-active-bg' },
+      { key: 'ui.sidebar_border', var: '--color-sidebar-border' },
+      // Topbar colors
       { key: 'ui.topbar_bg', var: '--color-topbar-bg' },
       { key: 'ui.topbar_text', var: '--color-topbar-text' },
+      { key: 'ui.topbar_border', var: '--color-topbar-border' },
+      // Background colors
+      { key: 'ui.background_main', var: '--color-background-main' },
+      { key: 'ui.background_light', var: '--color-background-light' },
+      { key: 'ui.background_dark', var: '--color-background-dark' },
+      // Text colors
+      { key: 'ui.text_primary', var: '--color-text-primary' },
+      { key: 'ui.text_secondary', var: '--color-text-secondary' },
+      { key: 'ui.text_muted', var: '--color-text-muted' },
+      // Border colors
+      { key: 'ui.border_primary', var: '--color-border-primary' },
+      { key: 'ui.border_secondary', var: '--color-border-secondary' },
+      // Status colors
+      { key: 'ui.success_color', var: '--color-success' },
+      { key: 'ui.warning_color', var: '--color-warning' },
+      { key: 'ui.info_color', var: '--color-info' },
+      { key: 'ui.danger_color', var: '--color-danger' },
+      // Footer colors
       { key: 'ui.footer_bg', var: '--color-footer-bg' },
       { key: 'ui.footer_text', var: '--color-footer-text' },
+      { key: 'ui.footer_border', var: '--color-footer-border' },
     ];
 
     colorSettings.forEach(({ key, var: variable }) => {
       const hex = currentSettings[key];
       if (hex) {
-        // Simple hex check
-        root.style.setProperty(variable, hex);
+        // Convert hex to RGB for CSS variables
+        const rgb = hexToRgb(hex);
+        if (rgb) {
+          root.style.setProperty(variable, `${rgb.r} ${rgb.g} ${rgb.b}`);
+        } else {
+          root.style.setProperty(variable, hex);
+        }
       }
     });
   };

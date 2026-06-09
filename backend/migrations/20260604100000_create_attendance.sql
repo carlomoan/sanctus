@@ -1,10 +1,10 @@
 -- Attendance_Table
 CREATE TABLE attendance_record (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     parish_id UUID NOT NULL REFERENCES parish(id) ON DELETE CASCADE,
     member_id UUID REFERENCES member(id) ON DELETE CASCADE,
     scc_id UUID REFERENCES scc(id) ON DELETE CASCADE,
-    event_id UUID REFERENCES event(id) ON DELETE CASCADE,
+    event_id UUID,
     attendance_date DATE NOT NULL,
     status VARCHAR(20) NOT NULL CHECK (status IN ('PRESENT', 'ABSENT', 'EXCUSED')),
     check_in_time TIME,

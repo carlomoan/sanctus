@@ -858,7 +858,7 @@ INSERT INTO parish (
 SELECT 
     d.id,
     'PAR-001',
-    'St. Patric''s Parish',
+    'St. Patricks Parish',
     'Saint Patric',
     'Fr. Joseph Mwamba',
     '+255712345678',

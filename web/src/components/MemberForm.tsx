@@ -68,51 +68,51 @@ const MemberForm = ({ initialData, onSubmit, onCancel, parishId }: MemberFormPro
   }, [initialData, reset]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700">First Name</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">First Name</label>
           <input
             {...register('first_name', { required: 'First Name is required' })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           />
-          {errors.first_name && <p className="text-red-500 text-xs mt-1">{errors.first_name.message}</p>}
+          {errors.first_name && <p className="text-danger text-xs mt-1">{errors.first_name.message}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Middle Name</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Middle Name</label>
           <input
             {...register('middle_name')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Last Name</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Last Name</label>
           <input
             {...register('last_name', { required: 'Last Name is required' })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           />
-          {errors.last_name && <p className="text-red-500 text-xs mt-1">{errors.last_name.message}</p>}
+          {errors.last_name && <p className="text-danger text-xs mt-1">{errors.last_name.message}</p>}
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Member Code</label>
+        <label className="block text-sm font-medium text-secondary-700 mb-1">Member Code</label>
         <input
           {...register('member_code', { required: 'Member Code is required' })}
           disabled={!!initialData}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2 disabled:bg-gray-100"
+          className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 disabled:bg-background-light disabled:cursor-not-allowed transition-all duration-200"
         />
-        {errors.member_code && <p className="text-red-500 text-xs mt-1">{errors.member_code.message}</p>}
+        {errors.member_code && <p className="text-danger text-xs mt-1">{errors.member_code.message}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Family (Optional)</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Family (Optional)</label>
           <select
             {...register('family_id', {
               setValueAs: v => v === "" ? undefined : v
             })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           >
             <option value="">Select Family</option>
             {families.map(f => (
@@ -121,12 +121,12 @@ const MemberForm = ({ initialData, onSubmit, onCancel, parishId }: MemberFormPro
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">SCC (Optional)</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">SCC (Optional)</label>
           <select
             {...register('scc_id', {
               setValueAs: v => v === "" ? undefined : v
             })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           >
             <option value="">Select SCC</option>
             {sccs.map(s => (
@@ -136,20 +136,20 @@ const MemberForm = ({ initialData, onSubmit, onCancel, parishId }: MemberFormPro
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Date of Birth</label>
           <input
             type="date"
             {...register('date_of_birth')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Gender</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Gender</label>
           <select
             {...register('gender')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           >
             {Object.values(GenderType).map((gender) => (
               <option key={gender} value={gender}>{gender}</option>
@@ -157,10 +157,10 @@ const MemberForm = ({ initialData, onSubmit, onCancel, parishId }: MemberFormPro
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Marital Status</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Marital Status</label>
           <select
             {...register('marital_status')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           >
             {Object.values(MaritalStatus).map((status) => (
               <option key={status} value={status}>{status}</option>
@@ -169,39 +169,39 @@ const MemberForm = ({ initialData, onSubmit, onCancel, parishId }: MemberFormPro
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Phone</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Phone</label>
           <input
             {...register('phone_number')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Email</label>
           <input
             {...register('email', { pattern: { value: /^\S+@\S+$/i, message: "Invalid email" } })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           />
-          {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
+          {errors.email && <p className="text-danger text-xs mt-1">{errors.email.message}</p>}
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Physical Address</label>
+        <label className="block text-sm font-medium text-secondary-700 mb-1">Physical Address</label>
         <textarea
           {...register('physical_address')}
           rows={2}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+          className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Family Role</label>
+        <label className="block text-sm font-medium text-secondary-700 mb-1">Family Role</label>
         <select
           {...register('family_role')}
           defaultValue={FamilyRole.MEMBER}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+          className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
         >
           {Object.values(FamilyRole).map((role) => (
             <option key={role} value={role}>{role}</option>
@@ -211,18 +211,18 @@ const MemberForm = ({ initialData, onSubmit, onCancel, parishId }: MemberFormPro
 
       <input type="hidden" {...register('parish_id')} />
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+      <div className="flex justify-end gap-3 pt-4 border-t border-sidebar-border">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          className="px-4 py-2 border border-sidebar-border rounded-lg text-sm font-medium text-secondary-700 hover:bg-background-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+          className="px-4 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all duration-200"
         >
           {isSubmitting ? 'Saving...' : (initialData ? 'Update Member' : 'Create Member')}
         </button>

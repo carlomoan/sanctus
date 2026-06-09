@@ -631,6 +631,7 @@ export interface RevokeUserOverrideRequest {
 export interface AppSetting {
   id: UUID;
   parish_id?: UUID;
+  diocese_id?: UUID;
   setting_key: string;
   setting_value: string;
   setting_group: string;
@@ -716,6 +717,69 @@ declare global {
       };
     };
   }
+}
+
+// Event types
+export type EventScope = 'DIOCESE' | 'PARISH';
+export type EventType = 'MASS' | 'MEETING' | 'SACRAMENT' | 'SOCIAL' | 'FUNDRAISER' | 'RETREAT' | 'FORMATION' | 'OTHER';
+export type EventStatus = 'PLANNED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+export type RecurrencePattern = 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+
+export interface ChurchEvent {
+  id: UUID;
+  parish_id?: UUID;
+  diocese_id?: UUID;
+  scope: EventScope;
+  title: string;
+  description?: string;
+  event_type: EventType;
+  event_status: EventStatus;
+  start_date: ISODateString;
+  start_time?: string;
+  end_date: ISODateString;
+  end_time?: string;
+  location?: string;
+  organizer_name?: string;
+  max_participants?: number;
+  current_participants?: number;
+  is_public?: boolean;
+  is_liturgical?: boolean;
+  recurrence_pattern: RecurrencePattern;
+  notes?: string;
+  created_at?: ISODateString;
+}
+
+export type LiturgicalSeason = 'ADVENT' | 'CHRISTMAS' | 'LENT' | 'HOLY_WEEK' | 'EASTER' | 'ORDINARY_TIME';
+export type FeastType = 'SOLEMNITY' | 'FEAST' | 'MEMORIAL' | 'OPTIONAL_MEMORIAL';
+export type LiturgicalColor = 'WHITE' | 'RED' | 'GREEN' | 'VIOLET' | 'ROSE' | 'BLACK' | 'GOLD';
+
+export interface LiturgicalCalendarEntry {
+  id: UUID;
+  date: ISODateString;
+  title: string;
+  description?: string;
+  feast_type: FeastType;
+  liturgical_season: LiturgicalSeason;
+  liturgical_color: LiturgicalColor;
+  rank: number;
+}
+
+export type NotificationType = 'SMS' | 'EMAIL' | 'IN_APP';
+export type NotificationStatus = 'PENDING' | 'SENT' | 'DELIVERED' | 'FAILED';
+
+export interface Notification {
+  id: UUID;
+  parish_id?: UUID;
+  notification_type: NotificationType;
+  recipient: string;
+  subject?: string;
+  message: string;
+  status: NotificationStatus;
+  sent_at?: ISODateString;
+  delivered_at?: ISODateString;
+  error_message?: string;
+  reference_id?: string;
+  created_at?: ISODateString;
 }
 
 export { };

@@ -9,20 +9,51 @@ export interface SettingItem {
 }
 
 export const SETTING_DEFINITIONS: SettingItem[] = [
-  // UI Configuration
+  // UI Configuration - Brand Colors
   { key: 'ui.primary_color', value: '#4F46E5', group: 'ui', label: 'Primary Color', description: 'Main brand color used for buttons and links', type: 'color' },
   { key: 'ui.secondary_color', value: '#7C3AED', group: 'ui', label: 'Secondary Color', description: 'Accent color for highlights', type: 'color' },
+
+  // UI Configuration - Sidebar Colors
   { key: 'ui.sidebar_bg', value: '#1E293B', group: 'ui', label: 'Sidebar Background', description: 'Sidebar background color', type: 'color' },
   { key: 'ui.sidebar_text', value: '#E2E8F0', group: 'ui', label: 'Sidebar Text Color', description: 'Sidebar text and icon color', type: 'color' },
   { key: 'ui.sidebar_active_bg', value: '#334155', group: 'ui', label: 'Sidebar Active Item', description: 'Background for active sidebar item', type: 'color' },
-  { key: 'ui.sidebar_collapsed', value: 'false', group: 'ui', label: 'Sidebar Collapsed', description: 'Start with sidebar collapsed by default', type: 'toggle' },
+  { key: 'ui.sidebar_border', value: '#334155', group: 'ui', label: 'Sidebar Border Color', description: 'Sidebar border and divider color', type: 'color' },
+
+  // UI Configuration - Topbar Colors
   { key: 'ui.topbar_bg', value: '#FFFFFF', group: 'ui', label: 'Top Bar Background', description: 'Top navigation bar background color', type: 'color' },
   { key: 'ui.topbar_text', value: '#1E293B', group: 'ui', label: 'Top Bar Text Color', description: 'Top bar text and icon color', type: 'color' },
+  { key: 'ui.topbar_border', value: '#E2E8F0', group: 'ui', label: 'Top Bar Border Color', description: 'Top bar border color', type: 'color' },
+
+  // UI Configuration - Background Colors
+  { key: 'ui.background_main', value: '#F1F5F9', group: 'ui', label: 'Main Background', description: 'Main page background color', type: 'color' },
+  { key: 'ui.background_light', value: '#F8FAFC', group: 'ui', label: 'Light Background', description: 'Light background for cards and sections', type: 'color' },
+  { key: 'ui.background_dark', value: '#1E293B', group: 'ui', label: 'Dark Background', description: 'Dark background for contrast elements', type: 'color' },
+
+  // UI Configuration - Text Colors
+  { key: 'ui.text_primary', value: '#1E293B', group: 'ui', label: 'Primary Text Color', description: 'Main text color for headings and important content', type: 'color' },
+  { key: 'ui.text_secondary', value: '#64748B', group: 'ui', label: 'Secondary Text Color', description: 'Secondary text color for labels and descriptions', type: 'color' },
+  { key: 'ui.text_muted', value: '#94A3B8', group: 'ui', label: 'Muted Text Color', description: 'Muted text color for hints and placeholders', type: 'color' },
+
+  // UI Configuration - Border Colors
+  { key: 'ui.border_primary', value: '#E2E8F0', group: 'ui', label: 'Primary Border Color', description: 'Main border color for inputs and cards', type: 'color' },
+  { key: 'ui.border_secondary', value: '#F1F5F9', group: 'ui', label: 'Secondary Border Color', description: 'Secondary border color for dividers', type: 'color' },
+
+  // UI Configuration - Status Colors
+  { key: 'ui.success_color', value: '#10B981', group: 'ui', label: 'Success Color', description: 'Color for success states and positive indicators', type: 'color' },
+  { key: 'ui.warning_color', value: '#F59E0B', group: 'ui', label: 'Warning Color', description: 'Color for warning states and alerts', type: 'color' },
+  { key: 'ui.info_color', value: '#3B82F6', group: 'ui', label: 'Info Color', description: 'Color for informational messages', type: 'color' },
+  { key: 'ui.danger_color', value: '#EF4444', group: 'ui', label: 'Danger Color', description: 'Color for error states and destructive actions', type: 'color' },
+
+  // UI Configuration - Footer Colors
+  { key: 'ui.footer_bg', value: '#F8FAFC', group: 'ui', label: 'Footer Background', description: 'Footer background color', type: 'color' },
+  { key: 'ui.footer_text', value: '#64748B', group: 'ui', label: 'Footer Text Color', description: 'Footer text color', type: 'color' },
+  { key: 'ui.footer_border', value: '#E2E8F0', group: 'ui', label: 'Footer Border Color', description: 'Footer border color', type: 'color' },
+
+  // UI Configuration - Other Settings
+  { key: 'ui.sidebar_collapsed', value: 'false', group: 'ui', label: 'Sidebar Collapsed', description: 'Start with sidebar collapsed by default', type: 'toggle' },
   { key: 'ui.topbar_show_breadcrumb', value: 'true', group: 'ui', label: 'Show Breadcrumb', description: 'Display breadcrumb navigation in top bar', type: 'toggle' },
   { key: 'ui.topbar_show_search', value: 'true', group: 'ui', label: 'Show Search', description: 'Display search bar in top navigation', type: 'toggle' },
   { key: 'ui.footer_show', value: 'true', group: 'ui', label: 'Show Footer', description: 'Display footer at the bottom of pages', type: 'toggle' },
-  { key: 'ui.footer_bg', value: '#F8FAFC', group: 'ui', label: 'Footer Background', description: 'Footer background color', type: 'color' },
-  { key: 'ui.footer_text', value: '#64748B', group: 'ui', label: 'Footer Text Color', description: 'Footer text color', type: 'color' },
   { key: 'ui.footer_content', value: '© 2026 Sanctus Parish Management System. All rights reserved.', group: 'ui', label: 'Footer Content', description: 'Text displayed in the footer', type: 'textarea' },
   { key: 'ui.logo_url', value: '', group: 'ui', label: 'Logo URL', description: 'URL for the system logo image', type: 'text' },
   { key: 'ui.app_name', value: 'Sanctus', group: 'ui', label: 'Application Name', description: 'Display name shown in header and title', type: 'text' },

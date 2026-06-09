@@ -58,112 +58,112 @@ const ParishForm = ({ initialData, onSubmit, onCancel, dioceses }: ParishFormPro
   }, [initialData, reset]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-gray-700">Parish Name</label>
+        <label className="block text-sm font-medium text-secondary-700 mb-1">Parish Name</label>
         <input
           {...register('parish_name', { required: 'Parish Name is required' })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+          className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
         />
-        {errors.parish_name && <p className="text-red-500 text-xs mt-1">{errors.parish_name.message}</p>}
+        {errors.parish_name && <p className="text-danger text-xs mt-1">{errors.parish_name.message}</p>}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Parish Code</label>
+        <label className="block text-sm font-medium text-secondary-700 mb-1">Parish Code</label>
         <input
           {...register('parish_code', { required: 'Parish Code is required' })}
           disabled={!!initialData} // Code typically shouldn't change
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2 disabled:bg-gray-100"
+          className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 disabled:bg-background-light disabled:cursor-not-allowed transition-all duration-200"
         />
-        {errors.parish_code && <p className="text-red-500 text-xs mt-1">{errors.parish_code.message}</p>}
+        {errors.parish_code && <p className="text-danger text-xs mt-1">{errors.parish_code.message}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Diocese *</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Diocese *</label>
           <select
             {...register('diocese_id', { required: 'Diocese is required' })}
             disabled={!!initialData}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2 disabled:bg-gray-100"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 disabled:bg-background-light disabled:cursor-not-allowed transition-all duration-200"
           >
             <option value="">Select Diocese</option>
             {dioceses.map(d => <option key={d.id} value={d.id}>{d.diocese_name}</option>)}
           </select>
-          {errors.diocese_id && <p className="text-red-500 text-xs mt-1">{errors.diocese_id.message}</p>}
+          {errors.diocese_id && <p className="text-danger text-xs mt-1">{errors.diocese_id.message}</p>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Patron Saint</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Patron Saint</label>
           <input
             {...register('patron_saint')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Parish Priest (Ordained)</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Parish Priest (Ordained)</label>
           <select
             {...register('priest_id')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           >
             <option value="">-- Select Priest --</option>
             {ordainedMembers.map(m => (
               <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>
             ))}
           </select>
-          <p className="text-xs text-gray-500 mt-1">Only members with Holy Orders sacrament</p>
+          <p className="text-xs text-secondary-500 mt-1">Only members with Holy Orders sacrament</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">Priest Name (Manual)</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Priest Name (Manual)</label>
           <input
             {...register('priest_name')}
             placeholder="If priest is not a registered member"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Physical Address</label>
+        <label className="block text-sm font-medium text-secondary-700 mb-1">Physical Address</label>
         <textarea
           {...register('physical_address')}
           rows={3}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+          className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Email</label>
           <input
             {...register('contact_email', { pattern: { value: /^\S+@\S+$/i, message: "Invalid email" } })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           />
-          {errors.contact_email && <p className="text-red-500 text-xs mt-1">{errors.contact_email.message}</p>}
+          {errors.contact_email && <p className="text-danger text-xs mt-1">{errors.contact_email.message}</p>}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Phone</label>
+          <label className="block text-sm font-medium text-secondary-700 mb-1">Phone</label>
           <input
             {...register('contact_phone')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+            className="mt-1 block w-full rounded-lg border-sidebar-border shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm border p-2.5 transition-all duration-200"
           />
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+      <div className="flex justify-end gap-3 pt-4 border-t border-sidebar-border">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          className="px-4 py-2.5 border border-sidebar-border rounded-lg text-sm font-medium text-secondary-700 hover:bg-background-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+          className="px-4 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all duration-200"
         >
           {isSubmitting ? 'Saving...' : (initialData ? 'Update Parish' : 'Create Parish')}
         </button>

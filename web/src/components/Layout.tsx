@@ -1,11 +1,13 @@
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Church, Coins, Menu, X, Scroll, LogOut, ShieldCheck, Wallet, FileBarChart, Upload, Network, Home, Settings, ChevronDown, ChevronRight, LucideIcon, Shield, Building, Calendar, Church as LiturgicalIcon } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
+import { LayoutDashboard, Users, Church, Coins, Menu, X, Scroll, LogOut, ShieldCheck, Wallet, FileBarChart, Upload, Network, Home, Settings, ChevronDown, ChevronRight, LucideIcon, Shield, Building, Calendar, Church as LiturgicalIcon, Megaphone, UserCheck, Search, Bell, ChevronLeft, User } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import classNames from 'classnames';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { UserRole } from '../types';
+import { api } from '../api/client';
 import ToastContainer, { ToastType } from './Toast';
+import LanguageSelector from './LanguageSelector';
 
 interface NavItem {
   name: string;
@@ -25,11 +27,16 @@ const Layout = () => {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['people', 'finance']));
   const [toasts, setToasts] = useState<{ id: string; type: ToastType; message: string }[]>([]);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const notifDropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  // Initialize sidebar state once settings are loaded
   useEffect(() => {
     if (!loading && !settingsLoaded) {
       const collapsed = getSetting('ui.sidebar_collapsed') === 'true';
@@ -38,28 +45,53 @@ const Layout = () => {
     }
   }, [loading, settingsLoaded, getSetting]);
 
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      try {
+        const notifs = await api.listNotifications({ limit: 10 });
+        setNotificationCount(notifs.filter(n => n.status === 'PENDING' || n.status === 'SENT').length);
+      } catch { /* non-critical */ }
+    };
+    fetchNotificationCount();
+    const interval = setInterval(fetchNotificationCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) setShowUserDropdown(false);
+      if (notifDropdownRef.current && !notifDropdownRef.current.contains(event.target as Node)) setShowNotifications(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const appName = getSetting('ui.app_name') || 'Sanctus';
   const logoUrl = getSetting('ui.logo_url');
   const footerContent = getSetting('ui.footer_content');
   const showFooter = getSetting('ui.footer_show') !== 'false';
+  const showBreadcrumb = getSetting('ui.topbar_show_breadcrumb') !== 'false';
+  const showSearch = getSetting('ui.topbar_show_search') !== 'false';
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  };
-
+  const handleLogout = () => { logout(); navigate('/login'); };
+  const removeToast = (id: string) => { setToasts(prev => prev.filter(t => t.id !== id)); };
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(section)) newSet.delete(section);
-      else newSet.add(section);
-      return newSet;
-    });
+    setExpandedSections(prev => { const s = new Set(prev); if (s.has(section)) s.delete(section); else s.add(section); return s; });
   };
+
+  const breadcrumbs = useMemo(() => {
+    const pathMap: Record<string, string> = {
+      '/': 'Dashboard', '/families': 'Families', '/members': 'Members', '/clusters': 'Clusters & SCCs',
+      '/sacraments': 'Sacraments', '/events': 'Events', '/liturgical-calendar': 'Liturgical Calendar',
+      '/announcements': 'Announcements', '/attendance': 'Attendance', '/finance': 'Transactions',
+      '/budgets': 'Budgets', '/reports': 'Reports', '/import': 'Data Import', '/dioceses': 'Dioceses',
+      '/parishes': 'Parishes', '/users': 'Users', '/roles': 'Roles & Permissions', '/settings': 'Settings', '/profile': 'Profile',
+    };
+    const path = location.pathname;
+    const crumbs = [{ label: 'Home', href: '/' }];
+    if (path !== '/') crumbs.push({ label: pathMap[path] || path.slice(1).replace(/-/g, ' '), href: path });
+    return crumbs;
+  }, [location.pathname]);
 
   const role = user?.role;
   const isDioceseAdmin = role === UserRole.SUPER_ADMIN;
@@ -73,43 +105,38 @@ const Layout = () => {
 
   const navigation = useMemo((): NavSection[] => {
     const sections: NavSection[] = [];
-
-    // Main — everyone sees Dashboard
     const mainItems: NavItem[] = [{ name: 'Dashboard', href: '/', icon: LayoutDashboard }];
     if (canAdmin) mainItems.push({ name: 'Settings', href: '/settings', icon: Settings });
     sections.push({ id: 'main', label: 'Main', items: mainItems });
-
-    // People — admins, secretaries
     if (canManagePeople || isViewer) {
-      const peopleItems: NavItem[] = [
-        { name: 'Families', href: '/families', icon: Home },
-        { name: 'Members', href: '/members', icon: Users },
-        { name: 'Clusters & SCCs', href: '/clusters', icon: Network },
-      ];
-      sections.push({ id: 'people', label: 'People', items: peopleItems });
+      sections.push({
+        id: 'people', label: 'People', items: [
+          { name: 'Families', href: '/families', icon: Home },
+          { name: 'Members', href: '/members', icon: Users },
+          { name: 'Clusters & SCCs', href: '/clusters', icon: Network },
+        ]
+      });
     }
-
-    // Ministry — admins, secretaries, viewers
     if (canManagePeople || isViewer) {
-      const ministryItems: NavItem[] = [
-        { name: 'Sacraments', href: '/sacraments', icon: Scroll },
-        { name: 'Events', href: '/events', icon: Calendar },
-        { name: 'Liturgical Calendar', href: '/liturgical-calendar', icon: LiturgicalIcon },
-      ];
-      sections.push({ id: 'ministry', label: 'Ministry', items: ministryItems });
+      sections.push({
+        id: 'ministry', label: 'Ministry', items: [
+          { name: 'Sacraments', href: '/sacraments', icon: Scroll },
+          { name: 'Events', href: '/events', icon: Calendar },
+          { name: 'Liturgical Calendar', href: '/liturgical-calendar', icon: LiturgicalIcon },
+          { name: 'Announcements', href: '/announcements', icon: Megaphone },
+          { name: 'Attendance', href: '/attendance', icon: UserCheck },
+        ]
+      });
     }
-
-    // Finance — admins, accountants, viewers (read-only)
     if (canManageFinance || isViewer) {
-      const financeItems: NavItem[] = [
-        { name: 'Transactions', href: '/finance', icon: Coins },
-        { name: 'Budgets', href: '/budgets', icon: Wallet },
-        { name: 'Reports', href: '/reports', icon: FileBarChart },
-      ];
-      sections.push({ id: 'finance', label: 'Finance', items: financeItems });
+      sections.push({
+        id: 'finance', label: 'Finance', items: [
+          { name: 'Transactions', href: '/finance', icon: Coins },
+          { name: 'Budgets', href: '/budgets', icon: Wallet },
+          { name: 'Reports', href: '/reports', icon: FileBarChart },
+        ]
+      });
     }
-
-    // Administration — only admins
     if (canAdmin) {
       const adminItems: NavItem[] = [];
       if (isDioceseAdmin) {
@@ -123,132 +150,220 @@ const Layout = () => {
       }
       sections.push({ id: 'admin', label: 'Administration', items: adminItems });
     }
-
     return sections;
   }, [role]);
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div
-        className={classNames(
-          "bg-sidebar-bg text-sidebar-text shadow-lg transition-all duration-300 ease-in-out flex flex-col",
-          {
-            "w-64": isSidebarOpen,
-            "w-20": !isSidebarOpen,
-          }
-        )}
-      >
-        {/* Logo / Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100/10 h-16 bg-sidebar-bg">
-          <div className="flex items-center gap-2 overflow-hidden">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="h-8 w-8 object-contain" />
-            ) : null}
-            {isSidebarOpen ? (
-              <h1 className="text-xl font-bold text-primary-600 truncate">{appName}</h1>
-            ) : (
-              <h1 className="text-xl font-bold text-primary-600 hidden">{appName}</h1>
-            )}
-          </div>
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 rounded-md hover:bg-gray-100/10 transition-colors text-sidebar-text"
-            title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          >
-            {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navigation.map((section) => {
-            const isExpanded = expandedSections.has(section.id);
-            const Chevron = isExpanded ? ChevronDown : ChevronRight;
-            return (
-              <div key={section.id}>
-                <button
-                  onClick={() => toggleSection(section.id)}
-                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider opacity-70 hover:opacity-100 transition-colors text-sidebar-text"
-                >
-                  <span>{section.label}</span>
-                  <Chevron size={14} />
-                </button>
-                {isExpanded && (
-                  <div className="mt-1 space-y-1">
-                    {section.items.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = location.pathname === item.href;
-                      return (
-                        <Link
-                          key={item.name}
-                          to={item.href}
-                          className={classNames(
-                            "flex items-center px-3 py-2 rounded-md transition-colors",
-                            {
-                              "bg-sidebar-active bg-primary-50/10 text-primary-600": isActive,
-                              "text-sidebar-text hover:bg-gray-100/10 opacity-80 hover:opacity-100": !isActive,
-                              "justify-center": !isSidebarOpen,
-                            }
-                          )}
-                          title={!isSidebarOpen ? item.name : undefined}
-                        >
-                          <Icon size={20} className={classNames({ "mr-3": isSidebarOpen })} />
-                          {isSidebarOpen && <span className="font-medium">{item.name}</span>}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-
-        {/* Footer / User Profile */}
-        <div className="p-4 border-t border-gray-100/10">
-          <div className={classNames("flex items-center justify-between", { "flex-col gap-4": !isSidebarOpen })}>
-            <Link
-              to="/profile"
-              className="flex items-center min-w-0 hover:bg-gray-100/10 rounded-md p-1 -ml-1 transition-colors flex-1 text-sidebar-text"
-            >
-              <div className="w-8 h-8 rounded-full bg-primary-100 flex-shrink-0 flex items-center justify-center text-primary-700 font-bold">
-                {user?.full_name?.[0] || 'U'}
-              </div>
-              {isSidebarOpen && (
-                <div className="ml-3 truncate text-left">
-                  <p className="text-sm font-medium truncate opacity-90">{user?.full_name}</p>
-                  <p className="text-xs truncate opacity-70">{user?.role.replace('_', ' ')}</p>
+    <div className="flex h-screen bg-[#f8fafc] font-sans antialiased">
+      {/* ===== SPLIT-TONE SIDEBAR ===== */}
+      <div className={classNames(
+        "flex flex-col transition-all duration-300 ease-in-out shadow-xl shadow-slate-900/10",
+        { "w-64": isSidebarOpen, "w-[70px]": !isSidebarOpen }
+      )}>
+        {/* Dark left section with logo */}
+        <div className="bg-[#0f172a] flex-shrink-0">
+          <div className="flex items-center justify-between px-4 h-16">
+            <div className="flex items-center gap-3 overflow-hidden min-w-0">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="h-8 w-8 object-contain rounded-lg flex-shrink-0 ring-2 ring-white/10" />
+              ) : (
+                <div className="h-8 w-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0 text-sm shadow-lg shadow-indigo-500/30">
+                  {appName?.[0] || 'S'}
                 </div>
               )}
-            </Link>
-            <button
-              onClick={handleLogout}
-              className={classNames(
-                "p-2 opacity-60 hover:text-red-600 rounded-md hover:bg-red-50/10 transition-colors",
-                { "mt-2": !isSidebarOpen }
+              {isSidebarOpen && <h1 className="text-lg font-bold text-white/90 truncate tracking-tight">{appName}</h1>}
+            </div>
+            {isSidebarOpen && (
+              <button onClick={() => setIsSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 transition-all text-slate-400 hover:text-white active:scale-95" title="Collapse sidebar">
+                <ChevronLeft size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Light right section with navigation */}
+        <div className="bg-white flex-1 overflow-hidden flex flex-col">
+
+          {/* Navigation */}
+          <nav className="flex-1 py-4 overflow-y-auto scrollbar-thin">
+            {navigation.map((section) => {
+              const isExpanded = expandedSections.has(section.id);
+              return (
+                <div key={section.id} className="mb-1">
+                  {isSidebarOpen && (
+                    <button onClick={() => toggleSection(section.id)}
+                      className="w-full flex items-center justify-between px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-600 transition-colors">
+                      <span>{section.label}</span>
+                      {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                    </button>
+                  )}
+                  {(isExpanded || !isSidebarOpen) && (
+                    <div className={classNames({ "mt-1 space-y-0.5 px-3": isSidebarOpen, "px-2 space-y-0.5": !isSidebarOpen })}>
+                      {section.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = location.pathname === item.href;
+                        return (
+                          <Link key={item.name} to={item.href}
+                            className={classNames(
+                              "flex items-center rounded-lg transition-all duration-200 group relative overflow-hidden",
+                              {
+                                "bg-gradient-to-r from-indigo-50 to-indigo-100/50 text-indigo-700 font-medium shadow-sm": isActive,
+                                "text-slate-600 hover:bg-slate-50 hover:text-slate-900": !isActive,
+                                "px-3 py-2.5 gap-3": isSidebarOpen,
+                                "p-2.5 justify-center": !isSidebarOpen,
+                              }
+                            )}
+                            title={!isSidebarOpen ? item.name : undefined}
+                          >
+                            {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-r" />}
+                            <Icon size={18} className={classNames("flex-shrink-0 transition-transform duration-200 group-hover:scale-110", { "text-indigo-500": isActive, "text-slate-400 group-hover:text-slate-600": !isActive })} />
+                            {isSidebarOpen && <span className="text-sm truncate">{item.name}</span>}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+
+          {/* User Profile at bottom */}
+          <div className="border-t border-slate-100 p-3 bg-slate-50/50">
+            <div className={classNames("flex items-center", { "gap-3": isSidebarOpen, "justify-center": !isSidebarOpen })}>
+              <Link to="/profile" className="flex items-center min-w-0 group">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-indigo-200 group-hover:shadow-lg group-hover:shadow-indigo-300/50 transition-shadow">
+                  {user?.full_name?.[0] || 'U'}
+                </div>
+                {isSidebarOpen && (
+                  <div className="ml-3 truncate text-left">
+                    <p className="text-sm font-semibold text-slate-700 truncate group-hover:text-indigo-600 transition-colors">{user?.full_name}</p>
+                    <p className="text-xs text-slate-400 capitalize truncate">{user?.role?.replace('_', ' ').toLowerCase()}</p>
+                  </div>
+                )}
+              </Link>
+              {isSidebarOpen && (
+                <button onClick={handleLogout} className="ml-auto p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all active:scale-95" title="Logout">
+                  <LogOut size={16} />
+                </button>
               )}
-              title="Logout"
-            >
-              <LogOut size={20} />
-            </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto flex flex-col">
-        <div className="flex-1 p-8">
-          <Outlet />
-        </div>
-        {showFooter && (
-          <footer className="bg-footer-bg text-footer-text py-4 px-8 text-sm text-center border-t border-gray-200">
-            {footerContent}
-          </footer>
-        )}
-      </main>
+      {/* ===== MAIN AREA ===== */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* ===== TOP NAVBAR (DashboardKit style) ===== */}
+        <header className="h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 flex items-center justify-between px-6 flex-shrink-0 sticky top-0 z-30">
+          {/* Left: hamburger + breadcrumb */}
+          <div className="flex items-center gap-4 min-w-0">
+            {!isSidebarOpen && (
+              <button onClick={() => setIsSidebarOpen(true)} className="p-2 rounded-xl hover:bg-slate-100 transition-all text-slate-500 hover:text-slate-700 active:scale-95">
+                <Menu size={20} />
+              </button>
+            )}
+            {showBreadcrumb && (
+              <nav className="flex items-center text-sm text-slate-500 min-w-0">
+                {breadcrumbs.map((crumb, i) => (
+                  <span key={crumb.href} className="flex items-center">
+                    {i > 0 && <ChevronRight size={14} className="mx-1.5 text-slate-300 flex-shrink-0" />}
+                    {i === breadcrumbs.length - 1 ? (
+                      <span className="font-semibold text-slate-800 truncate">{crumb.label}</span>
+                    ) : (
+                      <Link to={crumb.href} className="hover:text-indigo-600 transition-colors truncate">{crumb.label}</Link>
+                    )}
+                  </span>
+                ))}
+              </nav>
+            )}
+          </div>
 
-      {/* Toast Notifications */}
+          {/* Right: search, language, notifications, user */}
+          <div className="flex items-center gap-2">
+            {showSearch && (
+              <div className="relative hidden md:block">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input type="text" placeholder="Search..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-4 py-2 w-56 bg-slate-100/50 border border-slate-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50 transition-all placeholder:text-slate-400" />
+              </div>
+            )}
+
+            <LanguageSelector />
+
+            {/* Notifications */}
+            <div className="relative" ref={notifDropdownRef}>
+              <button onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2.5 rounded-xl hover:bg-slate-100 transition-all text-slate-500 hover:text-slate-700 active:scale-95">
+                <Bell size={18} />
+                {notificationCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                    {notificationCount > 9 ? '9+' : notificationCount}
+                  </span>
+                )}
+              </button>
+              {showNotifications && (
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-100 py-2 z-50 max-h-96 overflow-y-auto">
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <h3 className="font-semibold text-slate-800 text-sm">Notifications</h3>
+                  </div>
+                  <div className="px-4 py-8 text-center text-slate-400 text-sm">
+                    <Bell size={28} className="mx-auto mb-3 text-slate-200" />
+                    <p>No new notifications</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* User Dropdown */}
+            <div className="relative" ref={userDropdownRef}>
+              <button onClick={() => setShowUserDropdown(!showUserDropdown)}
+                className="flex items-center gap-2 p-1.5 pl-1.5 pr-3 rounded-xl hover:bg-slate-100 transition-all active:scale-95">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-indigo-200">
+                  {user?.full_name?.[0] || 'U'}
+                </div>
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-semibold text-slate-700 leading-tight">{user?.full_name}</p>
+                  <p className="text-xs text-slate-400 capitalize leading-tight">{user?.role?.replace('_', ' ').toLowerCase()}</p>
+                </div>
+                <ChevronDown size={14} className="text-slate-400 hidden md:block" />
+              </button>
+              {showUserDropdown && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-100 py-2 z-50 overflow-hidden">
+                  <Link to="/profile" onClick={() => setShowUserDropdown(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                    <User size={16} /> Profile
+                  </Link>
+                  {canAdmin && (
+                    <Link to="/settings" onClick={() => setShowUserDropdown(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                      <Settings size={16} /> Settings
+                    </Link>
+                  )}
+                  <div className="border-t border-slate-100 my-1" />
+                  <button onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                    <LogOut size={16} /> Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* ===== CONTENT AREA ===== */}
+        <main className="flex-1 overflow-auto">
+          <div className="p-6">
+            <Outlet />
+          </div>
+          {showFooter && (
+            <footer className="bg-white border-t border-slate-100 py-4 px-6 text-sm text-center text-slate-400">
+              {footerContent}
+            </footer>
+          )}
+        </main>
+      </div>
+
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   );

@@ -6,7 +6,7 @@ const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
   { code: 'fr', name: 'Français', flag: '🇫🇷' },
   { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'sw', name: 'Kiswahili', flag: '🇰🇪' },
+  { code: 'sw', name: 'Kiswahili', flag: '🇹🇿' },
 ];
 
 const LanguageSelector: React.FC = () => {
@@ -39,15 +39,14 @@ const LanguageSelector: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 p-2 text-sm text-secondary-500 hover:bg-gray-100 rounded-lg transition-colors"
       >
-        <Globe size={16} />
-        <span className="hidden md:inline">{currentLanguage.flag} {currentLanguage.name}</span>
-        <span className="md:hidden">{currentLanguage.flag}</span>
+        <Globe size={18} />
+        <span className="hidden md:inline text-xs font-medium">{currentLanguage.flag} {currentLanguage.code.toUpperCase()}</span>
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-100 visible transition-all duration-200 z-[9999]">
+        <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-50">
           {languages.map((language) => (
             <button
               key={language.code}

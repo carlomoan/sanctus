@@ -29,23 +29,30 @@ const ToastItem = ({ toast, onClose }: ToastProps) => {
   };
 
   const colors = {
-    success: 'bg-green-50 border-green-200 text-green-800',
-    error: 'bg-red-50 border-red-200 text-red-800',
-    info: 'bg-blue-50 border-blue-200 text-blue-800',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+    success: 'bg-emerald-50/90 border-emerald-200/60 text-emerald-700',
+    error: 'bg-red-50/90 border-red-200/60 text-red-700',
+    info: 'bg-blue-50/90 border-blue-200/60 text-blue-700',
+    warning: 'bg-amber-50/90 border-amber-200/60 text-amber-700',
+  };
+
+  const iconColors = {
+    success: 'text-emerald-500',
+    error: 'text-red-500',
+    info: 'text-blue-500',
+    warning: 'text-amber-500',
   };
 
   const Icon = icons[toast.type];
 
   return (
-    <div className={`flex items-center gap-3 p-4 rounded-lg border shadow-lg ${colors[toast.type]} animate-in slide-in-from-right-5 duration-300`}>
-      <Icon size={20} />
+    <div className={`flex items-center gap-3 p-4 rounded-xl border shadow-xl shadow-slate-900/5 ${colors[toast.type]} animate-in slide-in-from-right-5 duration-300 backdrop-blur-md`}>
+      <Icon size={20} className={iconColors[toast.type]} />
       <p className="flex-1 text-sm font-medium">{toast.message}</p>
       <button
         onClick={() => onClose(toast.id)}
-        className="p-1 hover:opacity-70 transition-opacity"
+        className="p-1 hover:bg-black/5 transition-colors rounded-lg opacity-60 hover:opacity-100"
       >
-        <X size={16} />
+        <X size={16} className="currentColor" />
       </button>
     </div>
   );

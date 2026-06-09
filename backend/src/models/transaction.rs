@@ -1,11 +1,14 @@
+use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
-use chrono::{NaiveDate, DateTime, Utc, NaiveTime};
-use rust_decimal::Decimal;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, sqlx::Type)]
-#[sqlx(type_name = "transaction_category", rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, sqlx::Type, Clone)]
+#[sqlx(
+    type_name = "transaction_category",
+    rename_all = "SCREAMING_SNAKE_CASE"
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionCategory {
     Tithe,
@@ -115,4 +118,3 @@ pub struct ExpenseVoucher {
     pub updated_at: Option<DateTime<Utc>>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
-

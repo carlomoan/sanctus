@@ -366,14 +366,14 @@ const Finance = () => {
       </div>
 
       {/* Filters and Tabs */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-lg shadow-sm border-slate-200 border-slate-200-gray-100">
         <div className="flex gap-2">
           <button
             onClick={() => setActiveTab('income')}
             className={classNames(
               "px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2",
               activeTab === 'income'
-                ? "bg-green-50 text-green-700 border border-green-200"
+                ? "bg-green-50 text-green-700 border-slate-200 border-slate-200-green-200"
                 : "text-gray-600 hover:bg-gray-50"
             )}
           >
@@ -385,7 +385,7 @@ const Finance = () => {
             className={classNames(
               "px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2",
               activeTab === 'expense'
-                ? "bg-red-50 text-red-700 border border-red-200"
+                ? "bg-red-50 text-red-700 border-slate-200 border-slate-200-red-200"
                 : "text-gray-600 hover:bg-gray-50"
             )}
           >
@@ -401,7 +401,7 @@ const Finance = () => {
               <select
                 value={selectedParishId}
                 onChange={(e) => setSelectedParishId(e.target.value)}
-                className="border border-gray-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white w-full md:w-64"
+                className="border-slate-200 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white w-full md:w-64"
               >
                 <option value="" disabled>Select Parish</option>
                 {parishes.filter(p => p.is_active).map(parish => (
@@ -416,7 +416,7 @@ const Finance = () => {
               <select
                 value={receiptFormat}
                 onChange={(e) => setReceiptFormat(e.target.value as ReceiptFormat)}
-                className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                className="border-slate-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white"
               >
                 <option value="thermal-80">🧾 Thermal 80mm (Recommended)</option>
                 <option value="thermal-58">🧾 Thermal 58mm</option>
@@ -429,7 +429,7 @@ const Finance = () => {
 
       {/* Transactions List */}
       {!selectedParishId ? (
-        <div className="text-center py-12 bg-white rounded-lg border border-gray-100">
+        <div className="text-center py-12 bg-white rounded-lg border-slate-200 border-slate-200-gray-100">
           <p className="text-gray-500">Please select a parish to view finances.</p>
         </div>
       ) : loading ? (
