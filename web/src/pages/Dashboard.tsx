@@ -19,15 +19,14 @@ import {
   UserCheck, Settings, Eye, Shield, CreditCard, FileSpreadsheet, Award,
   Church as LiturgicalIcon,
   CalendarDays,
-  Bell,
   AlertTriangle,
   CheckCircle,
   Info,
   X as XIcon
 } from 'lucide-react';
-import { format, addDays, isToday, isTomorrow, subMonths } from 'date-fns';
+import { format, isToday, isTomorrow } from 'date-fns';
 import ImportButton from '../components/ImportButton';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 interface RoleBasedStats extends DashboardStats {
   parish_growth?: number;
@@ -438,7 +437,7 @@ const Dashboard = () => {
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} tickFormatter={(value) => `TZS ${(value / 1000000).toFixed(1)}M`} />
                     <Tooltip
                       contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                      formatter={(value: number) => `TZS ${value.toLocaleString()}`}
+                      formatter={(value: any) => `TZS ${typeof value === 'number' ? value.toLocaleString() : value}`}
                     />
                     <Area type="monotone" dataKey="income" stroke="#10B981" fillOpacity={1} fill="url(#colorIncome)" strokeWidth={2} />
                     <Area type="monotone" dataKey="expenses" stroke="#EF4444" fillOpacity={1} fill="url(#colorExpense)" strokeWidth={2} />
@@ -508,7 +507,7 @@ const Dashboard = () => {
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
                 <Tooltip
                   contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                  formatter={(value: number) => `${value}%`}
+                  formatter={(value: any) => `${value}%`}
                 />
                 <Bar dataKey="attendance" fill="#4F46E5" radius={[4, 4, 0, 0]} />
               </BarChart>

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== Building Sanctus Desktop App ==="
+echo "=== Building OCMIS Desktop App ==="
 
 # Determine target triple
 TARGET_TRIPLE=$(rustc -vV | grep host | awk '{print $2}')
@@ -17,22 +17,24 @@ cd ..
 # Step 2: Copy backend binary to Tauri sidecar location
 echo ""
 echo "--- Copying backend binary to sidecar ---"
-mkdir -p web/src-tauri/binaries
-cp backend/target/release/sanctus_backend "web/src-tauri/binaries/sanctus-backend-${TARGET_TRIPLE}"
-echo "Copied to: web/src-tauri/binaries/sanctus-backend-${TARGET_TRIPLE}"
+mkdir -p backend/src-tauri/binaries
+cp backend/target/release/ocmis_backend "backend/src-tauri/binaries/ocmis-backend-${TARGET_TRIPLE}"
+echo "Copied to: backend/src-tauri/binaries/ocmis-backend-${TARGET_TRIPLE}"
 
 # Step 3: Build Tauri app
 echo ""
 echo "--- Building Tauri app ---"
+cd backend
 cargo tauri build
+cd ..
 
 echo ""
 echo "=== Build complete! ==="
 echo ""
 echo "IMPORTANT: After installing the app, place a .env file next to the"
-echo "installed binary OR at ~/.sanctus/.env with the following contents:"
+echo "installed binary OR at ~/.ocmis/.env with the following contents:"
 echo ""
-echo "  DATABASE_URL=postgres://user:pass@localhost:5432/sanctus_db"
+echo "  DATABASE_URL=postgres://user:pass@localhost:5432/ocmis_db"
 echo "  JWT_SECRET=your-secret-key"
-echo "  RUST_LOG=sanctus_backend=info"
+echo "  RUST_LOG=ocmis_backend=info"
 echo ""

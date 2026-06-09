@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Users, Calendar, TrendingUp, Download, Upload } from 'lucide-react';
+import { Plus, Users, TrendingUp } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
@@ -69,27 +69,6 @@ export default function Attendance() {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (record: AttendanceRecord) => {
-    setEditingRecord(record);
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this attendance record?')) return;
-
-    try {
-      const response = await fetch(`/api/attendance/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchAttendance();
-        fetchStats();
-      }
-    } catch (error) {
-      console.error('Failed to delete attendance record:', error);
-    }
-  };
-
   const handleSubmit = async (formData: any) => {
     try {
       const url = editingRecord
@@ -124,24 +103,32 @@ export default function Attendance() {
 
   const columns = [
     {
-      key: 'date', label: 'Date', render: (item: AttendanceRecord) => (
+      key: 'date',
+      header: 'Date',
+      render: (item: AttendanceRecord) => (
         <span className="text-sm">{new Date(item.attendance_date).toLocaleDateString()}</span>
       )
     },
     {
-      key: 'status', label: 'Status', render: (item: AttendanceRecord) => (
+      key: 'status',
+      header: 'Status',
+      render: (item: AttendanceRecord) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
           {item.status}
         </span>
       )
     },
     {
-      key: 'check_in', label: 'Check-in', render: (item: AttendanceRecord) => (
+      key: 'check_in',
+      header: 'Check-in',
+      render: (item: AttendanceRecord) => (
         <span className="text-sm text-gray-600">{item.check_in_time || '-'}</span>
       )
     },
     {
-      key: 'notes', label: 'Notes', render: (item: AttendanceRecord) => (
+      key: 'notes',
+      header: 'Notes',
+      render: (item: AttendanceRecord) => (
         <span className="text-sm text-gray-600 truncate max-w-xs">{item.notes || '-'}</span>
       )
     },
@@ -220,31 +207,10 @@ export default function Attendance() {
       {loading ? (
         <div className="text-center py-8">Loading attendance records...</div>
       ) : (
-        <DataTable
+        <DataTable<AttendanceRecord>
           data={attendance}
           columns={columns}
-          actions={(item) => (
-            <div className="flex gap-2">
-              {canCreate && (
-                <>
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="p-2 text-green-600 hover:bg-green-50 rounded"
-                    title="Edit"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </>
-              )}
-            </div>
-          )}
+          keyField="id"
         />
       )}
 

@@ -1,7 +1,7 @@
-# Sanctus - Roman Catholic Church Morogoro Diocese Management System
+# OCMIS - OurKanisa Church Management Information System
 
 ## Project Overview
-Sanctus is a digital management system designed for the Roman Catholic Church Morogoro Diocese. It aims to solve challenges related to manual record-keeping, lack of internet connectivity, and difficulty in tracking financial and sacramental records across parishes.
+OCMIS (OurKanisa Church Management Information System) is a digital management system designed for the Roman Catholic Church Morogoro Diocese. It aims to solve challenges related to manual record-keeping, lack of internet connectivity, and difficulty in tracking financial and sacramental records across parishes.
 
 ## Problem Statement
 - **No Internet:** Many parishes lack reliable internet access.
@@ -11,7 +11,7 @@ Sanctus is a digital management system designed for the Roman Catholic Church Mo
 - **Visibility:** The Diocese lacks real-time visibility into parish activities.
 
 ## Solution
-Sanctus acts as a smart digital notebook that functions offline (using SQLite) and syncs to the cloud (PostgreSQL) when internet connectivity is available.
+OCMIS acts as a smart digital notebook that functions offline (using SQLite) and syncs to the cloud (PostgreSQL) when internet connectivity is available.
 
 ## Architecture & Tech Stack
 

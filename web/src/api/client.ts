@@ -200,7 +200,7 @@ export class ApiClient {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('parish_id', parishId);
-    return this.request<ImportResponse>('POST', '/sacraments/import', formData, true);
+    return this.request<ImportResponse>('POST', '/sacraments/import', formData);
   }
 
   // Transactions

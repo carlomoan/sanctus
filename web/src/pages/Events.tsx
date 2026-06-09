@@ -1,30 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import { UserRole } from '../types';
+import { UserRole, ChurchEvent, EventStatus, EventScope, RecurrencePattern } from '../types';
 import { Plus, Search, Calendar, MapPin, Clock, Users, Edit, Trash2 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
 
-interface ChurchEvent {
-  id: string;
-  title: string;
-  description?: string;
-  start_date: string;
-  start_time?: string;
-  end_time?: string;
-  location?: string;
-  max_participants?: number;
-  current_participants?: number;
-  event_status: 'draft' | 'published' | 'cancelled';
-  scope: 'diocese' | 'parish';
-  recurrence_pattern: 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
-}
-
 const Events = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [events, setEvents] = useState<ChurchEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +23,9 @@ const Events = () => {
     end_time: '',
     location: '',
     max_participants: '',
-    scope: 'parish' as 'diocese' | 'parish',
-    event_status: 'draft' as 'draft' | 'published' | 'cancelled',
-    recurrence_pattern: 'NONE' as 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY',
+    scope: 'PARISH' as EventScope,
+    event_status: 'PLANNED' as EventStatus,
+    recurrence_pattern: 'NONE' as RecurrencePattern,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -73,8 +56,8 @@ const Events = () => {
       end_time: '',
       location: '',
       max_participants: '',
-      scope: isSuperAdmin ? 'diocese' : 'parish',
-      event_status: 'draft',
+      scope: isSuperAdmin ? 'DIOCESE' : 'PARISH',
+      event_status: 'PLANNED',
       recurrence_pattern: 'NONE',
     });
     setIsModalOpen(true);
@@ -142,8 +125,9 @@ const Events = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'published': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'cancelled': return 'bg-red-100 text-red-700 border-red-200';
+      case 'CONFIRMED': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'CANCELLED': return 'bg-red-100 text-red-700 border-red-200';
+      case 'COMPLETED': return 'bg-blue-100 text-blue-700 border-blue-200';
       default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
@@ -192,9 +176,10 @@ const Events = () => {
             className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
           >
             <option value="all">All Status</option>
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="PLANNED">Planned</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="CANCELLED">Cancelled</option>
+            <option value="COMPLETED">Completed</option>
           </select>
         </div>
 
@@ -353,24 +338,25 @@ const Events = () => {
               <label className="block text-sm font-medium text-slate-700 mb-1">Scope</label>
               <select
                 value={formData.scope}
-                onChange={e => setFormData({ ...formData, scope: e.target.value as 'diocese' | 'parish' })}
+                onChange={e => setFormData({ ...formData, scope: e.target.value as EventScope })}
                 disabled={!isSuperAdmin}
                 className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50 disabled:bg-slate-50"
               >
-                <option value="parish">Parish</option>
-                {isSuperAdmin && <option value="diocese">Diocese</option>}
+                <option value="PARISH">Parish</option>
+                {isSuperAdmin && <option value="DIOCESE">Diocese</option>}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
               <select
                 value={formData.event_status}
-                onChange={e => setFormData({ ...formData, event_status: e.target.value as 'draft' | 'published' | 'cancelled' })}
+                onChange={e => setFormData({ ...formData, event_status: e.target.value as EventStatus })}
                 className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
               >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="PLANNED">Planned</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="CANCELLED">Cancelled</option>
+                <option value="COMPLETED">Completed</option>
               </select>
             </div>
           </div>
@@ -378,7 +364,7 @@ const Events = () => {
             <label className="block text-sm font-medium text-slate-700 mb-1">Recurrence</label>
             <select
               value={formData.recurrence_pattern}
-              onChange={e => setFormData({ ...formData, recurrence_pattern: e.target.value as 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY' })}
+              onChange={e => setFormData({ ...formData, recurrence_pattern: e.target.value as RecurrencePattern })}
               className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
             >
               <option value="NONE">None</option>

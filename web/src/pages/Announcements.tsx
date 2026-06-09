@@ -1,24 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Eye, Megaphone, Filter } from 'lucide-react';
+import { Plus, Filter } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
-
-interface Announcement {
-  id: string;
-  title: string;
-  content: string;
-  announcement_type: string;
-  scope: string;
-  priority: string;
-  status: string;
-  author_name: string | null;
-  publish_date: string | null;
-  expiry_date: string | null;
-  target_audience: string | null;
-  view_count: number;
-  created_at: string;
-}
+import { Announcement } from '../types';
 
 interface CreateAnnouncementRequest {
   title: string;
@@ -69,43 +54,6 @@ export default function Announcements() {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (announcement: Announcement) => {
-    setEditingAnnouncement(announcement);
-    setIsModalOpen(true);
-  };
-
-  const handleView = (announcement: Announcement) => {
-    setViewingAnnouncement(announcement);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this announcement?')) return;
-
-    try {
-      const response = await fetch(`/api/announcements/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchAnnouncements();
-      }
-    } catch (error) {
-      console.error('Failed to delete announcement:', error);
-    }
-  };
-
-  const handlePublish = async (id: string) => {
-    try {
-      const response = await fetch(`/api/announcements/${id}/publish`, {
-        method: 'POST',
-      });
-      if (response.ok) {
-        fetchAnnouncements();
-      }
-    } catch (error) {
-      console.error('Failed to publish announcement:', error);
-    }
-  };
-
   const handleSubmit = async (formData: CreateAnnouncementRequest) => {
     try {
       const url = editingAnnouncement
@@ -149,49 +97,59 @@ export default function Announcements() {
 
   const columns = [
     {
-      key: 'title', label: 'Title', render: (item: Announcement) => (
+      key: 'title',
+      header: 'Title',
+      render: (item: Announcement) => (
         <div className="font-medium">{item.title}</div>
       )
     },
     {
-      key: 'type', label: 'Type', render: (item: Announcement) => (
+      key: 'type',
+      header: 'Type',
+      render: (item: Announcement) => (
         <span className="text-sm text-gray-600">{item.announcement_type}</span>
       )
     },
     {
-      key: 'scope', label: 'Scope', render: (item: Announcement) => (
+      key: 'scope',
+      header: 'Scope',
+      render: (item: Announcement) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.scope === 'DIOCESE' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
           {item.scope}
         </span>
       )
     },
     {
-      key: 'priority', label: 'Priority', render: (item: Announcement) => (
+      key: 'priority',
+      header: 'Priority',
+      render: (item: Announcement) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(item.priority)}`}>
           {item.priority}
         </span>
       )
     },
     {
-      key: 'status', label: 'Status', render: (item: Announcement) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-          {item.status}
+      key: 'status',
+      header: 'Status',
+      render: (item: Announcement) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status || '')}`}>
+          {item.status || 'Unknown'}
         </span>
       )
     },
     {
-      key: 'author', label: 'Author', render: (item: Announcement) => (
+      key: 'author', header: 'Author', render: (item: Announcement) => (
         <span className="text-sm text-gray-600">{item.author_name || 'Unknown'}</span>
       )
     },
     {
-      key: 'views', label: 'Views', render: (item: Announcement) => (
+      key: 'views', header: 'Views', render: (item: Announcement) => (
         <span className="text-sm text-gray-600">{item.view_count}</span>
       )
     },
     {
-      key: 'created', label: 'Created', render: (item: Announcement) => (
-        <span className="text-sm text-gray-600">{new Date(item.created_at).toLocaleDateString()}</span>
+      key: 'created', header: 'Created', render: (item: Announcement) => (
+        <span className="text-sm text-gray-600">{item.created_at ? new Date(item.created_at).toLocaleDateString() : '-'}</span>
       )
     },
   ];
@@ -246,47 +204,10 @@ export default function Announcements() {
       {loading ? (
         <div className="text-center py-8">Loading announcements...</div>
       ) : (
-        <DataTable
+        <DataTable<Announcement>
           data={announcements}
           columns={columns}
-          actions={(item) => (
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleView(item)}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                title="View"
-              >
-                <Eye className="w-4 h-4" />
-              </button>
-              {canCreate && (
-                <>
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="p-2 text-green-600 hover:bg-green-50 rounded"
-                    title="Edit"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  {item.status === 'DRAFT' && (
-                    <button
-                      onClick={() => handlePublish(item.id)}
-                      className="p-2 text-purple-600 hover:bg-purple-50 rounded"
-                      title="Publish"
-                    >
-                      <Megaphone className="w-4 h-4" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </>
-              )}
-            </div>
-          )}
+          keyField="id"
         />
       )}
 
@@ -310,8 +231,8 @@ export default function Announcements() {
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(viewingAnnouncement.priority)}`}>
                   {viewingAnnouncement.priority}
                 </span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(viewingAnnouncement.status)}`}>
-                  {viewingAnnouncement.status}
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(viewingAnnouncement.status || '')}`}>
+                  {viewingAnnouncement.status || 'Unknown'}
                 </span>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${viewingAnnouncement.scope === 'DIOCESE' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
                   {viewingAnnouncement.scope}
@@ -331,7 +252,7 @@ export default function Announcements() {
               {viewingAnnouncement.expiry_date && (
                 <p><strong>Expires:</strong> {new Date(viewingAnnouncement.expiry_date).toLocaleString()}</p>
               )}
-              <p><strong>Created:</strong> {new Date(viewingAnnouncement.created_at).toLocaleString()}</p>
+              <p><strong>Created:</strong> {viewingAnnouncement.created_at ? new Date(viewingAnnouncement.created_at).toLocaleString() : 'Unknown'}</p>
             </div>
           </div>
         )}

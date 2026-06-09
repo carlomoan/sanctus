@@ -1564,6 +1564,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "ocmis_backend"
+version = "0.1.0"
+dependencies = [
+ "argon2",
+ "axum",
+ "axum-extra",
+ "base64 0.22.1",
+ "bcrypt",
+ "calamine",
+ "chrono",
+ "csv",
+ "dotenvy",
+ "hex",
+ "jsonwebtoken",
+ "pbkdf2",
+ "reqwest",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha2",
+ "sqlx",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "validator",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2158,37 +2189,6 @@ name = "ryu"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a50f4cf475b65d88e057964e0e9bb1f0aa9bbb2036dc65c64596b42932536984"
-
-[[package]]
-name = "sanctus_backend"
-version = "0.1.0"
-dependencies = [
- "argon2",
- "axum",
- "axum-extra",
- "base64 0.22.1",
- "bcrypt",
- "calamine",
- "chrono",
- "csv",
- "dotenvy",
- "hex",
- "jsonwebtoken",
- "pbkdf2",
- "reqwest",
- "rust_decimal",
- "serde",
- "serde_json",
- "serde_with",
- "sha2",
- "sqlx",
- "tokio",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "validator",
-]
 
 [[package]]
 name = "schannel"

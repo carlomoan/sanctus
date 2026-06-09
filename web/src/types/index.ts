@@ -170,6 +170,27 @@ export interface SacramentRecord {
   deleted_at?: ISODateTimeString;
 }
 
+export interface Announcement {
+  id: UUID;
+  parish_id?: UUID;
+  diocese_id?: UUID;
+  title: string;
+  content: string;
+  announcement_type: string;
+  scope: string;
+  priority: string;
+  target_audience?: string;
+  attachment_url?: string;
+  publish_date?: string;
+  expiry_date?: string;
+  author_name?: string;
+  view_count?: number;
+  status?: string;
+  created_at?: ISODateTimeString;
+  updated_at?: ISODateTimeString;
+  deleted_at?: ISODateTimeString;
+}
+
 export interface IncomeTransaction {
   id: UUID;
   parish_id: UUID;

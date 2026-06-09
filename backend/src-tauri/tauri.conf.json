@@ -1,18 +1,18 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Sanctus",
+  "productName": "OCMIS",
   "version": "0.1.0",
-  "identifier": "com.sanctus.parish",
+  "identifier": "com.ourkanisa.ocmis",
   "build": {
     "frontendDist": "../../web/dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "cd ../../web && npm run dev",
-    "beforeBuildCommand": "cd ../../web && npm run build"
+    "beforeDevCommand": "cd ../web && npm run dev",
+    "beforeBuildCommand": "cd ../web && npm run build"
   },
   "app": {
     "windows": [
       {
-        "title": "Sanctus Parish Management System",
+        "title": "OurKanisa Church Management Information System",
         "width": 1200,
         "height": 800,
         "minWidth": 800,

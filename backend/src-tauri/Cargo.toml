@@ -23,7 +23,7 @@ tauri-build = { version = "2.5.6", features = [] }
 
 [dependencies]
 # Backend dependency
-sanctus_backend = { path = "../" }
+ocmis_backend = { path = "../" }
 
 # Tauri dependencies
 tauri = { version = "2.10.3", features = ["rustls-tls"] }

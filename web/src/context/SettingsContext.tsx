@@ -198,13 +198,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     colorSettings.forEach(({ key, var: variable }) => {
       const hex = currentSettings[key];
       if (hex) {
-        // Convert hex to RGB for CSS variables
-        const rgb = hexToRgb(hex);
-        if (rgb) {
-          root.style.setProperty(variable, `${rgb.r} ${rgb.g} ${rgb.b}`);
-        } else {
-          root.style.setProperty(variable, hex);
-        }
+        root.style.setProperty(variable, hex);
       }
     });
   };

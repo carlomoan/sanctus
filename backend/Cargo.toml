@@ -1,8 +1,8 @@
 [package]
-name = "sanctus_backend"
+name = "ocmis_backend"
 version = "0.1.0"
 edition = "2021"
-default-run = "sanctus_backend"
+default-run = "ocmis_backend"
 
 [dependencies]
 axum = { version = "0.7", features = ["multipart"] }
