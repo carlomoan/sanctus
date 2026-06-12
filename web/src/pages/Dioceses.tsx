@@ -23,7 +23,7 @@ const Dioceses = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fixed: use exact UserRole enum value from types.ts
+  // Fixed: import UserRole from '../types' and use enum value directly
   const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
 
   const fetchDioceses = async () => {
@@ -38,25 +38,16 @@ const Dioceses = () => {
     }
   };
 
-  useEffect(() => {
-    fetchDioceses();
-  }, []);
+  useEffect(() => { fetchDioceses(); }, []);
 
   const handleCreate = () => {
     setSelectedDiocese(undefined);
-    setFormData({
-      diocese_name: '',
-      headquarters_address: '',
-      contact_phone: '',
-      contact_email: '',
-      bishop_name: '',
-    });
+    setFormData({ diocese_name: '', headquarters_address: '', contact_phone: '', contact_email: '', bishop_name: '' });
     setIsModalOpen(true);
   };
 
   const handleEdit = (diocese: Diocese) => {
     setSelectedDiocese(diocese);
-    // Fixed: use actual Diocese field names from types.ts
     setFormData({
       diocese_name: diocese.diocese_name || '',
       headquarters_address: diocese.headquarters_address || '',
@@ -80,7 +71,7 @@ const Dioceses = () => {
     }
   };
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
@@ -110,29 +101,21 @@ const Dioceses = () => {
           Dioceses
         </h1>
         {isSuperAdmin && (
-          <button
-            onClick={handleCreate}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors"
-          >
+          <button onClick={handleCreate} className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors">
             <Plus size={20} />
             Add Diocese
           </button>
         )}
       </div>
 
-      {/* Search */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Search dioceses..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
+          <input type="text" placeholder="Search dioceses..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
         </div>
       </div>
 
-      {/* Diocese List */}
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading dioceses...</div>
       ) : error ? (
@@ -148,30 +131,21 @@ const Dioceses = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {dioceses.map((diocese) => (
-            <div
-              key={diocese.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow"
-            >
+            <div key={diocese.id} className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {diocese.logo_url ? (
-                      <img
-                        src={`${API_BASE_URL}${diocese.logo_url}`}
-                        alt="Logo"
-                        className="h-12 w-12 object-cover rounded-lg"
-                      />
-                    ) : (
-                      <Building size={24} className="text-gray-400" />
-                    )}
+                    {diocese.logo_url
+                      ? <img src={`${API_BASE_URL}${diocese.logo_url}`} alt="Logo" className="h-12 w-12 object-cover rounded-lg" />
+                      : <Building size={24} className="text-gray-400" />
+                    }
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{diocese.diocese_name}</h3>
                     <p className="text-sm text-gray-500">{diocese.diocese_code}</p>
                   </div>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${diocese.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                  }`}>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${diocese.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
                   {diocese.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
@@ -218,18 +192,10 @@ const Dioceses = () => {
               <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end gap-2">
                 {isSuperAdmin && (
                   <>
-                    <button
-                      onClick={() => handleEdit(diocese)}
-                      className="p-2 text-gray-400 hover:text-primary-600 rounded-full hover:bg-primary-50 transition-colors"
-                      title="Edit"
-                    >
+                    <button onClick={() => handleEdit(diocese)} className="p-2 text-gray-400 hover:text-primary-600 rounded-full hover:bg-primary-50 transition-colors" title="Edit">
                       <Edit size={18} />
                     </button>
-                    <button
-                      onClick={() => handleDelete(diocese.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors"
-                      title="Delete"
-                    >
+                    <button onClick={() => handleDelete(diocese.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors" title="Delete">
                       <Trash2 size={18} />
                     </button>
                   </>
@@ -240,92 +206,50 @@ const Dioceses = () => {
         </div>
       )}
 
-      {/* Create / Edit Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={selectedDiocese ? 'Edit Diocese' : 'Add New Diocese'}
-      >
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={selectedDiocese ? 'Edit Diocese' : 'Add New Diocese'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Diocese Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.diocese_name}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Diocese Name *</label>
+            <input type="text" required value={formData.diocese_name}
               onChange={(e) => setFormData({ ...formData, diocese_name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="Enter diocese name"
-            />
+              placeholder="Enter diocese name" />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Headquarters Address
-            </label>
-            <textarea
-              value={formData.headquarters_address}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Headquarters Address</label>
+            <textarea value={formData.headquarters_address}
               onChange={(e) => setFormData({ ...formData, headquarters_address: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              rows={3}
-              placeholder="Enter headquarters address"
-            />
+              rows={3} placeholder="Enter headquarters address" />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contact Phone
-            </label>
-            <input
-              type="tel"
-              value={formData.contact_phone}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
+            <input type="tel" value={formData.contact_phone}
               onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="Enter phone number"
-            />
+              placeholder="Enter phone number" />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contact Email
-            </label>
-            <input
-              type="email"
-              value={formData.contact_email}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+            <input type="email" value={formData.contact_email}
               onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="Enter email address"
-            />
+              placeholder="Enter email address" />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Bishop Name
-            </label>
-            <input
-              type="text"
-              value={formData.bishop_name}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Bishop Name</label>
+            <input type="text" value={formData.bishop_name}
               onChange={(e) => setFormData({ ...formData, bishop_name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-              placeholder="Enter bishop name"
-            />
+              placeholder="Enter bishop name" />
           </div>
-
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            >
+            <button type="button" onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
-            >
+            <button type="submit" disabled={isSubmitting}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50">
               {isSubmitting ? 'Saving...' : selectedDiocese ? 'Update' : 'Create'}
             </button>
           </div>

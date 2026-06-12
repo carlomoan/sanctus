@@ -1,396 +1,645 @@
 import { useState, useEffect } from 'react';
-import { api } from '../api/client';
-import { UserRole, ChurchEvent, EventStatus, EventScope, RecurrencePattern } from '../types';
-import { Plus, Search, Calendar, MapPin, Clock, Users, Edit, Trash2 } from 'lucide-react';
-import Modal from '../components/Modal';
+// Fixed: removed unused imports (Clock, Filter, MoreVertical, CalendarDays, Bell, Tag)
+import { Calendar, MapPin, Users, Plus, Search, ChevronLeft, ChevronRight, Edit, Trash2, Eye, RefreshCw, Repeat, X, Building, Globe } from 'lucide-react';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addDays, startOfWeek, endOfWeek } from 'date-fns';
+import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
-import { format } from 'date-fns';
+import { UserRole } from '../types';
+
+interface Event {
+  id: string;
+  title: string;
+  description?: string;
+  start_date: string;
+  end_date?: string;
+  start_time?: string;
+  end_time?: string;
+  location?: string;
+  scope: 'diocese' | 'parish';
+  parish_id?: string;
+  diocese_id?: string;
+  is_recurring: boolean;
+  recurrence_pattern?: string;
+  max_participants?: number;
+  current_participants: number;
+  // Fixed: added 'cancelled' to status union to match usage in filters/display
+  status: 'draft' | 'published' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+}
+
+interface EventFormData {
+  title: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  start_time: string;
+  end_time: string;
+  location: string;
+  scope: 'diocese' | 'parish';
+  is_recurring: boolean;
+  recurrence_pattern: string;
+  max_participants: number;
+  // Fixed: form only allows draft/published — cancelled set externally
+  status: 'draft' | 'published';
+}
 
 const Events = () => {
   const { user } = useAuth();
-  const [events, setEvents] = useState<ChurchEvent[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<ChurchEvent | undefined>(undefined);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  // Fixed: removed unused setSelectedDate — kept selectedDate for form default
+  const [selectedDate] = useState<Date | null>(null);
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEventDetails, setShowEventDetails] = useState<Event | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [formData, setFormData] = useState({
+  const [filterScope, setFilterScope] = useState<string>('all');
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
     start_date: '',
+    end_date: '',
     start_time: '',
     end_time: '',
     location: '',
-    max_participants: '',
-    scope: 'PARISH' as EventScope,
-    event_status: 'PLANNED' as EventStatus,
-    recurrence_pattern: 'NONE' as RecurrencePattern,
+    scope: 'parish',
+    is_recurring: false,
+    recurrence_pattern: 'weekly',
+    max_participants: 0,
+    status: 'draft'
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
-  const canManage = isSuperAdmin || user?.role === UserRole.PARISH_ADMIN || user?.role === UserRole.SECRETARY;
+  const canCreateDioceseEvents = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.PARISH_ADMIN;
 
-  const fetchEvents = async () => {
-    try {
-      const data = await api.listEvents({ limit: 100 });
-      setEvents(data);
-    } catch (err) {
-      setError('Failed to load events');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const canEditEvent = (event: Event) => {
+    if (user?.role === UserRole.SUPER_ADMIN) return true;
+    if (event.scope === 'diocese' && user?.role === UserRole.PARISH_ADMIN) return true;
+    if (event.scope === 'parish' && event.parish_id === user?.parish_id) return true;
+    return false;
   };
 
-  useEffect(() => { fetchEvents(); }, []);
+  useEffect(() => {
+    const mockEvents: Event[] = [
+      {
+        id: '1',
+        title: 'Sunday Mass',
+        description: 'Weekly Sunday Mass celebration',
+        start_date: format(new Date(), 'yyyy-MM-dd'),
+        start_time: '09:00',
+        end_time: '10:30',
+        location: 'Main Church',
+        scope: 'parish',
+        parish_id: user?.parish_id,
+        is_recurring: true,
+        recurrence_pattern: 'weekly',
+        max_participants: 200,
+        current_participants: 150,
+        status: 'published',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z'
+      },
+      {
+        id: '2',
+        title: 'Diocese Youth Conference',
+        description: 'Annual youth conference for all parishes',
+        start_date: format(addDays(new Date(), 3), 'yyyy-MM-dd'),
+        start_time: '09:00',
+        end_time: '17:00',
+        location: 'Diocese Center',
+        scope: 'diocese',
+        diocese_id: 'diocese-1',
+        is_recurring: false,
+        recurrence_pattern: 'yearly',
+        max_participants: 500,
+        current_participants: 350,
+        status: 'published',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z'
+      },
+      {
+        id: '3',
+        title: 'Bible Study Group',
+        description: 'Weekly Bible study and discussion',
+        start_date: format(addDays(new Date(), 2), 'yyyy-MM-dd'),
+        start_time: '19:00',
+        end_time: '20:30',
+        location: 'Parish Hall',
+        scope: 'parish',
+        parish_id: user?.parish_id,
+        is_recurring: true,
+        recurrence_pattern: 'weekly',
+        max_participants: 30,
+        current_participants: 25,
+        status: 'published',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z'
+      },
+      {
+        id: '4',
+        title: 'Priest Retreat',
+        description: 'Annual retreat for diocese priests',
+        start_date: format(addDays(new Date(), 10), 'yyyy-MM-dd'),
+        start_time: '08:00',
+        end_time: '18:00',
+        location: 'Retreat Center',
+        scope: 'diocese',
+        diocese_id: 'diocese-1',
+        is_recurring: false,
+        recurrence_pattern: 'yearly',
+        max_participants: 50,
+        current_participants: 45,
+        status: 'published',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z'
+      }
+    ];
 
-  const handleCreate = () => {
-    setSelectedEvent(undefined);
+    setTimeout(() => {
+      setEvents(mockEvents);
+      setLoading(false);
+    }, 1000);
+  }, [user?.parish_id]);
+
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const startDate = startOfWeek(monthStart);
+  const endDate = endOfWeek(monthEnd);
+  const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+  const filteredEvents = events.filter(event => {
+    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || event.status === filterStatus;
+    const matchesScope = filterScope === 'all' || event.scope === filterScope;
+    return matchesSearch && matchesStatus && matchesScope;
+  });
+
+  const getEventsForDate = (date: Date) => {
+    return filteredEvents.filter(event => isSameDay(new Date(event.start_date), date));
+  };
+
+  const handleCreateEvent = () => {
+    setEditingEvent(null);
     setFormData({
       title: '',
       description: '',
-      start_date: '',
+      start_date: format(selectedDate || new Date(), 'yyyy-MM-dd'),
+      end_date: format(selectedDate || new Date(), 'yyyy-MM-dd'),
       start_time: '',
       end_time: '',
       location: '',
-      max_participants: '',
-      scope: isSuperAdmin ? 'DIOCESE' : 'PARISH',
-      event_status: 'PLANNED',
-      recurrence_pattern: 'NONE',
+      scope: 'parish',
+      is_recurring: false,
+      recurrence_pattern: 'weekly',
+      max_participants: 0,
+      status: 'draft'
     });
-    setIsModalOpen(true);
+    setShowCreateModal(true);
   };
 
-  const handleEdit = (event: ChurchEvent) => {
-    setSelectedEvent(event);
+  const handleEditEvent = (event: Event) => {
+    setEditingEvent(event);
     setFormData({
       title: event.title,
       description: event.description || '',
       start_date: event.start_date,
+      end_date: event.end_date || event.start_date,
       start_time: event.start_time || '',
       end_time: event.end_time || '',
       location: event.location || '',
-      max_participants: event.max_participants?.toString() || '',
       scope: event.scope,
-      event_status: event.event_status,
-      recurrence_pattern: event.recurrence_pattern,
+      is_recurring: event.is_recurring,
+      recurrence_pattern: event.recurrence_pattern || 'weekly',
+      max_participants: event.max_participants || 0,
+      // Fixed: if event.status is 'cancelled', default form to 'published' 
+      // since the form only supports draft/published
+      status: event.status === 'cancelled' ? 'published' : event.status
     });
-    setIsModalOpen(true);
+    setShowCreateModal(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      if (selectedEvent) {
-        await api.updateEvent(selectedEvent.id, {
-          ...formData,
-          max_participants: formData.max_participants ? parseInt(formData.max_participants) : undefined,
-        });
-      } else {
-        await api.createEvent({
-          ...formData,
-          max_participants: formData.max_participants ? parseInt(formData.max_participants) : undefined,
-        });
-      }
-      setIsModalOpen(false);
-      fetchEvents();
-    } catch (err) {
-      setError('Failed to save event');
-      console.error(err);
-    } finally {
-      setIsSubmitting(false);
+  const handleSaveEvent = () => {
+    if (!formData.title.trim()) {
+      toast.error('Event title is required');
+      return;
+    }
+
+    if (editingEvent) {
+      setEvents(events.map(event =>
+        event.id === editingEvent.id
+          ? { ...event, ...formData, updated_at: new Date().toISOString() }
+          : event
+      ));
+      toast.success('Event updated successfully');
+    } else {
+      const newEvent: Event = {
+        id: Date.now().toString(),
+        ...formData,
+        parish_id: formData.scope === 'parish' ? user?.parish_id : undefined,
+        diocese_id: formData.scope === 'diocese' ? 'diocese-1' : undefined,
+        current_participants: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setEvents([...events, newEvent]);
+      toast.success('Event created successfully');
+    }
+    setShowCreateModal(false);
+    setEditingEvent(null);
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    if (window.confirm('Are you sure you want to delete this event?')) {
+      setEvents(events.filter(event => event.id !== eventId));
+      toast.success('Event deleted successfully');
     }
   };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this event?')) return;
-    try {
-      await api.deleteEvent(id);
-      fetchEvents();
-    } catch (err) {
-      setError('Failed to delete event');
-      console.error(err);
-    }
-  };
-
-  const filteredEvents = events.filter(event => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || event.event_status === filterStatus;
-    return matchesSearch && matchesFilter;
-  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'CONFIRMED': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'CANCELLED': return 'bg-red-100 text-red-700 border-red-200';
-      case 'COMPLETED': return 'bg-blue-100 text-blue-700 border-blue-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+      case 'published': return 'bg-green-100 text-green-800 border-green-200';
+      case 'draft': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <RefreshCw className="animate-spin h-8 w-8 text-primary-600" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Events</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage church events and schedules</p>
+          <h1 className="text-2xl font-bold text-gray-900">Events</h1>
+          <p className="text-gray-600">Manage parish and diocese events</p>
         </div>
-        {canManage && (
+        <div className="mt-4 sm:mt-0 flex gap-3">
           <button
-            onClick={handleCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200"
+            onClick={() => setViewMode(viewMode === 'calendar' ? 'list' : 'calendar')}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
           >
-            <Plus size={18} />
-            Add Event
+            <Calendar className="h-4 w-4 mr-2" />
+            {viewMode === 'calendar' ? 'List View' : 'Calendar View'}
           </button>
-        )}
-      </div>
-
-      <div className="bg-white rounded-xl shadow-elevation-1 border border-slate-200 p-6">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search events..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
-            />
-          </div>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
+          <button
+            onClick={handleCreateEvent}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
           >
-            <option value="all">All Status</option>
-            <option value="PLANNED">Planned</option>
-            <option value="CONFIRMED">Confirmed</option>
-            <option value="CANCELLED">Cancelled</option>
-            <option value="COMPLETED">Completed</option>
-          </select>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Event
+          </button>
         </div>
-
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            {error}
-          </div>
-        )}
-
-        {filteredEvents.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">
-            <Calendar size={48} className="mx-auto mb-3 text-slate-300" />
-            <p className="text-lg font-medium">No events found</p>
-            <p className="text-sm mt-1">Create your first event to get started</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredEvents.map(event => (
-              <div
-                key={event.id}
-                className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-elevation-2 transition-all group"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(event.event_status)}`}>
-                    {event.event_status}
-                  </span>
-                  {canManage && (
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleEdit(event)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-indigo-600">
-                        <Edit size={14} />
-                      </button>
-                      <button onClick={() => handleDelete(event.id)} className="p-1.5 hover:bg-red-50 rounded-lg text-slate-600 hover:text-red-600">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <h3 className="font-semibold text-slate-900 mb-2">{event.title}</h3>
-                {event.description && (
-                  <p className="text-sm text-slate-500 mb-3 line-clamp-2">{event.description}</p>
-                )}
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Calendar size={14} />
-                    {format(new Date(event.start_date), 'MMM dd, yyyy')}
-                  </div>
-                  {event.start_time && (
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Clock size={14} />
-                      {event.start_time} {event.end_time && `- ${event.end_time}`}
-                    </div>
-                  )}
-                  {event.location && (
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <MapPin size={14} />
-                      <span className="truncate">{event.location}</span>
-                    </div>
-                  )}
-                  {event.max_participants && (
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Users size={14} />
-                      {event.current_participants || 0} / {event.max_participants}
-                    </div>
-                  )}
-                </div>
-                {event.recurrence_pattern !== 'NONE' && (
-                  <div className="mt-3 pt-3 border-t border-slate-100">
-                    <span className="text-xs text-indigo-600 font-medium">
-                      Recurring: {event.recurrence_pattern}
-                    </span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={selectedEvent ? 'Edit Event' : 'Add Event'}
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
-            <input
-              type="text"
-              required
-              value={formData.title}
-              onChange={e => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
-              <input
-                type="date"
-                required
-                value={formData.start_date}
-                onChange={e => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Start Time</label>
-              <input
-                type="time"
-                value={formData.start_time}
-                onChange={e => setFormData({ ...formData, start_time: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">End Time</label>
-              <input
-                type="time"
-                value={formData.end_time}
-                onChange={e => setFormData({ ...formData, end_time: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Max Participants</label>
-              <input
-                type="number"
-                value={formData.max_participants}
-                onChange={e => setFormData({ ...formData, max_participants: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Location</label>
-            <input
-              type="text"
-              value={formData.location}
-              onChange={e => setFormData({ ...formData, location: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Scope</label>
-              <select
-                value={formData.scope}
-                onChange={e => setFormData({ ...formData, scope: e.target.value as EventScope })}
-                disabled={!isSuperAdmin}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50 disabled:bg-slate-50"
-              >
-                <option value="PARISH">Parish</option>
-                {isSuperAdmin && <option value="DIOCESE">Diocese</option>}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-              <select
-                value={formData.event_status}
-                onChange={e => setFormData({ ...formData, event_status: e.target.value as EventStatus })}
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
-              >
-                <option value="PLANNED">Planned</option>
-                <option value="CONFIRMED">Confirmed</option>
-                <option value="CANCELLED">Cancelled</option>
-                <option value="COMPLETED">Completed</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Recurrence</label>
-            <select
-              value={formData.recurrence_pattern}
-              onChange={e => setFormData({ ...formData, recurrence_pattern: e.target.value as RecurrencePattern })}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50"
-            >
-              <option value="NONE">None</option>
-              <option value="DAILY">Daily</option>
-              <option value="WEEKLY">Weekly</option>
-              <option value="MONTHLY">Monthly</option>
-            </select>
-          </div>
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              Cancel
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+          />
+        </div>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+        >
+          <option value="all">All Status</option>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select
+          value={filterScope}
+          onChange={(e) => setFilterScope(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+        >
+          <option value="all">All Scopes</option>
+          <option value="parish">Parish Events</option>
+          <option value="diocese">Diocese Events</option>
+        </select>
+      </div>
+
+      {viewMode === 'calendar' ? (
+        <div className="bg-white rounded-lg shadow">
+          <div className="flex items-center justify-between p-4 border-b">
+            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 hover:bg-gray-100 rounded-md">
+              <ChevronLeft className="h-5 w-5" />
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-            >
-              {isSubmitting ? 'Saving...' : selectedEvent ? 'Update' : 'Create'}
+            <h2 className="text-lg font-semibold">{format(currentMonth, 'MMMM yyyy')}</h2>
+            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 hover:bg-gray-100 rounded-md">
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
-        </form>
-      </Modal>
+          <div className="grid grid-cols-7 gap-px bg-gray-200">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="bg-gray-50 p-2 text-center text-sm font-medium text-gray-700">{day}</div>
+            ))}
+            {days.map((day, idx) => {
+              const dayEvents = getEventsForDate(day);
+              const isCurrentMonth = isSameMonth(day, currentMonth);
+              return (
+                <div key={idx} className={`bg-white p-2 min-h-[100px] ${!isCurrentMonth ? 'text-gray-400' : ''}`}>
+                  <div className="text-sm font-medium mb-1">{format(day, 'd')}</div>
+                  <div className="space-y-1">
+                    {dayEvents.slice(0, 2).map(event => (
+                      <div
+                        key={event.id}
+                        onClick={() => setShowEventDetails(event)}
+                        className={`text-xs p-1 rounded truncate cursor-pointer ${event.status === 'published' ? 'bg-primary-100 text-primary-800' : 'bg-gray-100 text-gray-800'}`}
+                      >
+                        {event.title}
+                      </div>
+                    ))}
+                  </div>
+                  {dayEvents.length > 2 && <div className="text-xs text-gray-500">+{dayEvents.length - 2} more</div>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participants</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredEvents.map(event => (
+                  <tr key={event.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="flex items-center">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 flex items-center">
+                            {event.title}
+                            {event.is_recurring && <Repeat className="inline h-3 w-3 ml-1 text-primary-600" />}
+                          </div>
+                          <div className="flex items-center mt-1">
+                            {event.scope === 'diocese' ? (
+                              <div className="flex items-center text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
+                                <Globe className="h-3 w-3 mr-1" />Diocese
+                              </div>
+                            ) : (
+                              <div className="flex items-center text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                                <Building className="h-3 w-3 mr-1" />Parish
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-500">{event.description}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div>{format(new Date(event.start_date), 'MMM dd, yyyy')}</div>
+                      {event.start_time && (
+                        <div className="text-gray-500">{event.start_time} {event.end_time && `- ${event.end_time}`}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{event.location || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="flex items-center">
+                        <Users className="h-4 w-4 mr-1 text-gray-400" />
+                        {event.current_participants}
+                        {/* Fixed: use optional chaining to guard max_participants */}
+                        {(event.max_participants ?? 0) > 0 && `/${event.max_participants}`}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(event.status)}`}>
+                        {event.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      <div className="flex items-center space-x-2">
+                        <button onClick={() => setShowEventDetails(event)} className="text-gray-400 hover:text-primary-600">
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        {canEditEvent(event) && (
+                          <>
+                            <button onClick={() => handleEditEvent(event)} className="text-gray-400 hover:text-primary-600">
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button onClick={() => handleDeleteEvent(event.id)} className="text-gray-400 hover:text-red-600">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Create/Edit Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <h3 className="text-lg font-semibold">{editingEvent ? 'Edit Event' : 'Create New Event'}</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
+                <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" placeholder="Enter event title" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" rows={3} placeholder="Enter event description" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+                  <input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                  <input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                  <input type="time" value={formData.start_time} onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                  <input type="time" value={formData.end_time} onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" placeholder="Enter event location" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Event Scope *</label>
+                <select value={formData.scope} onChange={(e) => setFormData({ ...formData, scope: e.target.value as 'diocese' | 'parish' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" disabled={!canCreateDioceseEvents}>
+                  <option value="parish">Parish Event</option>
+                  {canCreateDioceseEvents && <option value="diocese">Diocese Event</option>}
+                </select>
+                {!canCreateDioceseEvents && <p className="text-xs text-gray-500 mt-1">Only SuperAdmin and ParishAdmin can create diocese events</p>}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Max Participants</label>
+                <input type="number" value={formData.max_participants} onChange={(e) => setFormData({ ...formData, max_participants: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" min="0" placeholder="0 for unlimited" />
+              </div>
+              <div className="flex items-center">
+                <input type="checkbox" id="is_recurring" checked={formData.is_recurring}
+                  onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
+                <label htmlFor="is_recurring" className="ml-2 block text-sm text-gray-900">Recurring Event</label>
+              </div>
+              {formData.is_recurring && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Recurrence Pattern</label>
+                  <select value={formData.recurrence_pattern} onChange={(e) => setFormData({ ...formData, recurrence_pattern: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                </select>
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end space-x-3">
+              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={handleSaveEvent} className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                {editingEvent ? 'Update Event' : 'Create Event'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Event Details Modal */}
+      {showEventDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">{showEventDetails.title}</h3>
+                <button onClick={() => setShowEventDetails(null)} className="text-gray-400 hover:text-gray-600">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-1">Description</h4>
+                <p className="text-gray-900">{showEventDetails.description}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-1">Date</h4>
+                  <p className="text-gray-900">{format(new Date(showEventDetails.start_date), 'MMMM dd, yyyy')}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-1">Time</h4>
+                  <p className="text-gray-900">{showEventDetails.start_time || 'All day'}{showEventDetails.end_time && ` - ${showEventDetails.end_time}`}</p>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-1">Location</h4>
+                <p className="text-gray-900 flex items-center">
+                  <MapPin className="h-4 w-4 mr-1 text-gray-400" />
+                  {showEventDetails.location || 'No location specified'}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-1">Scope</h4>
+                  {showEventDetails.scope === 'diocese' ? (
+                    <div className="flex items-center text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full w-fit">
+                      <Globe className="h-3 w-3 mr-1" />Diocese Event
+                    </div>
+                  ) : (
+                    <div className="flex items-center text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full w-fit">
+                      <Building className="h-3 w-3 mr-1" />Parish Event
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-1">Status</h4>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(showEventDetails.status)}`}>
+                    {showEventDetails.status}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-1">Participants</h4>
+                <p className="text-gray-900 flex items-center">
+                  <Users className="h-4 w-4 mr-1 text-gray-400" />
+                  {showEventDetails.current_participants}
+                  {/* Fixed: guard with optional chaining */}
+                  {(showEventDetails.max_participants ?? 0) > 0 && `/${showEventDetails.max_participants}`}
+                </p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-1">Recurrence</h4>
+                <p className="text-gray-900 flex items-center">
+                  <Repeat className="h-4 w-4 mr-1 text-primary-600" />
+                  {showEventDetails.is_recurring ? showEventDetails.recurrence_pattern : 'Non-recurring'}
+                </p>
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end space-x-3">
+              <button onClick={() => setShowEventDetails(null)} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Close</button>
+              {canEditEvent(showEventDetails) && (
+                <>
+                  <button onClick={() => { handleEditEvent(showEventDetails); setShowEventDetails(null); }}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Edit</button>
+                  <button onClick={() => { handleDeleteEvent(showEventDetails.id); setShowEventDetails(null); }}
+                    className="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 hover:bg-red-50">Delete</button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

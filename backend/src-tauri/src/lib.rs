@@ -44,7 +44,7 @@ pub async fn run() {
     }
 
     #[tauri::command]
-    async fn check_backend_health(state: TauriState<'_, sanctus_backend::AppState>) -> Result<String, String> {
+    async fn check_backend_health(state: TauriState<'_, ocmis_backend::AppState>) -> Result<String, String> {
         match sqlx::query("SELECT 1").execute(&state.db).await {
             Ok(_) => Ok("Database is healthy".to_string()),
             Err(e) => Err(format!("Database is unhealthy: {}", e)),
@@ -74,8 +74,8 @@ pub async fn run() {
         .await
         .expect("Failed to run migrations");
 
-    let backend_state = sanctus_backend::AppState { db: pool.clone() };
-    let app = sanctus_backend::router::build_router(backend_state);
+    let backend_state = ocmis_backend::AppState { db: pool.clone() };
+    let app = ocmis_backend::router::build_router(backend_state);
 
     // Start backend server in background
     tokio::spawn(async move {
@@ -95,7 +95,7 @@ pub async fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
-        .manage(sanctus_backend::AppState { db: pool })
+        .manage(ocmis_backend::AppState { db: pool })
         .invoke_handler(tauri::generate_handler![
             get_app_version,
             check_backend_health,

@@ -1,69 +1,77 @@
-import { cn } from '../utils/cn';
+// Sanctus — Skeleton loading components
+// Usage: <SkeletonCard />, <SkeletonRow cols={5} />, <SkeletonText lines={3} />
 
-interface SkeletonProps {
-  className?: string;
-  variant?: 'default' | 'circle' | 'text';
-}
+export const SkeletonText = ({ lines = 1, className = '' }: { lines?: number; className?: string }) => (
+  <div className={`space-y-2 ${className}`}>
+    {Array.from({ length: lines }).map((_, i) => (
+      <div
+        key={i}
+        className="skeleton h-3 rounded"
+        style={{ width: i === lines - 1 && lines > 1 ? '70%' : '100%' }}
+      />
+    ))}
+  </div>
+);
 
-export function Skeleton({ className, variant = 'default' }: SkeletonProps) {
-  return (
-    <div
-      className={cn(
-        'animate-pulse rounded-md bg-slate-200',
-        {
-          'h-4 w-full': variant === 'default',
-          'h-10 w-10 rounded-full': variant === 'circle',
-          'h-4 w-3/4': variant === 'text',
-        },
-        className
-      )}
-    />
-  );
-}
-
-interface CardSkeletonProps {
-  count?: number;
-}
-
-export function CardSkeleton({ count = 1 }: CardSkeletonProps) {
-  return (
-    <div className="space-y-4">
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-xl bg-white p-6 shadow-sm border border-slate-100">
-          <div className="flex items-start gap-4">
-            <Skeleton variant="circle" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-6 w-1/3" />
-              <Skeleton variant="text" />
-              <Skeleton variant="text" className="w-1/2" />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-interface TableSkeletonProps {
-  rows?: number;
-  columns?: number;
-}
-
-export function TableSkeleton({ rows = 5, columns = 4 }: TableSkeletonProps) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-      <div className="border-b border-slate-200 bg-slate-50 px-6 py-3">
-        <Skeleton className="h-6 w-1/4" />
+export const SkeletonCard = () => (
+  <div className="card p-6 animate-pulse">
+    <div className="flex items-start justify-between">
+      <div className="flex-1 space-y-3">
+        <div className="skeleton h-3 w-24 rounded" />
+        <div className="skeleton h-8 w-32 rounded" />
+        <div className="skeleton h-2.5 w-20 rounded" />
       </div>
-      <div className="divide-y divide-slate-100">
-        {Array.from({ length: rows }).map((_, rowIndex) => (
-          <div key={rowIndex} className="flex items-center gap-4 px-6 py-4">
-            {Array.from({ length: columns }).map((_, colIndex) => (
-              <Skeleton key={colIndex} className={colIndex === 0 ? 'h-5 w-12' : 'h-5 flex-1'} />
-            ))}
-          </div>
+      <div className="skeleton h-10 w-10 rounded-lg" />
+    </div>
+  </div>
+);
+
+export const SkeletonStatsGrid = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
+  </div>
+);
+
+export const SkeletonRow = ({ cols = 5 }: { cols?: number }) => (
+  <tr className="animate-pulse">
+    {Array.from({ length: cols }).map((_, i) => (
+      <td key={i} className="px-4 py-3">
+        <div className="skeleton h-3.5 rounded" style={{ width: `${60 + Math.random() * 30}%` }} />
+      </td>
+    ))}
+  </tr>
+);
+
+export const SkeletonTable = ({ rows = 5, cols = 5 }: { rows?: number; cols?: number }) => (
+  <div className="table-wrapper">
+    <table className="table">
+      <thead>
+        <tr>
+          {Array.from({ length: cols }).map((_, i) => (
+            <th key={i}><div className="skeleton h-3 w-20 rounded" /></th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length: rows }).map((_, i) => (
+          <SkeletonRow key={i} cols={cols} />
         ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+export const SkeletonList = ({ rows = 4 }: { rows?: number }) => (
+  <div className="space-y-3">
+    {Array.from({ length: rows }).map((_, i) => (
+      <div key={i} className="flex items-center gap-3 animate-pulse">
+        <div className="skeleton h-10 w-10 rounded-lg flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="skeleton h-3.5 w-3/4 rounded" />
+          <div className="skeleton h-2.5 w-1/2 rounded" />
+        </div>
+        <div className="skeleton h-6 w-16 rounded-full" />
       </div>
-    </div>
-  );
-}
+    ))}
+  </div>
+);

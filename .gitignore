@@ -1,4 +1,4 @@
-# Sanctus Project - Comprehensive .gitignore
+# OCMIS Project - Comprehensive .gitignore
 # This file ignores files/folders that should not be uploaded to GitHub
 
 # =============================================================================
@@ -269,7 +269,7 @@ site/
 .stylelintcache
 
 # =============================================================================
-# SPECIFIC TO SANCTUS PROJECT
+# SPECIFIC TO OCMIS PROJECT
 # =============================================================================
 # Local development files
 dev/

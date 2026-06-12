@@ -4,30 +4,21 @@ import { api } from '../api/client';
 import { DashboardStats, Parish, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
-  Users,
-  Calendar,
-  Clock,
-  MapPin,
-  TrendingUp,
-  Church,
-  Star,
-  Globe,
-  Building,
-  Repeat,
-  Coins, FileText, UserPlus, Home, Layers, ArrowRight, Search,
-  TrendingDown, Activity, PieChart, BarChart3,
-  UserCheck, Settings, Eye, Shield, CreditCard, FileSpreadsheet, Award,
-  Church as LiturgicalIcon,
-  CalendarDays,
-  AlertTriangle,
-  CheckCircle,
-  Info,
-  X as XIcon
+  Users, Calendar, Clock, MapPin, TrendingUp, Church, Star, Globe,
+  Building, Repeat, Coins, FileText, UserPlus, Home, Layers, ArrowRight,
+  Search, TrendingDown, Activity, PieChart, BarChart3, UserCheck, Settings,
+  Eye, Shield, CreditCard, FileSpreadsheet, Award,
+  Church as LiturgicalIcon, CalendarDays, AlertTriangle, CheckCircle, Info,
+  X as XIcon, Bell, Plus,
 } from 'lucide-react';
 import { format, isToday, isTomorrow } from 'date-fns';
 import ImportButton from '../components/ImportButton';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface RoleBasedStats extends DashboardStats {
   parish_growth?: number;
   monthly_income?: number;
@@ -35,716 +26,818 @@ interface RoleBasedStats extends DashboardStats {
   member_attendance?: number;
   pending_tasks?: number;
 }
-
 interface UpcomingEvent {
-  id: string;
-  title: string;
-  description?: string;
-  start_date: string;
-  start_time?: string;
-  end_time?: string;
-  location?: string;
-  is_recurring: boolean;
-  current_participants: number;
-  max_participants?: number;   // was 'participants' — fixed to match type
-  status: 'draft' | 'published' | 'cancelled';
-  scope: 'diocese' | 'parish';
+  id: string; title: string; description?: string; start_date: string;
+  start_time?: string; end_time?: string; location?: string;
+  is_recurring: boolean; current_participants: number; max_participants?: number;
+  status: 'draft' | 'published' | 'cancelled'; scope: 'diocese' | 'parish';
 }
-
 interface LiturgicalDay {
-  id: string;
-  date: string;
-  title: string;
-  description: string;
+  id: string; date: string; title: string; description: string;
   feast_type: 'SOLEMNITY' | 'FEAST' | 'MEMORIAL' | 'OPTIONAL_MEMORIAL';
   liturgical_season: 'ADVENT' | 'CHRISTMAS' | 'LENT' | 'HOLY_WEEK' | 'EASTER' | 'ORDINARY_TIME';
   liturgical_color: 'WHITE' | 'RED' | 'GREEN' | 'VIOLET' | 'ROSE' | 'BLACK' | 'GOLD';
   rank: number;
 }
-
-interface Notification {
-  id: string;
-  type: 'success' | 'warning' | 'info' | 'error';
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
+interface AppNotification {
+  id: string; type: 'success' | 'warning' | 'info' | 'error';
+  title: string; message: string; time: string; read: boolean;
 }
 
+// ── Skeleton helpers ──────────────────────────────────────────────────────────
+const Sk = ({ w = 'w-full', h = 'h-3' }: { w?: string; h?: string }) => (
+  <div className={`skeleton ${w} ${h}`} />
+);
+const SkCard = () => (
+  <div className="stat-card animate-pulse">
+    <div className="flex-1 space-y-3">
+      <Sk w="w-24" h="h-3" />
+      <Sk w="w-20" h="h-7" />
+      <Sk w="w-16" h="h-2.5" />
+    </div>
+    <div className="skeleton w-12 h-12 rounded-xl" />
+  </div>
+);
+
+// ── Gradient map ──────────────────────────────────────────────────────────────
+const GRADIENTS: Record<string, { from: string; to: string }> = {
+  blue: { from: '#3b82f6', to: '#2563eb' },
+  green: { from: '#10b981', to: '#059669' },
+  red: { from: '#ef4444', to: '#dc2626' },
+  purple: { from: '#8b5cf6', to: '#7c3aed' },
+  amber: { from: '#f59e0b', to: '#d97706' },
+  indigo: { from: '#6366f1', to: '#4f46e5' },
+  orange: { from: '#f97316', to: '#ea580c' },
+  teal: { from: '#14b8a6', to: '#0d9488' },
+  gray: { from: '#6b7280', to: '#4b5563' },
+};
+const GradBubble = ({ color, children }: { color: string; children: React.ReactNode }) => {
+  const g = GRADIENTS[color] || GRADIENTS.indigo;
+  return (
+    <div
+      className="p-3 rounded-xl shadow-sm flex items-center justify-center
+                 group-hover:scale-110 transition-transform duration-200 flex-shrink-0"
+      style={{ background: `linear-gradient(135deg, ${g.from}, ${g.to})` }}
+    >
+      {children}
+    </div>
+  );
+};
+
+// ── Liturgical season badge ───────────────────────────────────────────────────
+const seasonCls: Record<string, string> = {
+  ADVENT: 'bg-purple-100 text-purple-800 border-purple-200',
+  CHRISTMAS: 'bg-red-100 text-red-800 border-red-200',
+  LENT: 'bg-gray-100 text-gray-700 border-gray-200',
+  HOLY_WEEK: 'bg-red-100 text-red-800 border-red-200',
+  EASTER: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  ORDINARY_TIME: 'bg-green-100 text-green-800 border-green-200',
+};
+const litColorCls: Record<string, string> = {
+  WHITE: 'bg-white border-gray-300', RED: 'bg-red-500 border-red-500',
+  GREEN: 'bg-green-500 border-green-500', VIOLET: 'bg-purple-500 border-purple-500',
+  ROSE: 'bg-pink-300 border-pink-300', BLACK: 'bg-gray-900 border-gray-900',
+  GOLD: 'bg-yellow-400 border-yellow-400',
+};
+
+// ── Notification icon ─────────────────────────────────────────────────────────
+const NotifIcon = ({ type }: { type: AppNotification['type'] }) => {
+  const map = {
+    success: { icon: CheckCircle, bg: 'bg-emerald-50', text: 'text-emerald-600' },
+    warning: { icon: AlertTriangle, bg: 'bg-amber-50', text: 'text-amber-600' },
+    error: { icon: XIcon, bg: 'bg-red-50', text: 'text-red-600' },
+    info: { icon: Info, bg: 'bg-blue-50', text: 'text-blue-600' },
+  };
+  const { icon: Icon, bg, text } = map[type];
+  return (
+    <div className={`p-2 rounded-lg flex-shrink-0 ${bg} ${text}`}>
+      <Icon size={14} />
+    </div>
+  );
+};
+
+// ── Main component ────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [stats, setStats] = useState<RoleBasedStats | null>(null);
   const [parishes, setParishes] = useState<Parish[]>([]);
-  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
-  const [liturgicalDays, setLiturgicalDays] = useState<LiturgicalDay[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [events, setEvents] = useState<UpcomingEvent[]>([]);
+  const [litDays, setLitDays] = useState<LiturgicalDay[]>([]);
+  const [notifications, setNotifs] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Chart data derived from stats
-  const incomeExpenseData = stats ? [
-    { month: 'Current', income: stats.monthly_income ?? 0, expenses: stats.monthly_expenses ?? 0 },
-  ] : [];
-
-  const attendanceData = stats ? [
-    { week: 'This Month', attendance: stats.member_attendance ?? 0 },
-  ] : [];
-
-  const getAccessibleParishes = (allParishes: Parish[]) => {
-    if (!user) return [];
-    if (user.role === UserRole.SUPER_ADMIN) return allParishes;
-    return allParishes.filter(p => p.id === user.parish_id && p.is_active);
-  };
+  // Chart data — 6-month mock trend (real data plugs in via stats)
+  const chartData = [
+    { month: 'Jan', income: 0, expenses: 0 },
+    { month: 'Feb', income: 0, expenses: 0 },
+    { month: 'Mar', income: 0, expenses: 0 },
+    { month: 'Apr', income: 0, expenses: 0 },
+    { month: 'May', income: 0, expenses: 0 },
+    {
+      month: 'Jun',
+      income: stats?.monthly_income ?? 0,
+      expenses: stats?.monthly_expenses ?? 0
+    },
+  ];
 
   useEffect(() => {
-    const fetchData = async () => {
+    const run = async () => {
       try {
-        const [s, allParishes] = await Promise.all([api.getDashboardStats(), api.listParishes()]);
-        const accessibleParishes = getAccessibleParishes(allParishes);
-        let filteredStats = s;
-        if (user?.role !== UserRole.SUPER_ADMIN && user?.parish_id) {
-          filteredStats = { ...s };
-        }
+        const [s, allParishes] = await Promise.all([
+          api.getDashboardStats(), api.listParishes(),
+        ]);
+        const accessible = user?.role === UserRole.SUPER_ADMIN
+          ? allParishes
+          : allParishes.filter(p => p.id === user?.parish_id && p.is_active);
 
-        // Fetch real upcoming events from API
-        let eventsData: UpcomingEvent[] = [];
+        setStats(s);
+        setParishes(accessible);
+
+        // Events
         try {
-          const events = await api.listEvents({ start_date_from: format(new Date(), 'yyyy-MM-dd'), limit: 5 });
-          eventsData = events.map(e => ({
+          const ev = await api.listEvents({
+            start_date_from: format(new Date(), 'yyyy-MM-dd'), limit: 5,
+          });
+          setEvents(ev.map(e => ({
             id: e.id, title: e.title, description: e.description,
             start_date: e.start_date, start_time: e.start_time, end_time: e.end_time,
             location: e.location, max_participants: e.max_participants ?? undefined,
             current_participants: e.current_participants ?? 0,
             status: e.event_status.toLowerCase() as UpcomingEvent['status'],
-            is_recurring: e.recurrence_pattern !== 'NONE', scope: e.scope.toLowerCase() as UpcomingEvent['scope'],
-          }));
-        } catch { /* fallback to empty */ }
+            is_recurring: e.recurrence_pattern !== 'NONE',
+            scope: e.scope.toLowerCase() as UpcomingEvent['scope'],
+          })));
+        } catch { /* leave empty */ }
 
-        // Fetch real liturgical calendar from API
-        let liturgicalData: LiturgicalDay[] = [];
+        // Liturgical calendar
         try {
-          const litDays = await api.listLiturgicalCalendar({ date_from: format(new Date(), 'yyyy-MM-dd'), limit: 5 });
-          liturgicalData = litDays.map(d => ({
+          const ld = await api.listLiturgicalCalendar({
+            date_from: format(new Date(), 'yyyy-MM-dd'), limit: 4,
+          });
+          setLitDays(ld.map(d => ({
             id: d.id, date: d.date, title: d.title, description: d.description ?? '',
             feast_type: d.feast_type, liturgical_season: d.liturgical_season,
             liturgical_color: d.liturgical_color, rank: d.rank,
-          }));
-        } catch { /* fallback to empty */ }
+          })));
+        } catch { /* leave empty */ }
 
-        setStats(filteredStats);
-        setParishes(accessibleParishes);
-        setUpcomingEvents(eventsData);
-        setLiturgicalDays(liturgicalData);
-
-        // Fetch real notifications from API
+        // Notifications
         try {
           const notifs = await api.listNotifications({ limit: 5 });
-          setNotifications(notifs.map(n => ({
-            id: n.id, type: (n.status === 'FAILED' ? 'error' : n.status === 'DELIVERED' ? 'success' : n.status === 'PENDING' ? 'info' : 'warning') as Notification['type'],
-            title: n.subject ?? n.notification_type, message: n.message,
-            time: n.sent_at ?? n.created_at ?? '', read: n.status === 'DELIVERED',
+          setNotifs(notifs.map(n => ({
+            id: n.id,
+            type: n.status === 'FAILED' ? 'error'
+              : n.status === 'DELIVERED' ? 'success'
+                : n.status === 'PENDING' ? 'info' : 'warning',
+            title: n.subject ?? n.notification_type,
+            message: n.message,
+            time: n.sent_at ?? n.created_at ?? '',
+            read: n.status === 'DELIVERED',
           })));
-        } catch { setNotifications([]); }
-      } catch (err) {
-        console.error('Failed to load dashboard stats:', err);
-        setError('Failed to load dashboard statistics');
+        } catch { setNotifs([]); }
+      } catch {
+        setError('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    run();
   }, [user]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
+  // ── Stat cards config ────────────────────────────────────────────────────────
+  const statCards = (() => {
+    if (!stats) return [];
+    const fmt = (n: number) =>
+      n.toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 });
 
-  if (error) {
-    return <div className="text-center py-12 text-red-500">{error}</div>;
-  }
+    switch (user?.role) {
+      case UserRole.SUPER_ADMIN: return [
+        { title: 'Total Parishes', value: (stats.active_parishes || 0).toLocaleString(), sub: 'Across diocese', icon: Church, color: 'indigo', path: '/parishes' },
+        { title: 'Total Members', value: (stats.total_members || 0).toLocaleString(), sub: 'Registered parishioners', icon: Users, color: 'blue', path: '/members' },
+        { title: 'Total Income', value: fmt(stats.total_income || 0), sub: 'All parishes', icon: Coins, color: 'green', path: '/finance' },
+        { title: 'Active Users', value: '—', sub: 'System users', icon: UserCheck, color: 'purple', path: '/users' },
+      ];
+      case UserRole.PARISH_ADMIN: return [
+        { title: 'Parish Members', value: (stats.total_members || 0).toLocaleString(), sub: 'Registered', icon: Users, color: 'blue', path: '/members' },
+        { title: 'Monthly Income', value: fmt(stats.monthly_income || 0), sub: 'This month', icon: TrendingUp, color: 'green', path: '/finance' },
+        { title: 'Attendance', value: stats.member_attendance ? `${stats.member_attendance}%` : '—', sub: 'Average Sunday', icon: Activity, color: 'purple', path: '/attendance' },
+        { title: 'Families', value: (stats.total_families || 0).toLocaleString(), sub: 'Registered families', icon: Home, color: 'amber', path: '/families' },
+      ];
+      case UserRole.ACCOUNTANT: return [
+        { title: 'Monthly Income', value: fmt(stats.monthly_income || stats.total_income || 0), sub: 'This month', icon: TrendingUp, color: 'green', path: '/finance' },
+        { title: 'Monthly Expenses', value: fmt(stats.monthly_expenses || stats.total_expenses || 0), sub: 'This month', icon: TrendingDown, color: 'red', path: '/finance' },
+        { title: 'Pending Vouchers', value: (stats.pending_approvals || 0).toLocaleString(), sub: 'Need approval', icon: FileText, color: 'orange', path: '/finance?tab=pending' },
+        { title: 'Budget Used', value: stats.budget_used_percentage ? `${stats.budget_used_percentage}%` : '—', sub: 'Of annual budget', icon: PieChart, color: 'purple', path: '/budgets' },
+      ];
+      case UserRole.SECRETARY: return [
+        { title: 'Parish Members', value: (stats.total_members || 0).toLocaleString(), sub: 'Registered', icon: Users, color: 'blue', path: '/members' },
+        { title: 'Sacraments', value: (stats.sacraments_this_month || 0).toLocaleString(), sub: 'This month', icon: Layers, color: 'amber', path: '/sacraments' },
+        { title: 'Pending Tasks', value: (stats.pending_tasks || 0).toLocaleString(), sub: 'Need attention', icon: FileText, color: 'orange', path: '/' },
+        { title: 'Certificates', value: '—', sub: 'Issued this month', icon: Award, color: 'green', path: '/certificates' },
+      ];
+      default: return [
+        { title: 'Members', value: (stats.total_members || 0).toLocaleString(), sub: 'Total registered', icon: Users, color: 'blue', path: '/members' },
+        { title: 'Events', value: (stats.upcoming_events || 0).toLocaleString(), sub: 'Upcoming', icon: Activity, color: 'green', path: '/events' },
+      ];
+    }
+  })();
+
+  // ── Quick actions config ─────────────────────────────────────────────────────
+  const quickActions = (() => {
+    switch (user?.role) {
+      case UserRole.SUPER_ADMIN: return [
+        { icon: Users, label: 'Manage Users', path: '/users', color: 'blue' },
+        { icon: Church, label: 'Manage Parishes', path: '/parishes', color: 'indigo' },
+        { icon: Shield, label: 'Roles', path: '/roles', color: 'purple' },
+        { icon: Settings, label: 'Settings', path: '/settings', color: 'gray' },
+        { icon: BarChart3, label: 'Reports', path: '/reports', color: 'green' },
+      ];
+      case UserRole.PARISH_ADMIN: return [
+        { icon: UserPlus, label: 'Add Member', path: '/members', color: 'blue' },
+        { icon: Home, label: 'Add Family', path: '/families', color: 'purple' },
+        { icon: MapPin, label: 'Add SCC', path: '/clusters', color: 'teal' },
+        { icon: Layers, label: 'Sacrament', path: '/sacraments', color: 'amber' },
+        { icon: Eye, label: 'Parish Profile', path: '/parish-profile', color: 'indigo' },
+      ];
+      case UserRole.ACCOUNTANT: return [
+        { icon: Coins, label: 'Record Income', path: '/finance?tab=income', color: 'green' },
+        { icon: CreditCard, label: 'Record Expense', path: '/finance?tab=expenses', color: 'red' },
+        { icon: FileText, label: 'Vouchers', path: '/finance?tab=pending', color: 'orange' },
+        { icon: PieChart, label: 'Reports', path: '/reports', color: 'purple' },
+        { icon: FileSpreadsheet, label: 'Budgets', path: '/budgets', color: 'blue' },
+      ];
+      case UserRole.SECRETARY: return [
+        { icon: UserPlus, label: 'Add Member', path: '/members', color: 'blue' },
+        { icon: Layers, label: 'Sacrament', path: '/sacraments', color: 'amber' },
+        { icon: FileText, label: 'Reports', path: '/reports', color: 'purple' },
+        { icon: Calendar, label: 'Events', path: '/events', color: 'indigo' },
+        { icon: Award, label: 'Certificates', path: '/certificates', color: 'green' },
+      ];
+      default: return [
+        { icon: Eye, label: 'View Members', path: '/members', color: 'blue' },
+        { icon: BarChart3, label: 'Reports', path: '/reports', color: 'purple' },
+      ];
+    }
+  })();
 
   const filteredParishes = parishes.filter(p =>
     p.parish_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.parish_code.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getRoleSpecificQuickActions = () => {
-    const actions = [];
-    switch (user?.role) {
-      case UserRole.SUPER_ADMIN:
-        actions.push(
-          { icon: Users, label: 'Manage Users', path: '/users', color: 'blue' },
-          { icon: Church, label: 'Manage Parishes', path: '/parishes', color: 'indigo' },
-          { icon: Shield, label: 'Role Management', path: '/roles', color: 'purple' },
-          { icon: Settings, label: 'System Settings', path: '/settings', color: 'gray' },
-          { icon: BarChart3, label: 'All Reports', path: '/reports', color: 'green' }
-        );
-        break;
-      case UserRole.PARISH_ADMIN:
-        actions.push(
-          { icon: UserPlus, label: 'Add Member', path: '/members', color: 'blue' },
-          { icon: Home, label: 'Add Family', path: '/families', color: 'purple' },
-          { icon: MapPin, label: 'Add SCC/Cluster', path: '/clusters', color: 'teal' },
-          { icon: Layers, label: 'Add Sacrament', path: '/sacraments', color: 'amber' },
-          { icon: Eye, label: 'Parish Profile', path: '/parish-profile', color: 'indigo' }
-        );
-        break;
-      case UserRole.ACCOUNTANT:
-        actions.push(
-          { icon: Coins, label: 'Record Income', path: '/finance?tab=income', color: 'green' },
-          { icon: CreditCard, label: 'Record Expense', path: '/finance?tab=expenses', color: 'red' },
-          { icon: FileText, label: 'Pending Vouchers', path: '/finance?tab=pending', color: 'orange' },
-          { icon: PieChart, label: 'Financial Reports', path: '/reports', color: 'purple' },
-          { icon: FileSpreadsheet, label: 'Budget Management', path: '/budgets', color: 'blue' }
-        );
-        break;
-      case UserRole.SECRETARY:
-        actions.push(
-          { icon: UserPlus, label: 'Add Member', path: '/members', color: 'blue' },
-          { icon: Layers, label: 'Add Sacrament', path: '/sacraments', color: 'amber' },
-          { icon: FileText, label: 'Generate Reports', path: '/reports', color: 'purple' },
-          { icon: Calendar, label: 'Manage Events', path: '/events', color: 'indigo' },
-          { icon: Award, label: 'Certificates', path: '/certificates', color: 'green' }
-        );
-        break;
-      case UserRole.VIEWER:
-        actions.push(
-          { icon: Eye, label: 'View Members', path: '/members', color: 'blue' },
-          { icon: Church, label: 'Parish Info', path: '/parish-profile', color: 'indigo' },
-          { icon: BarChart3, label: 'View Reports', path: '/reports', color: 'purple' },
-          { icon: Calendar, label: 'View Calendar', path: '/calendar', color: 'green' }
-        );
-        break;
-      default:
-        actions.push({ icon: Eye, label: 'View Dashboard', path: '/dashboard', color: 'gray' });
-    }
-    return actions;
-  };
+  const canFinance = user?.role === UserRole.SUPER_ADMIN ||
+    user?.role === UserRole.PARISH_ADMIN ||
+    user?.role === UserRole.ACCOUNTANT;
+  const canPeople = user?.role === UserRole.SUPER_ADMIN ||
+    user?.role === UserRole.PARISH_ADMIN ||
+    user?.role === UserRole.SECRETARY;
 
-  const getRoleSpecificStats = () => {
-    const stats_cards = [];
-    switch (user?.role) {
-      case UserRole.SUPER_ADMIN:
-        stats_cards.push(
-          { title: 'Total Parishes', value: (stats?.active_parishes || 0).toLocaleString(), subtitle: 'Across diocese', icon: Church, color: 'indigo', trend: stats?.parish_growth ? { value: stats.parish_growth, isPositive: stats.parish_growth > 0 } : undefined },
-          { title: 'Total Members', value: (stats?.total_members || 0).toLocaleString(), subtitle: 'Registered parishioners', icon: Users, color: 'blue', trend: undefined },
-          { title: 'Total Income', value: Number(stats?.total_income || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }), subtitle: 'All parishes combined', icon: Coins, color: 'green', trend: undefined },
-          { title: 'Active Users', value: '124', subtitle: 'System users', icon: UserCheck, color: 'purple', trend: undefined }
-        );
-        break;
-      case UserRole.PARISH_ADMIN:
-        stats_cards.push(
-          { title: 'Parish Members', value: (stats?.total_members || 0).toLocaleString(), subtitle: 'Registered members', icon: Users, color: 'blue', trend: undefined },
-          { title: 'Monthly Income', value: Number(stats?.monthly_income || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }), subtitle: 'This month', icon: TrendingUp, color: 'green', trend: undefined },
-          { title: 'Attendance Rate', value: stats?.member_attendance ? `${stats.member_attendance}%` : '0%', subtitle: 'Average Sunday attendance', icon: Activity, color: 'purple', trend: undefined },
-          { title: 'Families', value: (stats?.total_families || 0).toLocaleString(), subtitle: 'Registered families', icon: Home, color: 'amber', trend: undefined }
-        );
-        break;
-      case UserRole.ACCOUNTANT:
-        stats_cards.push(
-          { title: 'Monthly Income', value: Number(stats?.monthly_income || stats?.total_income || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }), subtitle: 'This month', icon: TrendingUp, color: 'green', trend: undefined },
-          { title: 'Monthly Expenses', value: Number(stats?.monthly_expenses || stats?.total_expenses || 0).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS', maximumFractionDigits: 0 }), subtitle: 'This month', icon: TrendingDown, color: 'red', trend: undefined },
-          { title: 'Pending Vouchers', value: (stats?.pending_approvals || 0).toLocaleString(), subtitle: 'Need approval', icon: FileText, color: 'orange', trend: undefined },
-          { title: 'Budget Used', value: stats?.budget_used_percentage ? `${stats.budget_used_percentage}%` : '0%', subtitle: 'Of annual budget', icon: PieChart, color: 'purple', trend: undefined }
-        );
-        break;
-      case UserRole.SECRETARY:
-        stats_cards.push(
-          { title: 'Parish Members', value: (stats?.total_members || 0).toLocaleString(), subtitle: 'Registered members', icon: Users, color: 'blue', trend: undefined },
-          { title: 'Sacraments This Month', value: (stats?.sacraments_this_month || 0).toLocaleString(), subtitle: 'Baptisms, marriages, etc.', icon: Layers, color: 'amber', trend: undefined },
-          { title: 'Pending Tasks', value: (stats?.pending_tasks || 0).toLocaleString(), subtitle: 'Need attention', icon: FileText, color: 'orange', trend: undefined },
-          { title: 'Certificates Issued', value: '0', subtitle: 'This month', icon: Award, color: 'green', trend: undefined }
-        );
-        break;
-      case UserRole.VIEWER:
-        stats_cards.push(
-          { title: 'Parish Members', value: (stats?.total_members || 0).toLocaleString(), subtitle: 'Total registered', icon: Users, color: 'blue', trend: undefined },
-          { title: 'Mass Schedule', value: '0', subtitle: 'This week', icon: Calendar, color: 'purple', trend: undefined },
-          { title: 'Events', value: (stats?.upcoming_events || 0).toLocaleString(), subtitle: 'Upcoming', icon: Activity, color: 'green', trend: undefined },
-          { title: 'Announcements', value: '0', subtitle: 'Latest updates', icon: FileText, color: 'amber', trend: undefined }
-        );
-        break;
-    }
-    return stats_cards;
-  };
-
-  const getColorClasses = (color: string) => {
-    const colors: Record<string, { bg: string; text: string; hover: string; gradient: string }> = {
-      blue: { bg: 'bg-blue-50', text: 'text-blue-600', hover: 'hover:bg-blue-100', gradient: 'from-blue-500 to-blue-600' },
-      green: { bg: 'bg-green-50', text: 'text-green-600', hover: 'hover:bg-green-100', gradient: 'from-green-500 to-green-600' },
-      red: { bg: 'bg-red-50', text: 'text-red-600', hover: 'hover:bg-red-100', gradient: 'from-red-500 to-red-600' },
-      purple: { bg: 'bg-purple-50', text: 'text-purple-600', hover: 'hover:bg-purple-100', gradient: 'from-purple-500 to-purple-600' },
-      amber: { bg: 'bg-amber-50', text: 'text-amber-600', hover: 'hover:bg-amber-100', gradient: 'from-amber-500 to-amber-600' },
-      indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', hover: 'hover:bg-indigo-100', gradient: 'from-indigo-500 to-indigo-600' },
-      orange: { bg: 'bg-orange-50', text: 'text-orange-600', hover: 'hover:bg-orange-100', gradient: 'from-orange-500 to-orange-600' },
-      gray: { bg: 'bg-gray-50', text: 'text-gray-600', hover: 'hover:bg-gray-100', gradient: 'from-gray-500 to-gray-600' },
-      teal: { bg: 'bg-teal-50', text: 'text-teal-600', hover: 'hover:bg-teal-100', gradient: 'from-teal-500 to-teal-600' }
-    };
-    return colors[color] || colors.blue;
-  };
-
-  const getSeasonColor = (season: string) => {
-    switch (season) {
-      case 'ADVENT': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'CHRISTMAS': return 'bg-red-100 text-red-800 border-red-200';
-      case 'LENT': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'HOLY_WEEK': return 'bg-red-100 text-red-800 border-red-200';
-      case 'EASTER': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'ORDINARY_TIME': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getLiturgicalColorClass = (color: string) => {
-    switch (color) {
-      case 'WHITE': return 'bg-white border-gray-300';
-      case 'RED': return 'bg-red-500';
-      case 'GREEN': return 'bg-green-500';
-      case 'VIOLET': return 'bg-purple-500';
-      case 'ROSE': return 'bg-pink-300';
-      case 'BLACK': return 'bg-black';
-      case 'GOLD': return 'bg-yellow-400';
-      default: return 'bg-gray-400';
-    }
-  };
+  // ── Render ────────────────────────────────────────────────────────────────────
+  if (error) return (
+    <div className="flex flex-col items-center justify-center h-64 gap-3">
+      <XIcon size={32} className="text-red-400" />
+      <p className="text-secondary-500">{error}</p>
+      <button onClick={() => window.location.reload()} className="btn-secondary text-sm">Retry</button>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 animate-fade-in">
+
+      {/* ── Page header ─────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-secondary-800">
-            Welcome back, {user?.full_name?.split(' ')[0]}!
+          <h1 className="text-xl font-bold text-secondary-900">
+            Welcome back, {user?.full_name?.split(' ')[0]}
+            <span className="text-secondary-300 font-normal"> 👋</span>
           </h1>
-          <p className="text-secondary-500 text-sm mt-1">
-            {user?.role === UserRole.SUPER_ADMIN && 'Super Admin Dashboard'}
-            {user?.role === UserRole.PARISH_ADMIN && 'Parish Administration'}
-            {user?.role === UserRole.ACCOUNTANT && 'Financial Management'}
-            {user?.role === UserRole.SECRETARY && 'Parish Secretariat'}
-            {user?.role === UserRole.VIEWER && 'Parish Information'}
+          <p className="text-secondary-500 text-sm mt-0.5">
+            {{
+              [UserRole.SUPER_ADMIN]: 'Super Admin Dashboard',
+              [UserRole.PARISH_ADMIN]: 'Parish Administration',
+              [UserRole.ACCOUNTANT]: 'Financial Management',
+              [UserRole.SECRETARY]: 'Parish Secretariat',
+              [UserRole.VIEWER]: 'Parish Information',
+            }[user?.role ?? UserRole.VIEWER] ?? 'Dashboard'}
           </p>
         </div>
         {user?.role === UserRole.SUPER_ADMIN && (
-          <div className="relative w-full sm:w-64">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400" />
+          <div className="relative w-full sm:w-60">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400" />
             <input
-              type="text"
-              placeholder="Search parishes..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/50 bg-white"
+              type="text" placeholder="Search parishes…"
+              value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+              className="input-base pl-9 py-2"
             />
           </div>
         )}
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {getRoleSpecificStats().map((stat, index) => {
-          const colors = getColorClasses(stat.color);
-          const Icon = stat.icon;
-          return (
+      {/* ── Stat cards ──────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {loading
+          ? [1, 2, 3, 4].map(i => <SkCard key={i} />)
+          : statCards.map((s, i) => (
             <div
-              key={index}
-              className="bg-white p-6 rounded-card shadow-card hover:shadow-card-lg transition-all duration-300 cursor-pointer border border-slate-200 group"
-              onClick={() => {
-                if (stat.title.includes('Members')) navigate('/members');
-                else if (stat.title.includes('Parishes')) navigate('/parishes');
-                else if (stat.title.includes('Income') || stat.title.includes('Expenses')) navigate('/finance');
-                else if (stat.title.includes('Vouchers')) navigate('/finance?tab=pending');
-              }}
+              key={i}
+              className="stat-card group"
+              onClick={() => navigate(s.path)}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="text-secondary-500 text-sm font-medium mb-1">{stat.title}</h3>
-                  <p className="text-3xl font-bold text-secondary-800">{stat.value}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-secondary-400 text-xs">{stat.subtitle}</span>
-                    {stat.trend && (
-                      <span className={`flex items-center gap-1 text-xs ${stat.trend.isPositive ? 'text-success' : 'text-danger'}`}>
-                        {stat.trend.isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                        {stat.trend.value}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className={`p-3 bg-gradient-to-br ${colors.gradient} rounded-xl shadow-sm group-hover:scale-110 transition-transform duration-200`}>
-                  <Icon size={20} className="text-white" />
-                </div>
+              <div className="flex-1 min-w-0 mr-4">
+                <p className="text-xs font-medium text-secondary-500 mb-1">{s.title}</p>
+                <p className="text-2xl font-bold text-secondary-900 leading-tight">{s.value}</p>
+                <p className="text-xs text-secondary-400 mt-1.5">{s.sub}</p>
               </div>
+              <GradBubble color={s.color}>
+                <s.icon size={18} className="text-white" />
+              </GradBubble>
             </div>
-          );
-        })}
+          ))
+        }
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white p-6 rounded-card shadow-card border border-slate-200">
-        <h2 className="text-lg font-semibold text-secondary-800 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {getRoleSpecificQuickActions().map((action, index) => {
-            const colors = getColorClasses(action.color);
-            const Icon = action.icon;
-            return (
-              <button
-                key={index}
-                onClick={() => navigate(action.path)}
-                className="flex flex-col items-center gap-3 p-4 rounded-card border border-slate-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200 group"
-              >
-                <div className={`p-3 bg-gradient-to-br ${colors.gradient} rounded-xl shadow-sm group-hover:scale-110 transition-transform duration-200`}>
-                  <Icon size={20} className="text-white" />
-                </div>
-                <span className="text-sm font-medium text-secondary-700 text-center">{action.label}</span>
-              </button>
-            );
-          })}
+      {/* ── Quick actions ────────────────────────────────────── */}
+      <div className="section-card">
+        <h2 className="text-sm font-semibold text-secondary-700 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {quickActions.map((a, i) => (
+            <button key={i} onClick={() => navigate(a.path)} className="action-btn group">
+              <GradBubble color={a.color}>
+                <a.icon size={17} className="text-white" />
+              </GradBubble>
+              <span className="text-xs font-medium text-secondary-700">{a.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Analytics with Enhanced Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {(user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.PARISH_ADMIN || user?.role === UserRole.ACCOUNTANT) && (
-          <>
-            <div className="lg:col-span-2 bg-white p-6 rounded-card shadow-card border border-slate-200">
+      {/* ── Analytics row ───────────────────────────────────── */}
+      {(canFinance || canPeople) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          {/* Financial chart */}
+          {canFinance && (
+            <div className="section-card lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-secondary-800">Financial Performance</h3>
-                <select className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                  <option>Last 6 Months</option>
-                  <option>Last Year</option>
-                  <option>All Time</option>
+                <h3 className="text-sm font-semibold text-secondary-700">Financial Overview</h3>
+                <select className="input-base !w-auto py-1 text-xs">
+                  <option>Last 6 months</option>
+                  <option>This year</option>
                 </select>
               </div>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={incomeExpenseData}>
-                    <defs>
-                      <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} tickFormatter={(value) => `TZS ${(value / 1000000).toFixed(1)}M`} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                      formatter={(value: any) => `TZS ${typeof value === 'number' ? value.toLocaleString() : value}`}
-                    />
-                    <Area type="monotone" dataKey="income" stroke="#10B981" fillOpacity={1} fill="url(#colorIncome)" strokeWidth={2} />
-                    <Area type="monotone" dataKey="expenses" stroke="#EF4444" fillOpacity={1} fill="url(#colorExpense)" strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex items-center justify-center gap-6 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-success"></div>
-                  <span className="text-sm text-secondary-600">Income</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-danger"></div>
-                  <span className="text-sm text-secondary-600">Expenses</span>
-                </div>
+              {loading
+                ? <div className="skeleton h-56 rounded-xl" />
+                : (
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="gExpense" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="month" axisLine={false} tickLine={false}
+                          tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                        <YAxis axisLine={false} tickLine={false}
+                          tick={{ fontSize: 11, fill: '#94a3b8' }}
+                          tickFormatter={v => `${(v / 1e6).toFixed(1)}M`} />
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: 8, border: '1px solid #e2e8f0',
+                            boxShadow: '0 4px 12px rgb(0 0 0/0.08)', fontSize: 12
+                          }}
+                          formatter={(v: any) => `TZS ${Number(v).toLocaleString()}`}
+                        />
+                        <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2}
+                          fill="url(#gIncome)" dot={false} />
+                        <Area type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2}
+                          fill="url(#gExpense)" dot={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )
+              }
+              <div className="flex items-center gap-5 mt-3">
+                <span className="flex items-center gap-1.5 text-xs text-secondary-500">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Income
+                </span>
+                <span className="flex items-center gap-1.5 text-xs text-secondary-500">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Expenses
+                </span>
               </div>
             </div>
+          )}
 
-            <div className="bg-white p-6 rounded-card shadow-card border border-slate-200">
-              <h3 className="text-lg font-semibold text-secondary-800 mb-4">Notifications</h3>
-              <div className="space-y-3">
-                {notifications.slice(0, 4).map(notification => (
-                  <div key={notification.id} className={`p-3 rounded-lg border ${notification.read ? 'bg-background-light border-slate-200' : 'bg-white border-primary-200'} transition-all`}>
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${notification.type === 'success' ? 'bg-success/10 text-success' : notification.type === 'warning' ? 'bg-warning/10 text-warning' : notification.type === 'error' ? 'bg-danger/10 text-danger' : 'bg-info/10 text-info'}`}>
-                        {notification.type === 'success' && <CheckCircle size={16} />}
-                        {notification.type === 'warning' && <AlertTriangle size={16} />}
-                        {notification.type === 'error' && <XIcon size={16} />}
-                        {notification.type === 'info' && <Info size={16} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-secondary-800">{notification.title}</p>
-                        <p className="text-xs text-secondary-500 mt-0.5 truncate">{notification.message}</p>
-                        <p className="text-xs text-secondary-400 mt-1">{notification.time}</p>
-                      </div>
-                      {!notification.read && (
-                        <div className="w-2 h-2 rounded-full bg-primary-600 flex-shrink-0"></div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => navigate('/notifications')} className="w-full mt-4 text-sm text-primary-600 hover:text-primary-700 font-medium text-center">
-                View All Notifications
+          {/* Notifications panel */}
+          <div className="section-card flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-secondary-700 flex items-center gap-2">
+                <Bell size={14} className="text-secondary-400" />
+                Notifications
+              </h3>
+              <button onClick={() => navigate('/notifications')}
+                className="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                View all
               </button>
             </div>
-          </>
-        )}
-      </div>
-
-      {/* Attendance Chart */}
-      {(user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.PARISH_ADMIN || user?.role === UserRole.SECRETARY) && (
-        <div className="bg-white p-6 rounded-card shadow-card border border-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-secondary-800">Weekly Attendance Trend</h3>
-            <select className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500">
-              <option>This Month</option>
-              <option>Last Month</option>
-              <option>Last 3 Months</option>
-            </select>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={attendanceData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748B' }} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
-                <Tooltip
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                  formatter={(value: any) => `${value}%`}
-                />
-                <Bar dataKey="attendance" fill="#4F46E5" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {loading
+              ? <div className="space-y-3">{[1, 2, 3].map(i => (
+                <div key={i} className="flex gap-2 animate-pulse">
+                  <div className="skeleton w-8 h-8 rounded-lg flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Sk w="w-3/4" h="h-3" />
+                    <Sk w="w-1/2" h="h-2.5" />
+                  </div>
+                </div>
+              ))}</div>
+              : notifications.length === 0
+                ? (
+                  <div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
+                    <Bell size={24} className="text-secondary-200 mb-2" />
+                    <p className="text-sm text-secondary-400">No notifications</p>
+                  </div>
+                )
+                : (
+                  <div className="space-y-2 flex-1">
+                    {notifications.slice(0, 4).map(n => (
+                      <div key={n.id}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-lg border
+                                      transition-colors duration-150
+                                      ${n.read
+                            ? 'bg-transparent border-secondary-100'
+                            : 'bg-indigo-50/40 border-indigo-100'}`}>
+                        <NotifIcon type={n.type} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-secondary-800 truncate">{n.title}</p>
+                          <p className="text-xs text-secondary-500 truncate mt-0.5">{n.message}</p>
+                        </div>
+                        {!n.read && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1 flex-shrink-0" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+            }
           </div>
         </div>
       )}
 
-      {/* Parishes List */}
+      {/* ── Attendance bar chart ─────────────────────────────── */}
+      {canPeople && (
+        <div className="section-card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-secondary-700">Attendance Trend</h3>
+            <select className="input-base !w-auto py-1 text-xs">
+              <option>This month</option>
+              <option>Last month</option>
+            </select>
+          </div>
+          {loading
+            ? <div className="skeleton h-48 rounded-xl" />
+            : (
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      { week: 'Week 1', pct: 0 },
+                      { week: 'Week 2', pct: 0 },
+                      { week: 'Week 3', pct: 0 },
+                      { week: 'Week 4', pct: stats?.member_attendance ?? 0 },
+                    ]}
+                    margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="week" axisLine={false} tickLine={false}
+                      tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                    <YAxis axisLine={false} tickLine={false} domain={[0, 100]}
+                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      tickFormatter={v => `${v}%`} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }}
+                      formatter={(v: any) => [`${v}%`, 'Attendance']}
+                    />
+                    <Bar dataKey="pct" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )
+          }
+        </div>
+      )}
+
+      {/* ── Parishes grid ───────────────────────────────────── */}
       {user?.role === UserRole.SUPER_ADMIN && (
-        <div className="bg-white p-6 rounded-card shadow-card border border-slate-200">
-          <h2 className="text-lg font-semibold text-secondary-800 mb-4">All Parishes ({filteredParishes.length})</h2>
-          {filteredParishes.length === 0 ? (
-            <div className="text-center py-8 text-secondary-500">
-              <Church size={32} className="mx-auto text-secondary-300 mb-2" />
-              <p>No parishes found</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredParishes.map(parish => (
-                <div
-                  key={parish.id}
-                  onClick={() => navigate(`/parishes/${parish.id}`)}
-                  className="p-4 rounded-card border border-slate-200 hover:border-primary-300 hover:bg-primary-50 transition-all cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold shadow-sm">
-                      {parish.parish_name[0]}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-secondary-800 truncate">{parish.parish_name}</h3>
-                      <p className="text-xs text-secondary-500">{parish.parish_code}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-secondary-500">
-                    <span className={`flex items-center gap-1 ${parish.is_active ? 'text-success' : 'text-danger'}`}>
-                      <Activity size={14} />
-                      {parish.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                    {parish.contact_phone && <span>{parish.contact_phone}</span>}
+        <div className="section-card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-secondary-700">
+              All Parishes
+              <span className="ml-2 badge badge-neutral">{filteredParishes.length}</span>
+            </h2>
+            <button onClick={() => navigate('/parishes')}
+              className="text-xs text-primary-600 hover:text-primary-700 font-medium">
+              Manage
+            </button>
+          </div>
+          {loading
+            ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="animate-pulse flex gap-3 p-3 border border-secondary-100 rounded-card">
+                  <div className="skeleton w-10 h-10 rounded-xl flex-shrink-0" />
+                  <div className="flex-1 space-y-2 py-1">
+                    <Sk w="w-3/4" h="h-3" />
+                    <Sk w="w-1/3" h="h-2.5" />
                   </div>
                 </div>
               ))}
             </div>
-          )}
+            : filteredParishes.length === 0
+              ? (
+                <div className="empty-state">
+                  <Church size={28} className="text-secondary-200 mb-2" />
+                  <p className="text-sm text-secondary-500">No parishes found</p>
+                  <button onClick={() => navigate('/parishes')}
+                    className="btn-primary text-xs mt-3 py-1.5 px-3">
+                    <Plus size={13} /> Add Parish
+                  </button>
+                </div>
+              )
+              : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {filteredParishes.map(p => (
+                    <div
+                      key={p.id}
+                      onClick={() => navigate(`/parishes/${p.id}`)}
+                      className="flex items-center gap-3 p-3.5 rounded-card border border-secondary-100
+                                 hover:border-indigo-200 hover:bg-indigo-50/40 hover:-translate-y-0.5
+                                 hover:shadow-card-md transition-all duration-150 cursor-pointer group"
+                    >
+                      <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center
+                                      text-white font-bold text-sm shadow-sm"
+                        style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}>
+                        {p.parish_name[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-secondary-800 truncate
+                                       group-hover:text-indigo-700 transition-colors">
+                          {p.parish_name}
+                        </p>
+                        <p className="text-xs text-secondary-400">{p.parish_code}</p>
+                      </div>
+                      <span className={`badge flex-shrink-0 ${p.is_active ? 'badge-success' : 'badge-neutral'}`}>
+                        {p.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )
+          }
         </div>
       )}
 
-      {/* Parish Profile for non-super admins */}
+      {/* ── Non-admin parish profile ─────────────────────────── */}
       {user?.role !== UserRole.SUPER_ADMIN && parishes.length > 0 && (
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Your Parish</h3>
-              <p className="text-gray-500 text-sm mt-1">{parishes[0].parish_name}</p>
-            </div>
-            <button
-              onClick={() => navigate('/parish-profile')}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-            >
-              <Eye size={16} />
-              View Parish Profile
-            </button>
+        <div className="section-card flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-secondary-800">Your Parish</p>
+            <p className="text-xs text-secondary-500 mt-0.5">{parishes[0].parish_name}</p>
           </div>
+          <button onClick={() => navigate('/parish-profile')} className="btn-secondary text-xs">
+            <Eye size={13} /> View Profile
+          </button>
         </div>
       )}
 
-      {/* Bulk Import */}
+      {/* ── Bulk import ──────────────────────────────────────── */}
       {(user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.PARISH_ADMIN) && (
-        <div className="bg-white p-6 rounded-card shadow-card border border-slate-200">
-          <h2 className="text-lg font-semibold text-secondary-800 mb-2">Bulk Import</h2>
-          <p className="text-sm text-secondary-500 mb-4">Quickly import data from CSV or XLSX files. Download a template first, fill it in, then upload.</p>
-          {parishes.length === 0 ? (
-            <div className="bg-orange-50 border border-orange-200 rounded-card p-4 text-orange-700 text-sm">
-              <span className="font-semibold">No parish available</span>
-              <p className="mt-1">Please create a parish first before importing data.</p>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              <ImportButton label="Import Members" onImport={async (file) => api.importMembers(file, parishes[0].id)} templateColumns={['member_code', 'first_name', 'last_name']} />
-              <ImportButton label="Import Clusters" onImport={async (file) => api.importClusters(file, parishes[0].id)} templateColumns={['cluster_code', 'cluster_name', 'location_description', 'leader_name']} />
-              <ImportButton label="Import SCCs" onImport={async (file) => api.importSccs(file, parishes[0].id)} templateColumns={['scc_code', 'scc_name', 'cluster_code', 'patron_saint', 'leader_name', 'location_description', 'meeting_day', 'meeting_time']} />
-              <ImportButton label="Import Families" onImport={async (file) => api.importFamilies(file, parishes[0].id)} templateColumns={['family_code', 'family_name', 'scc_code', 'physical_address', 'primary_phone', 'email', 'notes']} />
-              <ImportButton label="Import Transactions" onImport={async (file) => api.importTransactions(file, parishes[0].id)} templateColumns={['category', 'amount', 'payment_method', 'date(YYYY-MM-DD)', 'description']} />
-            </div>
-          )}
+        <div className="section-card">
+          <h2 className="text-sm font-semibold text-secondary-700 mb-1">Bulk Import</h2>
+          <p className="text-xs text-secondary-400 mb-4">
+            Download a template, fill it in, then upload to import data.
+          </p>
+          {parishes.length === 0
+            ? (
+              <div className="flex items-start gap-3 bg-amber-50 border border-amber-200
+                              rounded-lg p-3.5 text-sm text-amber-700">
+                <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">No parish set up</p>
+                  <p className="text-xs mt-0.5">Create a parish first before importing data.</p>
+                </div>
+              </div>
+            )
+            : (
+              <div className="flex flex-wrap gap-2">
+                <ImportButton label="Import Members" onImport={f => api.importMembers(f, parishes[0].id)} templateColumns={['member_code', 'first_name', 'last_name']} />
+                <ImportButton label="Import Clusters" onImport={f => api.importClusters(f, parishes[0].id)} templateColumns={['cluster_code', 'cluster_name', 'location_description', 'leader_name']} />
+                <ImportButton label="Import SCCs" onImport={f => api.importSccs(f, parishes[0].id)} templateColumns={['scc_code', 'scc_name', 'cluster_code', 'patron_saint', 'leader_name', 'location_description', 'meeting_day', 'meeting_time']} />
+                <ImportButton label="Import Families" onImport={f => api.importFamilies(f, parishes[0].id)} templateColumns={['family_code', 'family_name', 'scc_code', 'physical_address', 'primary_phone', 'email', 'notes']} />
+                <ImportButton label="Import Transactions" onImport={f => api.importTransactions(f, parishes[0].id)} templateColumns={['category', 'amount', 'payment_method', 'date(YYYY-MM-DD)', 'description']} />
+              </div>
+            )
+          }
         </div>
       )}
 
-      {/* Upcoming Events & Liturgical Calendar */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-card shadow-card border border-slate-200">
+      {/* ── Events & Liturgical calendar ─────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Events */}
+        <div className="section-card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-secondary-800 flex items-center">
-              <CalendarDays className="h-5 w-5 mr-2 text-primary-600" />
+            <h2 className="text-sm font-semibold text-secondary-700 flex items-center gap-2">
+              <CalendarDays size={14} className="text-primary-500" />
               Upcoming Events
             </h2>
-            <button onClick={() => navigate('/events')} className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-              View All
+            <button onClick={() => navigate('/events')}
+              className="text-xs text-primary-600 hover:text-primary-700 font-medium">
+              View all
             </button>
           </div>
-          {upcomingEvents.length === 0 ? (
-            <div className="text-center py-8 text-secondary-500">
-              <CalendarDays size={32} className="mx-auto text-secondary-300 mb-2" />
-              <p>No upcoming events</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {upcomingEvents.slice(0, 3).map(event => {
-                const eventDate = new Date(event.start_date);
-                const isEventToday = isToday(eventDate);
-                const isEventTomorrow = isTomorrow(eventDate);
-                return (
-                  <div key={event.id} className="flex items-start space-x-3 p-4 rounded-card hover:bg-background-light transition-all cursor-pointer group">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-semibold shadow-sm ${isEventToday ? 'bg-gradient-to-br from-red-500 to-red-600' : isEventTomorrow ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-blue-500 to-blue-600'}`}>
-                      {format(eventDate, 'd')}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center">
-                        <h3 className="text-sm font-semibold text-secondary-800 truncate">{event.title}</h3>
-                        {event.is_recurring && <Repeat className="h-3 w-3 ml-1 text-primary-600" />}
-                      </div>
-                      <div className="flex items-center mt-1">
-                        {event.scope === 'diocese' ? (
-                          <div className="flex items-center text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full mr-2 border border-purple-100">
-                            <Globe className="h-2 w-2 mr-1" />Diocese
+          {loading
+            ? <div className="space-y-3"><SkListItem /><SkListItem /><SkListItem /></div>
+            : events.length === 0
+              ? (
+                <div className="empty-state py-10">
+                  <Calendar size={24} className="text-secondary-200 mb-2" />
+                  <p className="text-sm text-secondary-500">No upcoming events</p>
+                  <button onClick={() => navigate('/events')}
+                    className="btn-primary text-xs mt-3 py-1.5 px-3">
+                    <Plus size={13} /> Add Event
+                  </button>
+                </div>
+              )
+              : (
+                <div className="space-y-2">
+                  {events.slice(0, 3).map(ev => {
+                    const d = new Date(ev.start_date);
+                    const today = isToday(d);
+                    const tomorrow = isTomorrow(d);
+                    const dotColor = today ? '#ef4444' : tomorrow ? '#f97316' : '#6366f1';
+                    return (
+                      <div key={ev.id}
+                        className="flex items-start gap-3 p-3 rounded-lg
+                                      hover:bg-secondary-50 transition-colors duration-100 cursor-pointer group">
+                        <div className="w-10 h-10 rounded-xl flex-shrink-0 flex flex-col items-center
+                                        justify-center text-white text-xs font-bold shadow-sm"
+                          style={{ background: `linear-gradient(135deg, ${dotColor}, ${dotColor}cc)` }}>
+                          <span className="text-[10px] leading-none opacity-80">
+                            {format(d, 'MMM').toUpperCase()}
+                          </span>
+                          <span className="text-sm leading-none font-extrabold">{format(d, 'd')}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold text-secondary-800 truncate">{ev.title}</p>
+                            {ev.is_recurring && <Repeat size={11} className="text-primary-400 flex-shrink-0" />}
                           </div>
-                        ) : (
-                          <div className="flex items-center text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full mr-2 border border-blue-100">
-                            <Building className="h-2 w-2 mr-1" />Parish
+                          <div className="flex items-center gap-2 mt-1">
+                            {ev.scope === 'diocese'
+                              ? <span className="badge badge-info text-[10px] py-0"><Globe size={9} className="mr-0.5" /> Diocese</span>
+                              : <span className="badge badge-neutral text-[10px] py-0"><Building size={9} className="mr-0.5" /> Parish</span>
+                            }
+                            {ev.start_time && (
+                              <span className="text-xs text-secondary-400 flex items-center gap-0.5">
+                                <Clock size={10} /> {ev.start_time}
+                              </span>
+                            )}
                           </div>
-                        )}
+                          {ev.location && (
+                            <p className="text-xs text-secondary-400 flex items-center gap-0.5 mt-0.5">
+                              <MapPin size={10} /> {ev.location}
+                            </p>
+                          )}
+                        </div>
+                        <span className={`badge flex-shrink-0 text-[10px] ${ev.status === 'published' ? 'badge-success' : 'badge-neutral'
+                          }`}>
+                          {ev.status}
+                        </span>
                       </div>
-                      <p className="text-sm text-secondary-600 truncate mt-1">{event.description}</p>
-                      <div className="flex items-center mt-1 text-xs text-secondary-500">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {event.start_time} {event.end_time && `- ${event.end_time}`}
-                        <MapPin className="h-3 w-3 ml-2 mr-1" />
-                        {event.location}
-                      </div>
-                      <div className="flex items-center mt-1 text-xs text-secondary-500">
-                        <Users className="h-3 w-3 mr-1" />
-                        {event.current_participants}
-                        {(event.max_participants ?? 0) > 0 && `/${event.max_participants}`}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${event.status === 'published' ? 'bg-success/10 text-success border border-success/20' : 'bg-secondary-100 text-secondary-600'}`}>
-                        {event.status}
-                      </span>
-                      {event.is_recurring && <span className="text-xs text-secondary-400 mt-1">Recurring</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                    );
+                  })}
+                </div>
+              )
+          }
         </div>
 
-        <div className="bg-white p-6 rounded-card shadow-card border border-slate-200">
+        {/* Liturgical calendar */}
+        <div className="section-card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-secondary-800 flex items-center">
-              <LiturgicalIcon className="h-5 w-5 mr-2 text-purple-600" />
+            <h2 className="text-sm font-semibold text-secondary-700 flex items-center gap-2">
+              <LiturgicalIcon size={14} className="text-purple-500" />
               Liturgical Calendar
             </h2>
-            <button onClick={() => navigate('/liturgical-calendar')} className="text-sm text-purple-600 hover:text-purple-700 font-medium">
-              View Calendar
+            <button onClick={() => navigate('/liturgical-calendar')}
+              className="text-xs text-purple-600 hover:text-purple-700 font-medium">
+              View calendar
             </button>
           </div>
-          {liturgicalDays.length === 0 ? (
-            <div className="text-center py-8 text-secondary-500">
-              <LiturgicalIcon size={32} className="mx-auto text-secondary-300 mb-2" />
-              <p>No upcoming liturgical days</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {liturgicalDays.slice(0, 3).map(day => {
-                const dayDate = new Date(day.date);
-                const isDayToday = isToday(dayDate);
-                const isDayTomorrow = isTomorrow(dayDate);
-                return (
-                  <div key={day.id} className="flex items-start space-x-3 p-4 rounded-card border border-slate-200 hover:border-purple-300 hover:bg-purple-50 transition-all cursor-pointer">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold shadow-sm ${isDayToday ? 'bg-gradient-to-br from-purple-500 to-purple-600' : isDayTomorrow ? 'bg-gradient-to-br from-pink-500 to-pink-600' : 'bg-gradient-to-br from-gray-500 to-gray-600'}`}>
-                      {format(dayDate, 'd')}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-secondary-800 truncate flex items-center">
-                        {day.feast_type === 'SOLEMNITY' && <Star className="h-4 w-4 mr-1 text-yellow-500" />}
-                        {day.title}
-                      </h3>
-                      <p className="text-sm text-secondary-600 truncate">{day.description}</p>
-                      <div className="flex items-center mt-1 space-x-2">
-                        <span className={`text-xs px-2 py-1 rounded-full border ${getSeasonColor(day.liturgical_season)}`}>
-                          {day.liturgical_season}
-                        </span>
-                        <span className="text-xs text-secondary-500">{day.feast_type}</span>
+          {loading
+            ? <div className="space-y-3"><SkListItem /><SkListItem /><SkListItem /></div>
+            : litDays.length === 0
+              ? (
+                <div className="empty-state py-10">
+                  <LiturgicalIcon size={24} className="text-secondary-200 mb-2" />
+                  <p className="text-sm text-secondary-500">No upcoming feast days</p>
+                </div>
+              )
+              : (
+                <div className="space-y-2">
+                  {litDays.slice(0, 3).map(day => {
+                    const d = new Date(day.date);
+                    return (
+                      <div key={day.id}
+                        className="flex items-start gap-3 p-3 rounded-lg border border-secondary-100
+                                      hover:border-purple-200 hover:bg-purple-50/40
+                                      transition-all duration-150 cursor-pointer">
+                        <div className="w-10 h-10 rounded-xl flex-shrink-0 flex flex-col items-center
+                                        justify-center text-white text-xs font-bold shadow-sm
+                                        bg-gradient-to-br from-purple-500 to-purple-600">
+                          <span className="text-[10px] leading-none opacity-80">
+                            {format(d, 'MMM').toUpperCase()}
+                          </span>
+                          <span className="text-sm leading-none font-extrabold">{format(d, 'd')}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-secondary-800 truncate flex items-center gap-1">
+                            {day.feast_type === 'SOLEMNITY' &&
+                              <Star size={11} className="text-yellow-500 flex-shrink-0" />
+                            }
+                            {day.title}
+                          </p>
+                          <p className="text-xs text-secondary-500 truncate mt-0.5">{day.description}</p>
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            <span className={`badge text-[10px] py-0 border ${seasonCls[day.liturgical_season] ?? 'bg-gray-100 text-gray-700 border-gray-200'
+                              }`}>
+                              {day.liturgical_season.replace('_', ' ')}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-1 ${litColorCls[day.liturgical_color] ?? 'bg-gray-400 border-gray-400'
+                          }`} />
                       </div>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <div className={`w-6 h-6 rounded-full border ${getLiturgicalColorClass(day.liturgical_color)}`} />
-                      <span className="text-xs text-secondary-500 mt-1">{day.liturgical_color}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                    );
+                  })}
+                </div>
+              )
+          }
         </div>
       </div>
 
-      {/* Quick Navigation */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* ── Bottom nav cards ─────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <button
           onClick={() => navigate('/reports')}
-          className="bg-white p-6 rounded-card shadow-card border border-slate-200 flex items-center justify-between hover:border-primary-300 hover:shadow-card-lg transition-all duration-200 group"
+          className="section-card flex items-center justify-between
+                     hover:border-indigo-200 hover:shadow-card-md hover:-translate-y-0.5
+                     transition-all duration-150 group text-left"
         >
           <div>
-            <h3 className="font-semibold text-secondary-800">Reports & Analytics</h3>
-            <p className="text-sm text-secondary-500">View detailed reports and insights</p>
+            <p className="text-sm font-semibold text-secondary-800">Reports & Analytics</p>
+            <p className="text-xs text-secondary-400 mt-0.5">View detailed reports and insights</p>
           </div>
-          <ArrowRight size={20} className="text-secondary-400 group-hover:text-primary-600 transition-colors" />
+          <ArrowRight size={16} className="text-secondary-300 group-hover:text-primary-500
+                                          group-hover:translate-x-0.5 transition-all flex-shrink-0" />
         </button>
         {user?.role !== UserRole.VIEWER && (
           <button
             onClick={() => navigate('/settings')}
-            className="bg-white p-6 rounded-card shadow-card border border-slate-200 flex items-center justify-between hover:border-primary-300 hover:shadow-card-lg transition-all duration-200 group"
+            className="section-card flex items-center justify-between
+                       hover:border-indigo-200 hover:shadow-card-md hover:-translate-y-0.5
+                       transition-all duration-150 group text-left"
           >
             <div>
-              <h3 className="font-semibold text-secondary-800">Settings</h3>
-              <p className="text-sm text-secondary-500">Manage system and parish settings</p>
+              <p className="text-sm font-semibold text-secondary-800">Settings</p>
+              <p className="text-xs text-secondary-400 mt-0.5">Manage system and parish settings</p>
             </div>
-            <ArrowRight size={20} className="text-secondary-400 group-hover:text-primary-600 transition-colors" />
+            <ArrowRight size={16} className="text-secondary-300 group-hover:text-primary-500
+                                            group-hover:translate-x-0.5 transition-all flex-shrink-0" />
           </button>
         )}
       </div>
     </div>
   );
 };
+
+// ── Small skeleton list item (reusable inline) ────────────────────────────────
+const SkListItem = () => (
+  <div className="flex items-start gap-3 animate-pulse">
+    <div className="skeleton w-10 h-10 rounded-xl flex-shrink-0" />
+    <div className="flex-1 space-y-2 py-1">
+      <Sk w="w-3/4" h="h-3" />
+      <Sk w="w-1/2" h="h-2.5" />
+    </div>
+    <div className="skeleton w-14 h-5 rounded-full flex-shrink-0" />
+  </div>
+);
 
 export default Dashboard;

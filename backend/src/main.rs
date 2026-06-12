@@ -1,17 +1,9 @@
-use axum::{
-    extract::State,
-    routing::{get, post, patch, delete, options, put},
-    Router,
-    http::{Method, header::{AUTHORIZATION, CONTENT_TYPE, ACCEPT}},
-};
 use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use sqlx::postgres::{PgPool, PgPoolOptions};
+use sqlx::postgres::PgPoolOptions;
 use dotenvy::dotenv;
-use tower_http::cors::{CorsLayer, Any};
-use tower_http::services::ServeDir;
 
-use sanctus_backend::AppState;
+use ocmis_backend::AppState;
 
 mod models;
 mod sync;

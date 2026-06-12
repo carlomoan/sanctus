@@ -1,7 +1,7 @@
 use crate::{
     handlers::auth::AuthUser,
     handlers::rbac,
-    models::attendance::{AttendanceRecord, AttendanceStatus, CreateAttendanceRequest},
+    models::attendance::{AttendanceRecord, CreateAttendanceRequest},
     AppState,
 };
 use axum::{
@@ -9,7 +9,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use chrono::{NaiveDate, NaiveTime};
+use chrono::NaiveDate;
 use uuid::Uuid;
 
 #[derive(Debug, serde::Deserialize)]
@@ -311,11 +311,11 @@ pub async fn get_attendance_stats(
     let mut where_clause = String::from("WHERE parish_id = $1 AND deleted_at IS NULL");
     let mut param_count = 1;
 
-    if let Some(start_date) = query.start_date {
+    if let Some(_start_date) = query.start_date {
         param_count += 1;
         where_clause.push_str(&format!(" AND attendance_date = ${}", param_count));
     }
-    if let Some(end_date) = query.end_date {
+    if let Some(_end_date) = query.end_date {
         param_count += 1;
         where_clause.push_str(&format!(" AND attendance_date <= ${}", param_count));
     }

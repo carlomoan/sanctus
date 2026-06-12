@@ -1,37 +1,42 @@
+// Sanctus — Empty state component
 import { LucideIcon } from 'lucide-react';
-import { cn } from '../utils/cn';
 
 interface EmptyStateProps {
-  icon?: LucideIcon;
+  icon: LucideIcon;
   title: string;
-  description?: string;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-  className?: string;
+  description: string;
+  action?: { label: string; onClick: () => void; icon?: LucideIcon };
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export function EmptyState({ icon: Icon, title, description, action, className }: EmptyStateProps) {
+export const EmptyState = ({
+  icon: Icon,
+  title,
+  description,
+  action,
+  size = 'md',
+}: EmptyStateProps) => {
+  const iconSize = size === 'sm' ? 18 : size === 'lg' ? 28 : 22;
+  const wrapSize = size === 'sm' ? 'w-10 h-10' : size === 'lg' ? 'w-16 h-16' : 'w-12 h-12';
+  const titleClass = size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-lg' : 'text-base';
+  const py = size === 'sm' ? 'py-8' : size === 'lg' ? 'py-20' : 'py-12';
+
   return (
-    <div className={cn('flex flex-col items-center justify-center py-12 px-4 text-center', className)}>
-      {Icon && (
-        <div className="mb-4 rounded-full bg-slate-100 p-4">
-          <Icon className="h-8 w-8 text-slate-400" />
-        </div>
-      )}
-      <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-      {description && (
-        <p className="mt-2 text-sm text-slate-500 max-w-sm">{description}</p>
-      )}
+    <div className={`empty-state ${py} animate-fade-in`}>
+      <div className={`${wrapSize} empty-state-icon`}>
+        <Icon size={iconSize} className="text-gray-400" />
+      </div>
+      <h3 className={`font-semibold text-gray-700 mt-1 ${titleClass}`}>{title}</h3>
+      <p className="text-sm text-gray-500 mt-1 max-w-xs">{description}</p>
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200"
+          className="btn-primary mt-4 text-sm"
         >
+          {action.icon && <action.icon size={14} />}
           {action.label}
         </button>
       )}
     </div>
   );
-}
+};
