@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 // Fixed: removed unused imports (Clock, Filter, MoreVertical, CalendarDays, Bell, Tag)
 import { Calendar, MapPin, Users, Plus, Search, ChevronLeft, ChevronRight, Edit, Trash2, Eye, RefreshCw, Repeat, X, Building, Globe } from 'lucide-react';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addDays, startOfWeek, endOfWeek } from 'date-fns';
@@ -45,6 +46,7 @@ interface EventFormData {
 }
 
 const Events = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -224,7 +226,7 @@ const Events = () => {
 
   const handleSaveEvent = () => {
     if (!formData.title.trim()) {
-      toast.error('Event title is required');
+      toast.error(t('events.eventTitleRequired'));
       return;
     }
 
@@ -234,7 +236,7 @@ const Events = () => {
           ? { ...event, ...formData, updated_at: new Date().toISOString() }
           : event
       ));
-      toast.success('Event updated successfully');
+      toast.success(t('events.eventUpdatedSuccess'));
     } else {
       const newEvent: Event = {
         id: Date.now().toString(),
@@ -246,16 +248,16 @@ const Events = () => {
         updated_at: new Date().toISOString()
       };
       setEvents([...events, newEvent]);
-      toast.success('Event created successfully');
+      toast.success(t('events.eventCreatedSuccess'));
     }
     setShowCreateModal(false);
     setEditingEvent(null);
   };
 
   const handleDeleteEvent = (eventId: string) => {
-    if (window.confirm('Are you sure you want to delete this event?')) {
+    if (window.confirm(t('events.deleteEvent'))) {
       setEvents(events.filter(event => event.id !== eventId));
-      toast.success('Event deleted successfully');
+      toast.success(t('events.eventDeletedSuccess'));
     }
   };
 
@@ -400,11 +402,11 @@ const Events = () => {
                           <div className="flex items-center mt-1">
                             {event.scope === 'diocese' ? (
                               <div className="flex items-center text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
-                                <Globe className="h-3 w-3 mr-1" />Diocese
+                                <Globe className="h-3 w-3 mr-1" />{t('events.diocese')}
                               </div>
                             ) : (
                               <div className="flex items-center text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                                <Building className="h-3 w-3 mr-1" />Parish
+                                <Building className="h-3 w-3 mr-1" />{t('events.parish')}
                               </div>
                             )}
                           </div>
@@ -462,59 +464,59 @@ const Events = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
-              <h3 className="text-lg font-semibold">{editingEvent ? 'Edit Event' : 'Create New Event'}</h3>
+              <h3 className="text-lg font-semibold">{editingEvent ? t('events.editEvent') : t('events.createEvent')}</h3>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.eventTitle')} *</label>
                 <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" placeholder="Enter event title" />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" placeholder={t('events.eventTitle')} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.description')}</label>
                 <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" rows={3} placeholder="Enter event description" />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" rows={3} placeholder={t('events.description')} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.startDate')} *</label>
                   <input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.endDate')}</label>
                   <input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.startTime')}</label>
                   <input type="time" value={formData.start_time} onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.endTime')}</label>
                   <input type="time" value={formData.end_time} onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.location')}</label>
                 <input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" placeholder="Enter event location" />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" placeholder={t('events.location')} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Scope *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.scope')} *</label>
                 <select value={formData.scope} onChange={(e) => setFormData({ ...formData, scope: e.target.value as 'diocese' | 'parish' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" disabled={!canCreateDioceseEvents}>
-                  <option value="parish">Parish Event</option>
-                  {canCreateDioceseEvents && <option value="diocese">Diocese Event</option>}
+                  <option value="parish">{t('events.parish')}</option>
+                  {canCreateDioceseEvents && <option value="diocese">{t('events.diocese')}</option>}
                 </select>
                 {!canCreateDioceseEvents && <p className="text-xs text-gray-500 mt-1">Only SuperAdmin and ParishAdmin can create diocese events</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Max Participants</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.maxParticipants')}</label>
                 <input type="number" value={formData.max_participants} onChange={(e) => setFormData({ ...formData, max_participants: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" min="0" placeholder="0 for unlimited" />
               </div>
@@ -522,11 +524,11 @@ const Events = () => {
                 <input type="checkbox" id="is_recurring" checked={formData.is_recurring}
                   onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
-                <label htmlFor="is_recurring" className="ml-2 block text-sm text-gray-900">Recurring Event</label>
+                <label htmlFor="is_recurring" className="ml-2 block text-sm text-gray-900">{t('events.isRecurring')}</label>
               </div>
               {formData.is_recurring && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Recurrence Pattern</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.recurrencePattern')}</label>
                   <select value={formData.recurrence_pattern} onChange={(e) => setFormData({ ...formData, recurrence_pattern: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
                     <option value="daily">Daily</option>
@@ -537,18 +539,18 @@ const Events = () => {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('events.status')}</label>
                 <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
+                  <option value="draft">{t('events.draft')}</option>
+                  <option value="published">{t('events.published')}</option>
                 </select>
               </div>
             </div>
             <div className="p-6 border-t flex justify-end space-x-3">
-              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">{t('common.cancel')}</button>
               <button onClick={handleSaveEvent} className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                {editingEvent ? 'Update Event' : 'Create Event'}
+                {editingEvent ? t('common.update') : t('common.create')}
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { User, UserRole, Parish, Diocese } from '../types';
 import { Plus, Trash2, Mail, Phone, Church, Edit, UserCheck, UserX, Settings, RefreshCw } from 'lucide-react';
@@ -9,6 +10,7 @@ import RoleChangeModal from '../components/RoleChangeModal';
 import { useAuth } from '../context/AuthContext';
 
 const Users = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [parishes, setParishes] = useState<Parish[]>([]);
   const [dioceses, setDioceses] = useState<Diocese[]>([]);
@@ -41,7 +43,7 @@ const Users = () => {
       setParishes(parishesData);
       setDioceses(diocesesData);
     } catch (err) {
-      setError('Failed to load users, parishes, or dioceses');
+      setError(t('users.failedToLoad'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -114,10 +116,10 @@ const Users = () => {
       setSelectedUser(null);
 
       // Show success message
-      alert(`Role changed to ${newRole.replace('_', ' ')} successfully`);
+      alert(t('users.roleChangedSuccess', { role: newRole.replace('_', ' ') }));
     } catch (err) {
       console.error('Failed to update user role:', err);
-      alert('Failed to update user role');
+      alert(t('users.failedToChangeRole'));
     } finally {
       setUpdatingRole(false);
     }
@@ -147,10 +149,10 @@ const Users = () => {
       setSelectedUser(null);
 
       // Show success message
-      alert('User updated successfully');
+      alert(t('users.userUpdatedSuccess'));
     } catch (err: any) {
       console.error('Failed to update user:', err);
-      alert('Failed to update user. Please try again later.');
+      alert(t('users.failedToUpdateUser'));
     }
   };
 
@@ -162,10 +164,10 @@ const Users = () => {
       await fetchData();
 
       // Show success message
-      alert(`User ${!user.is_active ? 'activated' : 'deactivated'} successfully`);
+      alert(!user.is_active ? t('users.userActivatedSuccess') : t('users.userDeactivatedSuccess'));
     } catch (err: any) {
       console.error('Failed to toggle user status:', err);
-      alert('Failed to update user status. Please try again later.');
+      alert(t('users.failedToUpdateStatus'));
     }
   };
 
@@ -177,10 +179,10 @@ const Users = () => {
       await fetchData();
 
       // Show success message
-      alert(`User ${user.username} reactivated successfully`);
+      alert(t('users.userReactivatedSuccess', { username: user.username }));
     } catch (err: any) {
       console.error('Failed to reactivate user:', err);
-      alert('Failed to reactivate user. Please try again later.');
+      alert(t('users.failedToReactivate'));
     }
   };
 
@@ -188,8 +190,8 @@ const Users = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600">You don't have permission to access user management.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">{t('users.accessDenied')}</h1>
+          <p className="text-gray-600">{t('users.noPermission')}</p>
         </div>
       </div>
     );
@@ -198,18 +200,18 @@ const Users = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('users.userManagement')}</h1>
         <button
           onClick={() => setIsModalOpen(true)}
           className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors"
         >
           <Plus size={20} />
-          Add User
+          {t('users.createUser')}
         </button>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading users...</div>
+        <div className="text-center py-12 text-gray-500">{t('common.loading')}</div>
       ) : error ? (
         <div className="text-center py-12 text-red-500">{error}</div>
       ) : (
@@ -233,7 +235,7 @@ const Users = () => {
                   </span>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${user.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
-                    {user.is_active ? 'Active' : 'Inactive'}
+                    {user.is_active ? t('common.active') : t('common.inactive')}
                   </span>
                 </div>
               </div>
@@ -263,7 +265,7 @@ const Users = () => {
                     onClick={() => handleEditUser(user)}
                     disabled={user.id === currentUser.id}
                     className="p-2 text-gray-400 hover:text-blue-600 rounded-full hover:bg-blue-50 transition-colors disabled:opacity-30"
-                    title="Edit User"
+                    title={t('users.editUserTitle')}
                   >
                     <Settings size={18} />
                   </button>
@@ -274,7 +276,7 @@ const Users = () => {
                     <button
                       onClick={() => handleReactivateUser(user)}
                       className="p-2 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors"
-                      title="Reactivate User"
+                      title={t('users.reactivateUser')}
                     >
                       <RefreshCw size={18} />
                     </button>
@@ -284,7 +286,7 @@ const Users = () => {
                       onClick={() => handleToggleUserStatus(user)}
                       disabled={user.id === currentUser.id}
                       className="p-2 text-gray-400 hover:text-orange-600 rounded-full hover:bg-orange-50 transition-colors disabled:opacity-30"
-                      title="Deactivate User"
+                      title={t('users.deactivateUser')}
                     >
                       <UserX size={18} />
                     </button>
@@ -294,7 +296,7 @@ const Users = () => {
                       onClick={() => handleToggleUserStatus(user)}
                       disabled={user.id === currentUser.id}
                       className="p-2 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition-colors disabled:opacity-30"
-                      title="Activate User"
+                      title={t('users.activateUser')}
                     >
                       <UserCheck size={18} />
                     </button>
@@ -304,7 +306,7 @@ const Users = () => {
                     onClick={() => handleChangeRole(user)}
                     disabled={user.id === currentUser.id}
                     className="p-2 text-gray-400 hover:text-purple-600 rounded-full hover:bg-purple-50 transition-colors disabled:opacity-30"
-                    title="Change Role"
+                    title={t('users.changeRole')}
                   >
                     <Edit size={18} />
                   </button>

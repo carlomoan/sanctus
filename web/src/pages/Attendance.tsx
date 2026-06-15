@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Users, TrendingUp } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
@@ -25,6 +26,7 @@ interface AttendanceStats {
 }
 
 export default function Attendance() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [stats, setStats] = useState<AttendanceStats | null>(null);
@@ -104,14 +106,14 @@ export default function Attendance() {
   const columns = [
     {
       key: 'date',
-      header: 'Date',
+      header: t('attendance.date'),
       render: (item: AttendanceRecord) => (
         <span className="text-sm">{new Date(item.attendance_date).toLocaleDateString()}</span>
       )
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('common.status'),
       render: (item: AttendanceRecord) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
           {item.status}
@@ -120,14 +122,14 @@ export default function Attendance() {
     },
     {
       key: 'check_in',
-      header: 'Check-in',
+      header: t('attendance.checkIn'),
       render: (item: AttendanceRecord) => (
         <span className="text-sm text-gray-600">{item.check_in_time || '-'}</span>
       )
     },
     {
       key: 'notes',
-      header: 'Notes',
+      header: t('attendance.notes'),
       render: (item: AttendanceRecord) => (
         <span className="text-sm text-gray-600 truncate max-w-xs">{item.notes || '-'}</span>
       )
@@ -140,8 +142,8 @@ export default function Attendance() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Attendance Tracking</h1>
-          <p className="text-gray-600">Track member and event attendance</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('attendance.tracking')}</h1>
+          <p className="text-gray-600">{t('attendance.description')}</p>
         </div>
         <div className="flex gap-2">
           <input
@@ -156,7 +158,7 @@ export default function Attendance() {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               <Plus className="w-4 h-4" />
-              Record Attendance
+              {t('attendance.recordAttendance')}
             </button>
           )}
         </div>
@@ -168,7 +170,7 @@ export default function Attendance() {
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Records</p>
+                <p className="text-sm text-gray-600">{t('attendance.totalRecords')}</p>
                 <p className="text-2xl font-bold">{stats.total_records}</p>
               </div>
               <Users className="w-8 h-8 text-blue-600" />
@@ -177,7 +179,7 @@ export default function Attendance() {
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Present</p>
+                <p className="text-sm text-gray-600">{t('attendance.present')}</p>
                 <p className="text-2xl font-bold text-green-600">{stats.total_present}</p>
               </div>
               <Users className="w-8 h-8 text-green-600" />
@@ -186,7 +188,7 @@ export default function Attendance() {
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Absent</p>
+                <p className="text-sm text-gray-600">{t('attendance.absent')}</p>
                 <p className="text-2xl font-bold text-red-600">{stats.total_absent}</p>
               </div>
               <Users className="w-8 h-8 text-red-600" />
@@ -195,7 +197,7 @@ export default function Attendance() {
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Attendance Rate</p>
+                <p className="text-sm text-gray-600">{t('attendance.attendanceRate')}</p>
                 <p className="text-2xl font-bold text-blue-600">{stats.attendance_rate.toFixed(1)}%</p>
               </div>
               <TrendingUp className="w-8 h-8 text-blue-600" />
@@ -205,7 +207,7 @@ export default function Attendance() {
       )}
 
       {loading ? (
-        <div className="text-center py-8">Loading attendance records...</div>
+        <div className="text-center py-8">{t('common.loading')}</div>
       ) : (
         <DataTable<AttendanceRecord>
           data={attendance}
@@ -215,7 +217,7 @@ export default function Attendance() {
       )}
 
       {/* Create/Edit Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingRecord ? 'Edit Attendance' : 'Record Attendance'}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingRecord ? t('attendance.editRecord') : t('attendance.recordAttendance')}>
         <AttendanceForm
           record={editingRecord}
           onSubmit={handleSubmit}

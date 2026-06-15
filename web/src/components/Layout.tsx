@@ -1,48 +1,145 @@
+// web/src/components/Layout.tsx
+// Fix: All sidebar/topbar/background colors use inline style with CSS vars
+// so they react to StyleInjector changes immediately without Tailwind recompile.
+
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, Church, Coins, Menu, X, Scroll, LogOut,
   ShieldCheck, Wallet, FileBarChart, Upload, Network, Home, Settings,
   ChevronDown, ChevronRight, LucideIcon, Shield, Building, Calendar,
   Church as LiturgicalIcon,
 } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
-import classNames from 'classnames';
+import { useState, useMemo, useEffect, CSSProperties } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { UserRole } from '../types';
-import ToastContainer, { ToastType } from './Toast';
 
 interface NavItem { name: string; href: string; icon: LucideIcon; }
 interface NavSection { id: string; label: string; items: NavItem[]; }
 
-/* ── Skeleton shimmer used while settings load ── */
+// ── Skeleton while settings load ───────────────────────────────────────────────
 const SidebarSkeleton = () => (
-  <div className="flex flex-col gap-3 p-4 animate-pulse">
-    {[...Array(6)].map((_, i) => (
+  <div className="flex flex-col gap-2.5 p-3 animate-pulse">
+    {[...Array(7)].map((_, i) => (
       <div key={i} className="h-8 rounded-lg bg-white/10" />
     ))}
   </div>
 );
 
+// ── CSS variable helpers ───────────────────────────────────────────────────────
+// These functions return inline style objects that read CSS vars at RUNTIME,
+// not at Tailwind compile time. This is the critical fix.
+const sidebarStyles = (): CSSProperties => ({
+  backgroundColor: 'var(--color-sidebar-bg, #0f172a)',
+  color: 'var(--color-sidebar-text, #cbd5e1)',
+  borderColor: 'var(--color-sidebar-border, #1e293b)',
+});
+
+const topbarStyles = (): CSSProperties => ({
+  backgroundColor: 'var(--color-topbar-bg, #ffffff)',
+  color: 'var(--color-topbar-text, #1e293b)',
+  borderColor: 'var(--color-topbar-border, #e2e8f0)',
+});
+
+const mainBgStyle = (): CSSProperties => ({
+  backgroundColor: 'var(--color-background-main, #f8fafc)',
+});
+
+const footerStyles = (): CSSProperties => ({
+  backgroundColor: 'var(--color-footer-bg, #ffffff)',
+  color: 'var(--color-footer-text, #64748b)',
+  borderColor: 'var(--color-footer-border, #e2e8f0)',
+});
+
+const navItemActiveStyle = (): CSSProperties => ({
+  backgroundColor: 'var(--color-sidebar-active-bg, #1e293b)',
+  color: '#ffffff',
+});
+
+const navItemHoverStyle = (): CSSProperties => ({
+  backgroundColor: 'rgba(255,255,255,0.06)',
+});
+
+// ── Hover-capable nav link ─────────────────────────────────────────────────────
+const NavLink = ({
+  item,
+  isActive,
+  collapsed,
+}: {
+  item: NavItem;
+  isActive: boolean;
+  collapsed: boolean;
+}) => {
+  const [hovered, setHovered] = useState(false);
+  const Icon = item.icon;
+
+  return (
+    <Link
+      to={item.href}
+      title={collapsed ? item.name : undefined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={
+        isActive
+          ? navItemActiveStyle()
+          : hovered
+            ? navItemHoverStyle()
+            : undefined
+      }
+      className={`
+        flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm font-medium
+        transition-colors duration-150 relative
+        ${collapsed ? 'justify-center px-2' : ''}
+      `}
+    >
+      <Icon
+        size={17}
+        style={{
+          color: isActive
+            ? 'var(--color-primary-400, #818cf8)'
+            : 'var(--color-sidebar-text, #94a3b8)',
+          opacity: isActive ? 1 : 0.7,
+          flexShrink: 0,
+        }}
+      />
+      {!collapsed && (
+        <span style={{ color: isActive ? '#ffffff' : 'inherit' }} className="truncate">
+          {item.name}
+        </span>
+      )}
+      {/* Active dot */}
+      {isActive && !collapsed && (
+        <span
+          className="ml-auto w-1.5 h-1.5 rounded-full flex-shrink-0"
+          style={{ backgroundColor: 'var(--color-primary-400, #818cf8)' }}
+        />
+      )}
+    </Link>
+  );
+};
+
+// ── Main Layout ────────────────────────────────────────────────────────────────
 const Layout = () => {
+  const { t } = useTranslation();
   const { getSetting, loading } = useSettings();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [settingsReady, setSettingsReady] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(['main', 'people', 'finance', 'ministry'])
+    new Set(['main', 'people', 'finance', 'ministry', 'admin'])
   );
-  const [toasts, setToasts] = useState<{ id: string; type: ToastType; message: string }[]>([]);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
+  // Apply sidebar collapsed preference from settings
   useEffect(() => {
-    if (!loading && !settingsLoaded) {
+    if (!loading && !settingsReady) {
       const collapsed = getSetting('ui.sidebar_collapsed') === 'true';
       setIsSidebarOpen(!collapsed);
-      setSettingsLoaded(true);
+      setSettingsReady(true);
     }
-  }, [loading, settingsLoaded, getSetting]);
+  }, [loading, settingsReady, getSetting]);
 
   const appName = getSetting('ui.app_name') || 'Sanctus';
   const logoUrl = getSetting('ui.logo_url');
@@ -50,7 +147,6 @@ const Layout = () => {
   const showFooter = getSetting('ui.footer_show') !== 'false';
 
   const handleLogout = () => { logout(); navigate('/login'); };
-  const removeToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
   const toggleSection = (id: string) => {
     setExpandedSections(prev => {
@@ -60,146 +156,168 @@ const Layout = () => {
     });
   };
 
+  // ── Navigation items per role ───────────────────────────────────────────────
   const role = user?.role;
-  const isDioceseAdmin = role === UserRole.SUPER_ADMIN;
+  const isSuperAdmin = role === UserRole.SUPER_ADMIN;
   const isParishAdmin = role === UserRole.PARISH_ADMIN;
   const isAccountant = role === UserRole.ACCOUNTANT;
   const isSecretary = role === UserRole.SECRETARY;
   const isViewer = role === UserRole.VIEWER;
-  const canManagePeople = isDioceseAdmin || isParishAdmin || isSecretary;
-  const canManageFinance = isDioceseAdmin || isParishAdmin || isAccountant;
-  const canAdmin = isDioceseAdmin || isParishAdmin;
+  const canPeople = isSuperAdmin || isParishAdmin || isSecretary;
+  const canFinance = isSuperAdmin || isParishAdmin || isAccountant;
+  const canAdmin = isSuperAdmin || isParishAdmin;
 
   const navigation = useMemo((): NavSection[] => {
     const sections: NavSection[] = [];
 
-    const mainItems: NavItem[] = [{ name: 'Dashboard', href: '/', icon: LayoutDashboard }];
-    if (canAdmin) mainItems.push({ name: 'Settings', href: '/settings', icon: Settings });
+    // Main
+    const mainItems: NavItem[] = [{ name: t('navigation.dashboard'), href: '/', icon: LayoutDashboard }];
+    if (canAdmin) mainItems.push({ name: t('navigation.settings'), href: '/settings', icon: Settings });
     sections.push({ id: 'main', label: 'Main', items: mainItems });
 
-    if (canManagePeople || isViewer) {
+    // People
+    if (canPeople || isViewer) {
       sections.push({
-        id: 'people', label: 'Diocese',
+        id: 'people', label: t('navigation.dioceses'),
         items: [
-          { name: 'Families', href: '/families', icon: Home },
-          { name: 'Members', href: '/members', icon: Users },
-          { name: 'Clusters & SCCs', href: '/clusters', icon: Network },
+          { name: t('navigation.families'), href: '/families', icon: Home },
+          { name: t('navigation.members'), href: '/members', icon: Users },
+          { name: t('navigation.clusters'), href: '/clusters', icon: Network },
         ],
       });
     }
 
-    if (canManagePeople || isViewer) {
+    // Ministry
+    if (canPeople || isViewer) {
       sections.push({
         id: 'ministry', label: 'Ministry',
         items: [
-          { name: 'Sacraments', href: '/sacraments', icon: Scroll },
-          { name: 'Events', href: '/events', icon: Calendar },
-          { name: 'Liturgical Calendar', href: '/liturgical-calendar', icon: LiturgicalIcon },
+          { name: t('navigation.sacraments'), href: '/sacraments', icon: Scroll },
+          { name: t('navigation.events'), href: '/events', icon: Calendar },
+          { name: t('navigation.liturgicalCalendar'), href: '/liturgical-calendar', icon: LiturgicalIcon },
+          { name: t('navigation.announcements'), href: '/announcements', icon: ShieldCheck },
+          { name: t('navigation.attendance'), href: '/attendance', icon: Wallet },
         ],
       });
     }
 
-    if (canManageFinance || isViewer) {
+    // Finance
+    if (canFinance || isViewer) {
       sections.push({
-        id: 'finance', label: 'Finance',
+        id: 'finance', label: t('navigation.finance'),
         items: [
           { name: 'Transactions', href: '/finance', icon: Coins },
-          { name: 'Budgets', href: '/budgets', icon: Wallet },
-          { name: 'Reports', href: '/reports', icon: FileBarChart },
+          { name: t('navigation.budgets'), href: '/budgets', icon: Wallet },
+          { name: t('navigation.reports'), href: '/reports', icon: FileBarChart },
         ],
       });
     }
 
+    // Admin
     if (canAdmin) {
       const adminItems: NavItem[] = [];
-      if (isDioceseAdmin) {
-        adminItems.push({ name: 'Dioceses', href: '/dioceses', icon: Building });
-        adminItems.push({ name: 'Parishes', href: '/parishes', icon: Church });
+      if (isSuperAdmin) {
+        adminItems.push({ name: t('navigation.dioceses'), href: '/dioceses', icon: Building });
+        adminItems.push({ name: t('navigation.parishes'), href: '/parishes', icon: Church });
       }
-      adminItems.push({ name: 'Data Import', href: '/import', icon: Upload });
-      if (isDioceseAdmin) {
-        adminItems.push({ name: 'Users', href: '/users', icon: ShieldCheck });
-        adminItems.push({ name: 'Roles & Permissions', href: '/roles', icon: Shield });
+      adminItems.push({ name: t('navigation.import'), href: '/import', icon: Upload });
+      if (isSuperAdmin) {
+        adminItems.push({ name: t('navigation.users'), href: '/users', icon: ShieldCheck });
+        adminItems.push({ name: t('navigation.roles'), href: '/roles', icon: Shield });
       }
       sections.push({ id: 'admin', label: 'Administration', items: adminItems });
     }
 
     return sections;
-  }, [role]);
+  }, [role, t]);
 
   const userInitials = user?.full_name
     ?.split(' ')
     .map(n => n[0])
     .slice(0, 2)
     .join('')
-    .toUpperCase() || 'U';
+    .toUpperCase() ?? 'U';
+
+  const currentPageName = location.pathname === '/'
+    ? 'Dashboard'
+    : location.pathname.replace('/', '').replace(/-/g, ' ');
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={mainBgStyle()}>
 
-      {/* ── Sidebar ─────────────────────────────────────────── */}
+      {/* ══ SIDEBAR ══════════════════════════════════════════════════════════ */}
       <aside
-        className={classNames(
-          'flex flex-col flex-shrink-0 bg-sidebar-bg shadow-sidebar',
-          'transition-all duration-300 ease-in-out',
-          isSidebarOpen ? 'w-60' : 'w-[68px]'
-        )}
+        style={sidebarStyles()}
+        className={`
+          flex flex-col flex-shrink-0
+          transition-all duration-300 ease-in-out
+          ${isSidebarOpen ? 'w-60' : 'w-[68px]'}
+        `}
       >
-        {/* Logo */}
-        <div className={classNames(
-          'flex items-center h-16 border-b border-white/5 px-4',
-          isSidebarOpen ? 'justify-between' : 'justify-center'
-        )}>
+        {/* Logo / Brand */}
+        <div
+          className={`
+            flex items-center h-16 px-4
+            border-b border-white/5
+            ${isSidebarOpen ? 'justify-between' : 'justify-center'}
+          `}
+        >
           {isSidebarOpen && (
             <div className="flex items-center gap-2.5 min-w-0">
               {logoUrl
                 ? <img src={logoUrl} alt="Logo" className="h-7 w-7 object-contain flex-shrink-0" />
                 : (
-                  <div className="w-7 h-7 rounded-lg bg-primary-600 flex items-center justify-center flex-shrink-0">
+                  <div
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: 'var(--color-primary-600, #4f46e5)' }}
+                  >
                     <span className="text-white text-xs font-bold">✝</span>
                   </div>
                 )
               }
-              <span className="text-white font-bold text-base truncate">{appName}</span>
+              <span className="font-bold text-sm text-white truncate">{appName}</span>
             </div>
           )}
           {!isSidebarOpen && (
-            <div className="w-7 h-7 rounded-lg bg-primary-600 flex items-center justify-center">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: 'var(--color-primary-600, #4f46e5)' }}
+            >
               <span className="text-white text-xs font-bold">✝</span>
             </div>
           )}
           <button
             onClick={() => setIsSidebarOpen(v => !v)}
-            className={classNames(
-              'p-1.5 rounded-md text-sidebar-muted hover:text-white hover:bg-white/10',
-              'transition-colors duration-150',
-              !isSidebarOpen && 'absolute top-4 right-3'
-            )}
-            title={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            className="p-1.5 rounded-md transition-colors duration-150 hover:bg-white/10 flex-shrink-0"
+            style={{ color: 'var(--color-sidebar-text, #64748b)' }}
+            title={isSidebarOpen ? 'Collapse' : 'Expand'}
           >
-            {isSidebarOpen ? <X size={16} /> : <Menu size={16} />}
+            {isSidebarOpen ? <X size={15} /> : <Menu size={15} />}
           </button>
         </div>
 
-        {/* Nav */}
+        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-          {loading && !settingsLoaded
+          {loading && !settingsReady
             ? <SidebarSkeleton />
             : navigation.map(section => {
               const isExpanded = expandedSections.has(section.id);
               return (
                 <div key={section.id} className="mb-1">
-                  {/* Section header */}
+                  {/* Section label */}
                   {isSidebarOpen && (
                     <button
                       onClick={() => toggleSection(section.id)}
-                      className="w-full flex items-center justify-between px-2 py-1.5 mb-0.5
-                                 text-sidebar-muted hover:text-white transition-colors duration-150 group"
+                      className="w-full flex items-center justify-between px-2 py-1 mb-0.5
+                                 transition-colors duration-150 hover:opacity-100"
+                      style={{ color: 'var(--color-sidebar-text, #64748b)', opacity: 0.6 }}
                     >
-                      <span className="nav-section-label">{section.label}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest">
+                        {section.label}
+                      </span>
                       {isExpanded
-                        ? <ChevronDown size={12} className="opacity-60 group-hover:opacity-100" />
-                        : <ChevronRight size={12} className="opacity-60 group-hover:opacity-100" />
+                        ? <ChevronDown size={11} />
+                        : <ChevronRight size={11} />
                       }
                     </button>
                   )}
@@ -208,38 +326,16 @@ const Layout = () => {
                   {(isExpanded || !isSidebarOpen) && (
                     <div className="space-y-0.5">
                       {section.items.map(item => {
-                        const Icon = item.icon;
-                        const isActive = location.pathname === item.href ||
+                        const isActive =
+                          location.pathname === item.href ||
                           (item.href !== '/' && location.pathname.startsWith(item.href));
                         return (
-                          <Link
+                          <NavLink
                             key={item.name}
-                            to={item.href}
-                            title={!isSidebarOpen ? item.name : undefined}
-                            className={classNames(
-                              'flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm font-medium',
-                              'transition-all duration-150',
-                              isActive
-                                ? 'bg-primary-600/20 text-white shadow-[inset_0_0_0_1px_rgba(99,102,241,0.3)]'
-                                : 'text-sidebar-text hover:bg-white/8 hover:text-white',
-                              !isSidebarOpen && 'justify-center px-2'
-                            )}
-                          >
-                            <Icon
-                              size={18}
-                              className={classNames(
-                                'flex-shrink-0 transition-colors',
-                                isActive ? 'text-primary-400' : 'text-sidebar-muted group-hover:text-white'
-                              )}
-                            />
-                            {isSidebarOpen && (
-                              <span className="truncate">{item.name}</span>
-                            )}
-                            {/* Active indicator dot */}
-                            {isActive && isSidebarOpen && (
-                              <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary-400 flex-shrink-0" />
-                            )}
-                          </Link>
+                            item={item}
+                            isActive={isActive}
+                            collapsed={!isSidebarOpen}
+                          />
                         );
                       })}
                     </div>
@@ -252,24 +348,24 @@ const Layout = () => {
 
         {/* User footer */}
         <div className="border-t border-white/5 p-3">
-          <div className={classNames(
-            'flex items-center gap-2',
-            !isSidebarOpen && 'flex-col'
-          )}>
+          <div className={`flex items-center gap-2 ${!isSidebarOpen ? 'flex-col' : ''}`}>
             <Link
               to="/profile"
-              className={classNames(
-                'flex items-center gap-2.5 min-w-0 flex-1',
-                'p-1.5 -ml-1.5 rounded-lg',
-                'text-sidebar-text hover:bg-white/10 hover:text-white',
-                'transition-colors duration-150',
-                !isSidebarOpen && 'flex-col gap-0 p-1'
-              )}
+              className={`
+                flex items-center gap-2.5 min-w-0 flex-1
+                p-1.5 -ml-1.5 rounded-lg
+                hover:bg-white/10 transition-colors duration-150
+                ${!isSidebarOpen ? 'flex-col gap-0 p-1' : ''}
+              `}
             >
-              {/* Avatar */}
-              <div className="w-7 h-7 rounded-full bg-primary-600 flex-shrink-0
-                              flex items-center justify-center
-                              text-white text-xs font-bold ring-2 ring-primary-500/30">
+              <div
+                className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center
+                           text-white text-xs font-bold"
+                style={{
+                  backgroundColor: 'var(--color-primary-600, #4f46e5)',
+                  boxShadow: '0 0 0 2px rgba(99,102,241,0.3)',
+                }}
+              >
                 {userInitials}
               </div>
               {isSidebarOpen && (
@@ -277,8 +373,11 @@ const Layout = () => {
                   <p className="text-xs font-semibold text-white/90 truncate leading-tight">
                     {user?.full_name}
                   </p>
-                  <p className="text-[10px] text-sidebar-muted truncate leading-tight">
-                    {user?.role.replace('_', ' ')}
+                  <p
+                    className="text-[10px] truncate leading-tight"
+                    style={{ color: 'var(--color-sidebar-text, #64748b)' }}
+                  >
+                    {role?.replace('_', ' ')}
                   </p>
                 </div>
               )}
@@ -286,53 +385,64 @@ const Layout = () => {
 
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg text-sidebar-muted hover:text-red-400 hover:bg-red-500/10
-                         transition-colors duration-150 flex-shrink-0"
+              className="p-1.5 rounded-lg transition-colors duration-150
+                         hover:bg-red-500/10 hover:text-red-400 flex-shrink-0"
+              style={{ color: 'var(--color-sidebar-text, #64748b)' }}
               title="Sign out"
             >
-              <LogOut size={16} />
+              <LogOut size={15} />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* ── Main content ─────────────────────────────────────── */}
+      {/* ══ MAIN CONTENT ═════════════════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col overflow-hidden">
+
         {/* Top bar */}
-        <header className="h-14 bg-white border-b border-gray-100 shadow-[0_1px_3px_0_rgb(0_0_0/0.04)]
-                           flex items-center justify-between px-6 flex-shrink-0">
-          <div>
-            {/* Breadcrumb-style current page title */}
-            <p className="text-sm font-semibold text-gray-800 capitalize">
-              {location.pathname === '/' ? 'Dashboard' : location.pathname.replace('/', '').replace('-', ' ')}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-400">
-              {new Date().toLocaleDateString('en-TZ', { weekday: 'short', day: 'numeric', month: 'short' })}
+        <header
+          style={topbarStyles()}
+          className="h-14 flex items-center justify-between px-6 flex-shrink-0
+                     border-b shadow-[0_1px_3px_0_rgb(0_0_0/0.04)]"
+        >
+          <p
+            className="text-sm font-semibold capitalize"
+            style={{ color: 'var(--color-topbar-text, #1e293b)' }}
+          >
+            {currentPageName}
+          </p>
+          <div className="flex items-center gap-4">
+            <span
+              className="text-xs"
+              style={{ color: 'var(--color-topbar-text, #94a3b8)', opacity: 0.6 }}
+            >
+              {new Date().toLocaleDateString('en-TZ', {
+                weekday: 'short', day: 'numeric', month: 'short',
+              })}
             </span>
-            {/* Online indicator */}
-            <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-dot" />
+            <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Online
             </span>
           </div>
         </header>
 
-        {/* Page content */}
+        {/* Page */}
         <main className="flex-1 overflow-auto">
           <div className="p-6 animate-fade-in">
             <Outlet />
           </div>
+
           {showFooter && (
-            <footer className="px-6 py-4 text-xs text-gray-400 border-t border-gray-100 text-center">
+            <footer
+              style={footerStyles()}
+              className="px-6 py-3 text-xs text-center border-t"
+            >
               {footerContent}
             </footer>
           )}
         </main>
       </div>
-
-      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   );
 };

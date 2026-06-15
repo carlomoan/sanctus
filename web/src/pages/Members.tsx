@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { Member, Parish, CreateMemberRequest, UpdateMemberRequest, UserRole, Family, Cluster, Scc } from '../types';
@@ -11,6 +12,7 @@ import { useParish } from '../context/ParishContext';
 import { filterParishesByRole } from '../utils/parishFilters';
 
 const Members = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { getEffectiveParishId, activeParishId: _activeParishId, setActiveParish } = useParish();
   const [loading, setLoading] = useState(true);
@@ -197,13 +199,13 @@ const Members = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this member?')) {
+    if (confirm(t('members.confirmDelete'))) {
       try {
         await api.deleteMember(id);
         setMembers(members.filter(m => m.id !== id));
       } catch (err) {
         console.error('Failed to delete member:', err);
-        alert('Failed to delete member');
+        alert(t('members.failedToDelete'));
       }
     }
   };
@@ -239,7 +241,7 @@ const Members = () => {
       setIsModalOpen(false);
     } catch (err) {
       console.error('Failed to save member:', err);
-      alert('Failed to save member');
+      alert(t('members.failedToSave'));
     }
   };
 
@@ -269,7 +271,7 @@ const Members = () => {
   const memberColumns: Column<Member>[] = useMemo(() => [
     {
       key: 'member',
-      header: 'Member',
+      header: t('members.member'),
       sortable: true,
       sortKey: (m) => `${m.first_name} ${m.last_name}`,
       render: (m) => (
@@ -292,19 +294,19 @@ const Members = () => {
     },
     {
       key: 'gender',
-      header: 'Gender',
+      header: t('members.gender'),
       sortable: true,
       sortKey: (m) => m.gender || '',
       render: (m) => <span className="text-sm text-gray-700">{m.gender || '-'}</span>,
     },
     {
       key: 'phone',
-      header: 'Phone',
+      header: t('members.phone'),
       render: (m) => <span className="text-sm text-gray-700 whitespace-nowrap">{m.phone_number || '-'}</span>,
     },
     {
       key: 'address',
-      header: 'Address',
+      header: t('members.address'),
       render: (m) => m.physical_address ? (
         <div className="flex items-center gap-1 text-sm text-gray-500">
           <MapPin size={12} className="flex-shrink-0" />
@@ -314,18 +316,18 @@ const Members = () => {
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('members.status'),
       sortable: true,
       sortKey: (m) => m.is_active ? 1 : 0,
       render: (m) => (
         <span className={`px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${m.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-          {m.is_active ? 'Active' : 'Inactive'}
+          {m.is_active ? t('common.active') : t('common.inactive')}
         </span>
       ),
     },
     ...(!isViewer ? [{
       key: 'actions',
-      header: 'Actions',
+      header: t('members.actions'),
       className: 'text-right',
       headerClassName: 'text-right',
       render: (m: Member) => (

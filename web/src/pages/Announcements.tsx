@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Filter } from 'lucide-react';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
@@ -18,6 +19,7 @@ interface CreateAnnouncementRequest {
 }
 
 export default function Announcements() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,21 +100,21 @@ export default function Announcements() {
   const columns = [
     {
       key: 'title',
-      header: 'Title',
+      header: t('announcements.titleField'),
       render: (item: Announcement) => (
         <div className="font-medium">{item.title}</div>
       )
     },
     {
       key: 'type',
-      header: 'Type',
+      header: t('announcements.typeField'),
       render: (item: Announcement) => (
         <span className="text-sm text-gray-600">{item.announcement_type}</span>
       )
     },
     {
       key: 'scope',
-      header: 'Scope',
+      header: t('announcements.scopeField'),
       render: (item: Announcement) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.scope === 'DIOCESE' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
           {item.scope}
@@ -121,7 +123,7 @@ export default function Announcements() {
     },
     {
       key: 'priority',
-      header: 'Priority',
+      header: t('announcements.priorityField'),
       render: (item: Announcement) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(item.priority)}`}>
           {item.priority}
@@ -130,7 +132,7 @@ export default function Announcements() {
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('common.status'),
       render: (item: Announcement) => (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status || '')}`}>
           {item.status || 'Unknown'}
@@ -138,17 +140,17 @@ export default function Announcements() {
       )
     },
     {
-      key: 'author', header: 'Author', render: (item: Announcement) => (
+      key: 'author', header: t('announcements.author'), render: (item: Announcement) => (
         <span className="text-sm text-gray-600">{item.author_name || 'Unknown'}</span>
       )
     },
     {
-      key: 'views', header: 'Views', render: (item: Announcement) => (
+      key: 'views', header: t('announcements.views'), render: (item: Announcement) => (
         <span className="text-sm text-gray-600">{item.view_count}</span>
       )
     },
     {
-      key: 'created', header: 'Created', render: (item: Announcement) => (
+      key: 'created', header: t('announcements.created'), render: (item: Announcement) => (
         <span className="text-sm text-gray-600">{item.created_at ? new Date(item.created_at).toLocaleDateString() : '-'}</span>
       )
     },
@@ -160,8 +162,8 @@ export default function Announcements() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Announcements</h1>
-          <p className="text-gray-600">Manage diocese and parish communications</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('announcements.title')}</h1>
+          <p className="text-gray-600">{t('announcements.description')}</p>
         </div>
         {canCreate && (
           <button
@@ -169,7 +171,7 @@ export default function Announcements() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-4 h-4" />
-            New Announcement
+            {t('announcements.newAnnouncement')}
           </button>
         )}
       </div>
@@ -182,10 +184,10 @@ export default function Announcements() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="border-slate-200 rounded-lg px-3 py-2 text-sm"
           >
-            <option value="all">All Status</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="DRAFT">Draft</option>
-            <option value="ARCHIVED">Archived</option>
+            <option value="all">{t('announcements.allStatus')}</option>
+            <option value="PUBLISHED">{t('announcements.published')}</option>
+            <option value="DRAFT">{t('announcements.draft')}</option>
+            <option value="ARCHIVED">{t('announcements.archived')}</option>
           </select>
         </div>
         <div className="flex items-center gap-2">
@@ -194,15 +196,15 @@ export default function Announcements() {
             onChange={(e) => setFilterScope(e.target.value)}
             className="border-slate-200 rounded-lg px-3 py-2 text-sm"
           >
-            <option value="all">All Scopes</option>
-            <option value="DIOCESE">Diocese</option>
-            <option value="PARISH">Parish</option>
+            <option value="all">{t('announcements.allScopes')}</option>
+            <option value="DIOCESE">{t('announcements.diocese')}</option>
+            <option value="PARISH">{t('announcements.parish')}</option>
           </select>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-8">Loading announcements...</div>
+        <div className="text-center py-8">{t('common.loading')}</div>
       ) : (
         <DataTable<Announcement>
           data={announcements}
@@ -212,7 +214,7 @@ export default function Announcements() {
       )}
 
       {/* Create/Edit Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingAnnouncement ? 'Edit Announcement' : 'New Announcement'}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingAnnouncement ? t('announcements.editAnnouncement') : t('announcements.newAnnouncement')}>
         <AnnouncementForm
           announcement={editingAnnouncement}
           onSubmit={handleSubmit}
@@ -222,7 +224,7 @@ export default function Announcements() {
       </Modal>
 
       {/* View Modal */}
-      <Modal isOpen={!!viewingAnnouncement} onClose={() => setViewingAnnouncement(null)} title="Announcement Details">
+      <Modal isOpen={!!viewingAnnouncement} onClose={() => setViewingAnnouncement(null)} title={t('announcements.viewAnnouncement')}>
         {viewingAnnouncement && (
           <div className="space-y-4">
             <div>

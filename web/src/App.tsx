@@ -25,6 +25,7 @@ import Attendance from './pages/Attendance';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { ParishProvider } from './context/ParishContext';
+import { StyleInjector } from './components/StyleInjector';
 import { useEffect } from 'react';
 import './App.css';
 import './i18n'; // Initialize i18n
@@ -102,6 +103,7 @@ function App() {
       <TauriWindowCloseHandler />
       <ParishProvider>
         <SettingsProvider>
+          <StyleInjector />
           <DocumentTitleUpdater />
           <Router>
             <Routes>

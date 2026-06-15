@@ -96,6 +96,10 @@ pub fn build_router(state: AppState) -> Router {
                 .delete(handlers::parish::delete_parish),
         )
         .route(
+            "/api/settings/parishes/:parish_id",
+            delete(handlers::setting::reset_parish_settings),
+        )
+        .route(
             "/parishes/:id/stats",
             get(handlers::parish::get_parish_stats),
         )
@@ -167,10 +171,7 @@ pub fn build_router(state: AppState) -> Router {
                 .put(handlers::family::update_family)
                 .delete(handlers::family::delete_family),
         )
-        .route(
-            "/settings",
-            get(handlers::setting::list_settings).post(handlers::setting::upsert_setting),
-        )
+        .route("/settings", get(handlers::setting::list_settings))
         .route(
             "/settings/bulk",
             post(handlers::setting::bulk_upsert_settings),

@@ -338,21 +338,32 @@ export class ApiClient {
   }
 
   // Settings
-  async listSettings(parishId?: UUID, group?: string): Promise<any[]> {
-    let query = '';
-    const params: string[] = [];
-    if (parishId) params.push(`parish_id=${parishId}`);
-    if (group) params.push(`setting_group=${group}`);
-    if (params.length) query = '?' + params.join('&');
-    return this.request<any[]>('GET', `/settings${query}`);
+  async listSettings(parishId?: string | null): Promise<any[]> {
+    const url = parishId
+      ? `${this.baseUrl}/settings?parish_id=${parishId}`
+      : `${this.baseUrl}/settings`;
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.getToken() ? { 'Authorization': `Bearer ${this.getToken()}` } : {}),
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+    return response.json();
   }
 
   async upsertSetting(data: { parish_id?: UUID; diocese_id?: UUID; setting_key: string; setting_value: string; setting_group?: string; description?: string }): Promise<any> {
     return this.request<any>('POST', '/settings', data);
   }
 
-  async bulkUpsertSettings(settings: { parish_id?: UUID; diocese_id?: UUID; setting_key: string; setting_value: string; setting_group?: string; description?: string }[]): Promise<any[]> {
-    return this.request<any[]>('POST', '/settings/bulk', { settings });
+  async bulkUpsertSettings(settings: { parish_id?: UUID; diocese_id?: UUID; setting_key: string; setting_value: string; setting_group?: string; description?: string }[]): Promise<any> {
+    return this.request<any>('POST', '/settings/bulk', settings);
+  }
+
+  async deleteParishSettings(parishId: string): Promise<void> {
+    return this.request<void>('DELETE', `/settings/parishes/${parishId}`);
   }
 
   // Clusters

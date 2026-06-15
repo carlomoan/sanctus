@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { Family, CreateFamilyRequest, Parish, Scc, Member, CreateMemberRequest, FamilyRole, GenderType, MaritalStatus, UserRole } from '../types';
@@ -11,6 +12,7 @@ import { useParish } from '../context/ParishContext';
 const cls = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2";
 
 const Families = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { getEffectiveParishId, activeParishId, setActiveParish } = useParish();
   const [searchParams] = useSearchParams();
@@ -141,7 +143,7 @@ const Families = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Families</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('families.title')}</h1>
           {isDioceseAdmin && parishes.length > 0 && (
             <div className="mt-2">
               <select
@@ -149,7 +151,7 @@ const Families = () => {
                 onChange={(e) => setActiveParish(e.target.value || null)}
                 className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value="">All Parishes</option>
+                <option value="">{t('families.allParishes')}</option>
                 {parishes.map(parish => (
                   <option key={parish.id} value={parish.id}>{parish.parish_name}</option>
                 ))}
@@ -163,7 +165,7 @@ const Families = () => {
               <button
                 onClick={() => {
                   if (sccs.length === 0) {
-                    alert('Please create SCCs first before importing families');
+                    alert(t('families.createSccsFirst'));
                     return;
                   }
                   setShowImportModal(true);
@@ -171,10 +173,10 @@ const Families = () => {
                 className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
               >
                 <Upload size={20} />
-                Import Families
+                {t('families.importFamilies')}
               </button>
               <button onClick={() => { setSelected(undefined); setIsModalOpen(true); }} className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700">
-                <Plus size={20} />Add Family
+                <Plus size={20} />{t('families.addFamily')}
               </button>
             </>
           )}
@@ -187,14 +189,14 @@ const Families = () => {
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search families by name or code..."
+            placeholder={t('families.searchFamilies')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
         <div className="mt-2 text-sm text-gray-500">
-          Showing {filteredFamilies.length} of {families.length} families
+          {t('families.showingCount', { count: filteredFamilies.length, total: families.length })}
         </div>
       </div>
 
@@ -206,8 +208,8 @@ const Families = () => {
       ) : filteredFamilies.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg border border-gray-100">
           <Users className="mx-auto text-gray-300 mb-4" size={32} />
-          <h3 className="text-lg font-medium text-gray-900">No families found</h3>
-          <p className="text-gray-500 mt-1">Get started by adding a new family.</p>
+          <h3 className="text-lg font-medium text-gray-900">{t('families.noFamiliesFound')}</h3>
+          <p className="text-gray-500 mt-1">{t('families.getStarted')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -232,8 +234,8 @@ const Families = () => {
                       </div>
                       <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
                         {isDioceseAdmin && <span>{getParishName(f.parish_id)}</span>}
-                        <span>SCC: {getSccName(f.scc_id)}</span>
-                        <span className="flex items-center gap-1"><Users size={14} />{familyMembers.length} members</span>
+                        <span>{t('families.scc')}: {getSccName(f.scc_id)}</span>
+                        <span className="flex items-center gap-1"><Users size={14} />{familyMembers.length} {t('families.members')}</span>
                         {f.primary_phone && <span>{f.primary_phone}</span>}
                       </div>
                     </div>
@@ -243,21 +245,21 @@ const Families = () => {
                       <button
                         onClick={() => openAddMember(f)}
                         className="p-2 text-green-600 hover:bg-green-50 rounded-md transition-colors"
-                        title="Add family member"
+                        title={t('families.addFamilyMember')}
                       >
                         <UserPlus size={18} />
                       </button>
                       <button
                         onClick={() => { setSelected(f); setIsModalOpen(true); }}
                         className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors"
-                        title="Edit family"
+                        title={t('families.editFamily')}
                       >
                         <Edit size={18} />
                       </button>
                       <button
                         onClick={() => handleDeleteFamily(f.id)}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                        title="Delete family"
+                        title={t('families.deleteFamily')}
                       >
                         <Trash2 size={18} />
                       </button>

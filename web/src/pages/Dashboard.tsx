@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { DashboardStats, Parish, UserRole } from '../types';
@@ -118,6 +119,7 @@ const NotifIcon = ({ type }: { type: AppNotification['type'] }) => {
 
 // ── Main component ────────────────────────────────────────────────────────────
 const Dashboard = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [stats, setStats] = useState<RoleBasedStats | null>(null);
@@ -249,14 +251,14 @@ const Dashboard = () => {
   const quickActions = (() => {
     switch (user?.role) {
       case UserRole.SUPER_ADMIN: return [
-        { icon: Users, label: 'Manage Users', path: '/users', color: 'blue' },
-        { icon: Church, label: 'Manage Parishes', path: '/parishes', color: 'indigo' },
-        { icon: Shield, label: 'Roles', path: '/roles', color: 'purple' },
-        { icon: Settings, label: 'Settings', path: '/settings', color: 'gray' },
-        { icon: BarChart3, label: 'Reports', path: '/reports', color: 'green' },
+        { icon: Users, label: t('users.userManagement'), path: '/users', color: 'blue' },
+        { icon: Church, label: t('navigation.parishes'), path: '/parishes', color: 'indigo' },
+        { icon: Shield, label: t('navigation.roles'), path: '/roles', color: 'purple' },
+        { icon: Settings, label: t('navigation.settings'), path: '/settings', color: 'gray' },
+        { icon: BarChart3, label: t('navigation.reports'), path: '/reports', color: 'green' },
       ];
       case UserRole.PARISH_ADMIN: return [
-        { icon: UserPlus, label: 'Add Member', path: '/members', color: 'blue' },
+        { icon: UserPlus, label: t('dashboard.addMember'), path: '/members', color: 'blue' },
         { icon: Home, label: 'Add Family', path: '/families', color: 'purple' },
         { icon: MapPin, label: 'Add SCC', path: '/clusters', color: 'teal' },
         { icon: Layers, label: 'Sacrament', path: '/sacraments', color: 'amber' },
@@ -266,19 +268,19 @@ const Dashboard = () => {
         { icon: Coins, label: 'Record Income', path: '/finance?tab=income', color: 'green' },
         { icon: CreditCard, label: 'Record Expense', path: '/finance?tab=expenses', color: 'red' },
         { icon: FileText, label: 'Vouchers', path: '/finance?tab=pending', color: 'orange' },
-        { icon: PieChart, label: 'Reports', path: '/reports', color: 'purple' },
+        { icon: PieChart, label: t('navigation.reports'), path: '/reports', color: 'purple' },
         { icon: FileSpreadsheet, label: 'Budgets', path: '/budgets', color: 'blue' },
       ];
       case UserRole.SECRETARY: return [
-        { icon: UserPlus, label: 'Add Member', path: '/members', color: 'blue' },
+        { icon: UserPlus, label: t('dashboard.addMember'), path: '/members', color: 'blue' },
         { icon: Layers, label: 'Sacrament', path: '/sacraments', color: 'amber' },
-        { icon: FileText, label: 'Reports', path: '/reports', color: 'purple' },
-        { icon: Calendar, label: 'Events', path: '/events', color: 'indigo' },
+        { icon: FileText, label: t('navigation.reports'), path: '/reports', color: 'purple' },
+        { icon: Calendar, label: t('navigation.events'), path: '/events', color: 'indigo' },
         { icon: Award, label: 'Certificates', path: '/certificates', color: 'green' },
       ];
       default: return [
         { icon: Eye, label: 'View Members', path: '/members', color: 'blue' },
-        { icon: BarChart3, label: 'Reports', path: '/reports', color: 'purple' },
+        { icon: BarChart3, label: t('navigation.reports'), path: '/reports', color: 'purple' },
       ];
     }
   })();
@@ -300,7 +302,7 @@ const Dashboard = () => {
     <div className="flex flex-col items-center justify-center h-64 gap-3">
       <XIcon size={32} className="text-red-400" />
       <p className="text-secondary-500">{error}</p>
-      <button onClick={() => window.location.reload()} className="btn-secondary text-sm">Retry</button>
+      <button onClick={() => window.location.reload()} className="btn-secondary text-sm">{t('dashboard.retry')}</button>
     </div>
   );
 
@@ -311,24 +313,24 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-secondary-900">
-            Welcome back, {user?.full_name?.split(' ')[0]}
+            {t('dashboard.welcome')}, {user?.full_name?.split(' ')[0]}
             <span className="text-secondary-300 font-normal"> 👋</span>
           </h1>
           <p className="text-secondary-500 text-sm mt-0.5">
             {{
-              [UserRole.SUPER_ADMIN]: 'Super Admin Dashboard',
-              [UserRole.PARISH_ADMIN]: 'Parish Administration',
-              [UserRole.ACCOUNTANT]: 'Financial Management',
-              [UserRole.SECRETARY]: 'Parish Secretariat',
-              [UserRole.VIEWER]: 'Parish Information',
-            }[user?.role ?? UserRole.VIEWER] ?? 'Dashboard'}
+              [UserRole.SUPER_ADMIN]: t('dashboard.superAdminDashboard'),
+              [UserRole.PARISH_ADMIN]: t('dashboard.parishAdministration'),
+              [UserRole.ACCOUNTANT]: t('dashboard.financialManagement'),
+              [UserRole.SECRETARY]: t('dashboard.parishSecretariat'),
+              [UserRole.VIEWER]: t('dashboard.parishInformation'),
+            }[user?.role ?? UserRole.VIEWER] ?? t('dashboard.welcome')}
           </p>
         </div>
         {user?.role === UserRole.SUPER_ADMIN && (
           <div className="relative w-full sm:w-60">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400" />
             <input
-              type="text" placeholder="Search parishes…"
+              type="text" placeholder={t('dashboard.searchParishes')}
               value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
               className="input-base pl-9 py-2"
             />
@@ -361,7 +363,7 @@ const Dashboard = () => {
 
       {/* ── Quick actions ────────────────────────────────────── */}
       <div className="section-card">
-        <h2 className="text-sm font-semibold text-secondary-700 mb-4">Quick Actions</h2>
+        <h2 className="text-sm font-semibold text-secondary-700 mb-4">{t('dashboard.quickActions')}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {quickActions.map((a, i) => (
             <button key={i} onClick={() => navigate(a.path)} className="action-btn group">
@@ -382,10 +384,10 @@ const Dashboard = () => {
           {canFinance && (
             <div className="section-card lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-secondary-700">Financial Overview</h3>
+                <h3 className="text-sm font-semibold text-secondary-700">{t('dashboard.financialOverview')}</h3>
                 <select className="input-base !w-auto py-1 text-xs">
-                  <option>Last 6 months</option>
-                  <option>This year</option>
+                  <option>{t('dashboard.last6Months')}</option>
+                  <option>{t('dashboard.thisYear')}</option>
                 </select>
               </div>
               {loading

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { Diocese, UserRole } from '../types';
 import { Plus, Search, MapPin, Phone, Mail, Edit, Trash2, Building } from 'lucide-react';
@@ -8,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 const API_BASE_URL = 'http://localhost:3000';
 
 const Dioceses = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [dioceses, setDioceses] = useState<Diocese[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,7 @@ const Dioceses = () => {
       const data = await api.listDioceses();
       setDioceses(data);
     } catch (err) {
-      setError('Failed to load dioceses');
+      setError(t('dioceses.failedToLoad'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -59,14 +61,14 @@ const Dioceses = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this diocese? This action cannot be undone.')) {
+    if (confirm(t('dioceses.confirmDelete'))) {
       try {
         await api.deleteDiocese(id);
         setDioceses(dioceses.filter(d => d.id !== id));
-        alert('Diocese deleted successfully');
+        alert(t('dioceses.dioceseDeletedSuccess'));
       } catch (err: any) {
         console.error('Failed to delete diocese:', err);
-        alert(err.message || 'Failed to delete diocese');
+        alert(err.message || t('dioceses.failedToDelete'));
       }
     }
   };
@@ -78,16 +80,16 @@ const Dioceses = () => {
       if (selectedDiocese) {
         const updatedDiocese = await api.updateDiocese(selectedDiocese.id, formData);
         setDioceses(dioceses.map(d => d.id === selectedDiocese.id ? updatedDiocese : d));
-        alert('Diocese updated successfully');
+        alert(t('dioceses.dioceseUpdatedSuccess'));
       } else {
         const newDiocese = await api.createDiocese(formData);
         setDioceses([...dioceses, newDiocese]);
-        alert('Diocese created successfully');
+        alert(t('dioceses.dioceseCreatedSuccess'));
       }
       setIsModalOpen(false);
     } catch (err: any) {
       console.error('Failed to save diocese:', err);
-      alert(err.message || 'Failed to save diocese');
+      alert(err.message || t('dioceses.failedToSave'));
     } finally {
       setIsSubmitting(false);
     }
@@ -98,12 +100,12 @@ const Dioceses = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <Building size={24} />
-          Dioceses
+          {t('dioceses.title')}
         </h1>
         {isSuperAdmin && (
           <button onClick={handleCreate} className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors">
             <Plus size={20} />
-            Add Diocese
+            {t('dioceses.addDiocese')}
           </button>
         )}
       </div>
@@ -111,13 +113,13 @@ const Dioceses = () => {
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-          <input type="text" placeholder="Search dioceses..."
+          <input type="text" placeholder={t('dioceses.searchDioceses')}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" />
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading dioceses...</div>
+        <div className="text-center py-12 text-gray-500">{t('dioceses.loadingDioceses')}</div>
       ) : error ? (
         <div className="text-center py-12 text-red-500">{error}</div>
       ) : dioceses.length === 0 ? (
@@ -125,8 +127,8 @@ const Dioceses = () => {
           <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <Building className="text-gray-400" size={24} />
           </div>
-          <h3 className="text-lg font-medium text-gray-900">No dioceses found</h3>
-          <p className="text-gray-500 mt-1">Get started by adding a new diocese.</p>
+          <h3 className="text-lg font-medium text-gray-900">{t('dioceses.noDiocesesFound')}</h3>
+          <p className="text-gray-500 mt-1">{t('dioceses.getStarted')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

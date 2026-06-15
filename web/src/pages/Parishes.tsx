@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { Parish, CreateParishRequest, UpdateParishRequest, Diocese } from '../types';
 import { Plus, Search, MapPin, Phone, Mail, Edit, Trash2, Upload, Church } from 'lucide-react';
@@ -8,6 +9,7 @@ import ParishForm from '../components/ParishForm';
 const API_BASE_URL = 'http://localhost:3000';
 
 const Parishes = () => {
+  const { t } = useTranslation();
   const [parishes, setParishes] = useState<Parish[]>([]);
   const [dioceses, setDioceses] = useState<Diocese[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,7 @@ const Parishes = () => {
     if (!file || !parishId) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('File too large. Maximum size is 5MB.');
+      alert(t('parish.fileTooLarge'));
       return;
     }
 
@@ -36,7 +38,7 @@ const Parishes = () => {
       ));
     } catch (err) {
       console.error('Failed to upload logo:', err);
-      alert('Failed to upload logo');
+      alert(t('parish.failedToUploadLogo'));
     } finally {
       setUploadingLogoId(null);
       if (logoInputRef.current) logoInputRef.current.value = '';
@@ -57,7 +59,7 @@ const Parishes = () => {
       setParishes(parishesData);
       setDioceses(diocesesData);
     } catch (err) {
-      setError('Failed to load parishes or dioceses');
+      setError(t('parish.failedToLoad'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -79,13 +81,13 @@ const Parishes = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this parish?')) {
+    if (confirm(t('parish.confirmDelete'))) {
       try {
         await api.deleteParish(id);
         setParishes(parishes.filter(p => p.id !== id));
       } catch (err) {
         console.error('Failed to delete parish:', err);
-        alert('Failed to delete parish');
+        alert(t('parish.failedToDelete'));
       }
     }
   };
@@ -110,7 +112,7 @@ const Parishes = () => {
     } catch (err: any) {
       console.error('Failed to save parish:', err);
       // Show more detailed error message
-      const errorMessage = err?.message || err?.detail || 'Failed to save parish';
+      const errorMessage = err?.message || err?.detail || t('parish.failedToSave');
       alert(`Error: ${errorMessage}`);
     }
   };
@@ -118,13 +120,13 @@ const Parishes = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Parishes</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('parish.title')}</h1>
         <button
           onClick={handleCreate}
           className="bg-primary-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-700 transition-colors"
         >
           <Plus size={20} />
-          Add Parish
+          {t('parish.addParish')}
         </button>
       </div>
 
@@ -134,7 +136,7 @@ const Parishes = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="Search parishes..."
+            placeholder={t('parish.searchParishes')}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
           />
         </div>
@@ -142,7 +144,7 @@ const Parishes = () => {
 
       {/* Parish List */}
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Loading parishes...</div>
+        <div className="text-center py-12 text-gray-500">{t('parish.loadingParishes')}</div>
       ) : error ? (
         <div className="text-center py-12 text-red-500">{error}</div>
       ) : parishes.length === 0 ? (
