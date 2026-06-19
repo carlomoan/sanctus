@@ -141,9 +141,9 @@ const Layout = () => {
     }
   }, [loading, settingsReady, getSetting]);
 
-  const appName = getSetting('ui.app_name') || 'Sanctus';
-  const logoUrl = getSetting('ui.logo_url');
-  const footerContent = getSetting('ui.footer_content') || `© ${new Date().getFullYear()} Sanctus Parish Management`;
+  const appName = getSetting('ui.app_name') || 'OCMIS';
+  const logoUrl = getSetting('ui.logo_url') || '../logos/OCMIS-logo1.png';
+  const footerContent = getSetting('ui.footer_content') || `© ${new Date().getFullYear()} OCMIS - OurKanisa Church Management`;
   const showFooter = getSetting('ui.footer_show') !== 'false';
 
   const handleLogout = () => { logout(); navigate('/login'); };
@@ -264,23 +264,32 @@ const Layout = () => {
         >
           {isSidebarOpen && (
             <div className="flex items-center gap-2.5 min-w-0">
-              {logoUrl
-                ? <img src={logoUrl} alt="Logo" className="h-7 w-7 object-contain flex-shrink-0" />
-                : (
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: 'var(--color-primary-600, #4f46e5)' }}
-                  >
-                    <span className="text-white text-xs font-bold">✝</span>
-                  </div>
-                )
-              }
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="h-7 w-7 object-contain flex-shrink-0"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+              />
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 hidden"
+                style={{ backgroundColor: 'var(--color-primary-600, #4f46e5)' }}
+              >
+                <span className="text-white text-xs font-bold">✝</span>
+              </div>
               <span className="font-bold text-sm text-white truncate">{appName}</span>
             </div>
           )}
           {!isSidebarOpen && (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="h-7 w-7 object-contain"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+            />
+          )}
+          {!isSidebarOpen && (
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              className="w-7 h-7 rounded-lg flex items-center justify-center hidden"
               style={{ backgroundColor: 'var(--color-primary-600, #4f46e5)' }}
             >
               <span className="text-white text-xs font-bold">✝</span>

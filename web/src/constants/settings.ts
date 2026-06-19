@@ -21,8 +21,8 @@ export interface SettingDefinition {
 export const SETTING_DEFINITIONS: SettingDefinition[] = [
   // ── UI CONFIG ─────────────────────────────────────────────
   // Diocese-only: brand identity set at top level
-  { key: 'ui.app_name', label: 'Application Name', description: 'System name shown in title and sidebar', group: 'ui', type: 'text', value: 'Sanctus', scope: 'diocese' },
-  { key: 'ui.logo_url', label: 'Logo URL', description: 'URL to organization logo image', group: 'ui', type: 'text', value: '', scope: 'diocese' },
+  { key: 'ui.app_name', label: 'Application Name', description: 'System name shown in title and sidebar', group: 'ui', type: 'text', value: 'OCMIS', scope: 'diocese' },
+  { key: 'ui.logo_url', label: 'Logo URL', description: 'URL to organization logo image', group: 'ui', type: 'text', value: '/logos/OCMIS-logo1.png', scope: 'diocese' },
   { key: 'ui.primary_color', label: 'Primary Color', description: 'Main brand color (hex)', group: 'ui', type: 'color', value: '#4f46e5', scope: 'diocese' },
   { key: 'ui.secondary_color', label: 'Secondary Color', description: 'Secondary brand color (hex)', group: 'ui', type: 'color', value: '#0f172a', scope: 'diocese' },
 
@@ -49,7 +49,7 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
   { key: 'ui.footer_bg', label: 'Footer Background', description: 'Footer background color', group: 'ui', type: 'color', value: '#ffffff', scope: 'both' },
   { key: 'ui.footer_text', label: 'Footer Text', description: 'Footer text color', group: 'ui', type: 'color', value: '#64748b', scope: 'both' },
   { key: 'ui.footer_border', label: 'Footer Border', description: 'Footer top border color', group: 'ui', type: 'color', value: '#e2e8f0', scope: 'both' },
-  { key: 'ui.footer_content', label: 'Footer Text Content', description: 'Text shown in footer', group: 'ui', type: 'text', value: '© 2026 Sanctus Parish Management', scope: 'both' },
+  { key: 'ui.footer_content', label: 'Footer Text Content', description: 'Text shown in footer', group: 'ui', type: 'text', value: '© 2026 OCMIS - OurKanisa Church Management', scope: 'both' },
   { key: 'ui.footer_show', label: 'Show Footer', description: 'Show or hide the footer bar', group: 'ui', type: 'toggle', value: 'true', scope: 'both' },
   { key: 'ui.sidebar_collapsed', label: 'Sidebar Collapsed', description: 'Start with sidebar collapsed', group: 'ui', type: 'toggle', value: 'false', scope: 'both' },
 
@@ -82,12 +82,12 @@ export const SETTING_DEFINITIONS: SettingDefinition[] = [
 
   // ── EMAIL / SMS ───────────────────────────────────────────
   { key: 'sms.api_key', label: 'Africa\'s Talking API Key', description: 'SMS gateway API key', group: 'email', type: 'text', value: '', scope: 'diocese' },
-  { key: 'sms.sender_id', label: 'SMS Sender ID', description: 'SMS sender name (max 11 chars)', group: 'email', type: 'text', value: 'SANCTUS', scope: 'diocese' },
+  { key: 'sms.sender_id', label: 'SMS Sender ID', description: 'SMS sender name (max 11 chars)', group: 'email', type: 'text', value: 'OCMIS', scope: 'diocese' },
   { key: 'email.smtp_host', label: 'SMTP Host', description: 'Email server hostname', group: 'email', type: 'text', value: '', scope: 'diocese' },
   { key: 'email.smtp_port', label: 'SMTP Port', description: 'Email server port', group: 'email', type: 'text', value: '587', scope: 'diocese' },
   { key: 'email.smtp_user', label: 'SMTP Username', description: 'Email account username', group: 'email', type: 'text', value: '', scope: 'diocese' },
   { key: 'email.smtp_password', label: 'SMTP Password', description: 'Email account password', group: 'email', type: 'text', value: '', scope: 'diocese' },
-  { key: 'email.from_name', label: 'From Name', description: 'Sender display name in emails', group: 'email', type: 'text', value: 'Sanctus Parish', scope: 'both' },
+  { key: 'email.from_name', label: 'From Name', description: 'Sender display name in emails', group: 'email', type: 'text', value: 'OCMIS Parish', scope: 'both' },
   { key: 'email.from_address', label: 'From Address', description: 'Sender email address', group: 'email', type: 'text', value: '', scope: 'diocese' },
 
   // ── PAYMENTS ──────────────────────────────────────────────

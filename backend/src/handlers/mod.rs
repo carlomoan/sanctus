@@ -8,6 +8,7 @@ pub mod dashboard;
 pub mod diocese;
 pub mod event;
 pub mod family;
+pub mod health;
 pub mod import;
 pub mod liturgical;
 pub mod member;

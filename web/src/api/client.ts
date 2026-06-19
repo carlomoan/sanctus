@@ -24,14 +24,62 @@ import {
   ChurchEvent, LiturgicalCalendarEntry, Notification,
 } from '../types';
 
-const API_BASE_URL = 'http://localhost:3000';
+/* ── Tauri-aware base URL ───────────────────────────────────────────────────── */
+export const isTauri = typeof window !== 'undefined' && !!(window as any).__TAURI__;
+
+function getBaseUrl(): string {
+  // In Tauri desktop mode the backend runs on 127.0.0.1 (avoids IPv6 issues on Windows)
+  // In browser dev mode we use localhost so Vite proxy works
+  return isTauri ? 'http://127.0.0.1:3000' : 'http://localhost:3000';
+}
+
+const API_BASE_URL = getBaseUrl();
 
 export class ApiClient {
   private baseUrl: string;
   private onUnauthorized?: () => void;
+  private readyPromise: Promise<void>;
+  private readyResolve!: () => void;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
+    // Create a promise that resolves once the backend /health endpoint responds.
+    // All API requests await this promise first so they never fire before the
+    // backend HTTP server is ready (race condition on Tauri startup).
+    this.readyPromise = new Promise<void>((resolve) => {
+      this.readyResolve = resolve;
+    });
+    this.pollReady();
+  }
+
+  /** Mark the client as ready (called internally when /health succeeds) */
+  setReady() {
+    this.readyResolve();
+  }
+
+  /** Poll the /health endpoint until the backend is up */
+  private async pollReady() {
+    if (!isTauri) {
+      // In browser dev mode the backend is assumed to already be running
+      this.readyResolve();
+      return;
+    }
+    const maxAttempts = 30; // 15 seconds at 500ms intervals
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const res = await fetch(`${this.baseUrl}/health`);
+        if (res.ok) {
+          this.readyResolve();
+          return;
+        }
+      } catch {
+        // not up yet
+      }
+      await new Promise(r => setTimeout(r, 500));
+    }
+    // Timeout — resolve anyway so the app doesn't hang forever;
+    // StartupCheck will show the retry screen.
+    this.readyResolve();
   }
 
   setOnUnauthorized(callback: () => void) {
@@ -63,6 +111,9 @@ export class ApiClient {
   }
 
   private async request<T>(method: string, endpoint: string, body?: any): Promise<T> {
+    // Wait for backend readiness (no-op in browser dev mode, blocks in Tauri until /health responds)
+    await this.readyPromise;
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };

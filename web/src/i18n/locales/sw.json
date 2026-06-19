@@ -338,7 +338,9 @@
     "totalAbsent": "Jumla ya Wasiokuwepo",
     "totalExcused": "Jumla ya Walioruhusiwa",
     "attendanceRate": "Kiwango cha Mahudhurio",
-    "totalRecords": "Jumla ya Rekodi"
+    "totalRecords": "Jumla ya Rekodi",
+    "recordAttendance": "Rekodi Mahudhurio",
+    "editRecord": "Hariri Rekodi ya Mahudhurio"
   },
   "settings": {
     "title": "Mipangilio",

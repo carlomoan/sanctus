@@ -335,7 +335,9 @@
     "totalAbsent": "Total Absent",
     "totalExcused": "Total Excused",
     "attendanceRate": "Attendance Rate",
-    "totalRecords": "Total Records"
+    "totalRecords": "Total Records",
+    "recordAttendance": "Record Attendance",
+    "editRecord": "Edit Attendance Record"
   },
   "settings": {
     "title": "Settings",

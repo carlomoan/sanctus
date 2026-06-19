@@ -1,3 +1,4 @@
+use crate::handlers::audit::write_audit_log;
 use crate::models::user::{AuthResponse, LoginRequest, User, UserProfile, UserRole};
 use crate::AppState;
 use axum::{
@@ -193,6 +194,19 @@ pub async fn login(
 
     let token = create_jwt(user.id, user.role, user.parish_id)
         .map_err(|s| (s, "Internal server error".to_string()))?;
+
+    // Audit log for login
+    write_audit_log(
+        &state.db,
+        Some(user.id),
+        user.parish_id,
+        "LOGIN",
+        "app_user",
+        Some(user.id),
+        None,
+        Some(serde_json::json!({"username": user.username})),
+    )
+    .await;
 
     Ok(Json(AuthResponse {
         token,

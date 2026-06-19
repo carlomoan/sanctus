@@ -10,7 +10,7 @@ import {
   RefreshCw, Save, Check, Palette, Church, Type, Layout, Layers,
   AlertCircle, ChevronRight, Info, Lock, AlertTriangle, X,
 } from 'lucide-react';
-import { SETTING_DEFINITIONS, PARISH_EDITABLE_KEYS, DIOCESE_ONLY_KEYS } from '../constants/settings';
+import { SETTING_DEFINITIONS } from '../constants/settings';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
@@ -265,7 +265,7 @@ export default function Settings() {
       const payload = keysToSave.map(key => {
         const def = SETTING_DEFINITIONS.find(d => d.key === key)!;
         return {
-          parish_id: saveParishId,
+          parish_id: saveParishId ?? undefined,
           setting_key: key,
           setting_value: values[key] ?? def.value,
           setting_group: def.group,
@@ -538,7 +538,6 @@ export default function Settings() {
               // UI group — organized into color categories
               <div className="space-y-6 py-1">
                 {colorCategories.map(cat => {
-                  const Icon = Layout;
                   const catDefs = cat.keys
                     .map(k => SETTING_DEFINITIONS.find(d => d.key === k))
                     .filter(Boolean) as typeof SETTING_DEFINITIONS;

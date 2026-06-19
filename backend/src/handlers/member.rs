@@ -1,11 +1,17 @@
+use crate::{
+    handlers::audit::write_audit_log,
+    handlers::auth::AuthUser,
+    handlers::rbac,
+    models::member::{FamilyRole, GenderType, MaritalStatus, Member},
+    AppState,
+};
 use axum::{
-    extract::{Path, State, Query},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
-use uuid::Uuid;
-use crate::{AppState, models::member::{Member, GenderType, MaritalStatus, FamilyRole}, handlers::auth::AuthUser, handlers::rbac};
 use serde::Deserialize;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct ListMembersQuery {
@@ -64,14 +70,13 @@ pub async fn get_member(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Member>, (StatusCode, String)> {
-    let member = sqlx::query_as::<_, Member>(
-        "SELECT * FROM member WHERE id = $1 AND deleted_at IS NULL"
-    )
-    .bind(id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-    .ok_or((StatusCode::NOT_FOUND, "Member not found".to_string()))?;
+    let member =
+        sqlx::query_as::<_, Member>("SELECT * FROM member WHERE id = $1 AND deleted_at IS NULL")
+            .bind(id)
+            .fetch_optional(&state.db)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+            .ok_or((StatusCode::NOT_FOUND, "Member not found".to_string()))?;
 
     Ok(Json(member))
 }
@@ -83,7 +88,7 @@ pub async fn create_member(
 ) -> Result<Json<Member>, (StatusCode, String)> {
     rbac::require_write(&auth)?;
     let parish_id = rbac::resolve_parish_id(&auth, Some(payload.parish_id))?;
-    
+
     // Update payload with resolved parish_id
     payload.parish_id = parish_id;
 
@@ -102,10 +107,10 @@ pub async fn create_member(
     .bind(payload.family_id)
     .bind(payload.scc_id)
     .bind(payload.family_role)
-    .bind(payload.member_code)
-    .bind(payload.first_name)
-    .bind(payload.middle_name)
-    .bind(payload.last_name)
+    .bind(payload.member_code.clone())
+    .bind(payload.first_name.clone())
+    .bind(payload.middle_name.clone())
+    .bind(payload.last_name.clone())
     .bind(payload.date_of_birth)
     .bind(payload.gender)
     .bind(payload.marital_status)
@@ -119,6 +124,18 @@ pub async fn create_member(
     .fetch_one(&state.db)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Audit log
+    write_audit_log(
+        &state.db,
+        Some(auth.user_id),
+        Some(parish_id),
+        "INSERT",
+        "member",
+        Some(member.id),
+        None,
+        Some(serde_json::json!({"name": format!("{} {}", payload.first_name, payload.last_name), "code": payload.member_code})),
+    ).await;
 
     Ok(Json(member))
 }
@@ -151,33 +168,66 @@ pub async fn update_member(
     Json(payload): Json<UpdateMemberRequest>,
 ) -> Result<Json<Member>, (StatusCode, String)> {
     rbac::require_write(&auth)?;
-    let mut member = sqlx::query_as::<_, Member>(
-        "SELECT * FROM member WHERE id = $1 AND deleted_at IS NULL"
-    )
-    .bind(id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-    .ok_or((StatusCode::NOT_FOUND, "Member not found".to_string()))?;
+    let mut member =
+        sqlx::query_as::<_, Member>("SELECT * FROM member WHERE id = $1 AND deleted_at IS NULL")
+            .bind(id)
+            .fetch_optional(&state.db)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+            .ok_or((StatusCode::NOT_FOUND, "Member not found".to_string()))?;
 
     // In a real app, we might use a helper or macro to avoid this boilerplate
-    if let Some(val) = payload.family_id { member.family_id = Some(val); }
-    if let Some(val) = payload.scc_id { member.scc_id = Some(val); }
-    if let Some(val) = payload.family_role { member.family_role = Some(val); }
-    if let Some(val) = payload.first_name { member.first_name = val; }
-    if let Some(val) = payload.middle_name { member.middle_name = Some(val); }
-    if let Some(val) = payload.last_name { member.last_name = val; }
-    if let Some(val) = payload.date_of_birth { member.date_of_birth = Some(val); }
-    if let Some(val) = payload.gender { member.gender = Some(val); }
-    if let Some(val) = payload.marital_status { member.marital_status = Some(val); }
-    if let Some(val) = payload.national_id { member.national_id = Some(val); }
-    if let Some(val) = payload.occupation { member.occupation = Some(val); }
-    if let Some(val) = payload.email { member.email = Some(val); }
-    if let Some(val) = payload.phone_number { member.phone_number = Some(val); }
-    if let Some(val) = payload.physical_address { member.physical_address = Some(val); }
-    if let Some(val) = payload.photo_url { member.photo_url = Some(val); }
-    if let Some(val) = payload.notes { member.notes = Some(val); }
-    if let Some(val) = payload.is_active { member.is_active = Some(val); }
+    if let Some(val) = payload.family_id {
+        member.family_id = Some(val);
+    }
+    if let Some(val) = payload.scc_id {
+        member.scc_id = Some(val);
+    }
+    if let Some(val) = payload.family_role {
+        member.family_role = Some(val);
+    }
+    if let Some(val) = payload.first_name {
+        member.first_name = val;
+    }
+    if let Some(val) = payload.middle_name {
+        member.middle_name = Some(val);
+    }
+    if let Some(val) = payload.last_name {
+        member.last_name = val;
+    }
+    if let Some(val) = payload.date_of_birth {
+        member.date_of_birth = Some(val);
+    }
+    if let Some(val) = payload.gender {
+        member.gender = Some(val);
+    }
+    if let Some(val) = payload.marital_status {
+        member.marital_status = Some(val);
+    }
+    if let Some(val) = payload.national_id {
+        member.national_id = Some(val);
+    }
+    if let Some(val) = payload.occupation {
+        member.occupation = Some(val);
+    }
+    if let Some(val) = payload.email {
+        member.email = Some(val);
+    }
+    if let Some(val) = payload.phone_number {
+        member.phone_number = Some(val);
+    }
+    if let Some(val) = payload.physical_address {
+        member.physical_address = Some(val);
+    }
+    if let Some(val) = payload.photo_url {
+        member.photo_url = Some(val);
+    }
+    if let Some(val) = payload.notes {
+        member.notes = Some(val);
+    }
+    if let Some(val) = payload.is_active {
+        member.is_active = Some(val);
+    }
 
     let updated_member = sqlx::query_as::<_, Member>(
         r#"
@@ -192,7 +242,7 @@ pub async fn update_member(
             updated_at = NOW()
         WHERE id = $18
         RETURNING *
-        "#
+        "#,
     )
     .bind(member.family_id)
     .bind(member.scc_id)
@@ -216,6 +266,18 @@ pub async fn update_member(
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
+    // Audit log
+    write_audit_log(
+        &state.db,
+        Some(auth.user_id),
+        Some(member.parish_id),
+        "UPDATE",
+        "member",
+        Some(id),
+        None,
+        Some(serde_json::json!({"name": format!("{} {}", updated_member.first_name, updated_member.last_name)})),
+    ).await;
+
     Ok(Json(updated_member))
 }
 
@@ -224,16 +286,18 @@ pub async fn delete_member(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let result = sqlx::query(
-        "UPDATE member SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL"
-    )
-    .bind(id)
-    .execute(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let result =
+        sqlx::query("UPDATE member SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL")
+            .bind(id)
+            .execute(&state.db)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     if result.rows_affected() == 0 {
-        return Err((StatusCode::NOT_FOUND, "Member not found or already deleted".to_string()));
+        return Err((
+            StatusCode::NOT_FOUND,
+            "Member not found or already deleted".to_string(),
+        ));
     }
 
     Ok(StatusCode::NO_CONTENT)

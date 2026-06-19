@@ -26,6 +26,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { ParishProvider } from './context/ParishContext';
 import { StyleInjector } from './components/StyleInjector';
+import StartupCheck from './components/StartupCheck';
 import { useEffect } from 'react';
 import './App.css';
 import './i18n'; // Initialize i18n
@@ -34,7 +35,7 @@ import './i18n'; // Initialize i18n
 function DocumentTitleUpdater() {
   const { getSetting } = useSettings();
   useEffect(() => {
-    const appName = getSetting('ui.app_name') || 'Sanctus';
+    const appName = getSetting('ui.app_name') || 'OCMIS';
     document.title = `${appName} - Parish Management`;
   }, [getSetting]);
   return null;
@@ -105,43 +106,45 @@ function App() {
         <SettingsProvider>
           <StyleInjector />
           <DocumentTitleUpdater />
-          <Router>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Layout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Dashboard />} />
-                <Route path="dioceses" element={<Dioceses />} />
-                <Route path="parishes" element={<Parishes />} />
-                <Route path="parishes/:id" element={<ParishProfile />} />
-                <Route path="parish-profile" element={<ParishProfile />} />
-                <Route path="clusters" element={<Clusters />} />
-                <Route path="families" element={<Families />} />
-                <Route path="members" element={<Members />} />
-                <Route path="members/:id" element={<MemberProfile />} />
-                <Route path="sacraments" element={<Sacraments />} />
-                <Route path="events" element={<Events />} />
-                <Route path="liturgical-calendar" element={<LiturgicalCalendar />} />
-                <Route path="announcements" element={<Announcements />} />
-                <Route path="attendance" element={<Attendance />} />
-                <Route path="finance" element={<Finance />} />
-                <Route path="budgets" element={<Budgets />} />
-                <Route path="reports" element={<Reports />} />
-                <Route path="import" element={<DataImport />} />
-                <Route path="users" element={<Users />} />
-                <Route path="profile" element={<UserProfile />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="roles" element={<RoleManagement />} />
-              </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Router>
+          <StartupCheck>
+            <Router>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Layout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<Dashboard />} />
+                  <Route path="dioceses" element={<Dioceses />} />
+                  <Route path="parishes" element={<Parishes />} />
+                  <Route path="parishes/:id" element={<ParishProfile />} />
+                  <Route path="parish-profile" element={<ParishProfile />} />
+                  <Route path="clusters" element={<Clusters />} />
+                  <Route path="families" element={<Families />} />
+                  <Route path="members" element={<Members />} />
+                  <Route path="members/:id" element={<MemberProfile />} />
+                  <Route path="sacraments" element={<Sacraments />} />
+                  <Route path="events" element={<Events />} />
+                  <Route path="liturgical-calendar" element={<LiturgicalCalendar />} />
+                  <Route path="announcements" element={<Announcements />} />
+                  <Route path="attendance" element={<Attendance />} />
+                  <Route path="finance" element={<Finance />} />
+                  <Route path="budgets" element={<Budgets />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="import" element={<DataImport />} />
+                  <Route path="users" element={<Users />} />
+                  <Route path="profile" element={<UserProfile />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="roles" element={<RoleManagement />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Router>
+          </StartupCheck>
         </SettingsProvider>
       </ParishProvider>
     </AuthProvider>

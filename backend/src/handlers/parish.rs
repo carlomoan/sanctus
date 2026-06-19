@@ -1,19 +1,26 @@
+use crate::{
+    handlers::audit::write_audit_log,
+    handlers::auth::AuthUser,
+    models::dashboard::DashboardStats,
+    models::parish::{CreateParishRequest, Parish, UpdateParishRequest},
+    models::user::UserRole,
+    AppState,
+};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     Json,
 };
-use uuid::Uuid;
-use crate::{AppState, models::parish::{Parish, CreateParishRequest, UpdateParishRequest}, handlers::auth::AuthUser, models::user::UserRole, models::dashboard::DashboardStats};
 use rust_decimal::Decimal;
 use sqlx::Row;
+use uuid::Uuid;
 
 pub async fn list_parishes(
     _auth: AuthUser,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<Parish>>, (StatusCode, String)> {
     let parishes = sqlx::query_as::<_, Parish>(
-        "SELECT * FROM parish WHERE deleted_at IS NULL ORDER BY parish_name"
+        "SELECT * FROM parish WHERE deleted_at IS NULL ORDER BY parish_name",
     )
     .fetch_all(&state.db)
     .await
@@ -27,14 +34,13 @@ pub async fn get_parish(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Parish>, (StatusCode, String)> {
-    let parish = sqlx::query_as::<_, Parish>(
-        "SELECT * FROM parish WHERE id = $1 AND deleted_at IS NULL"
-    )
-    .bind(id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-    .ok_or((StatusCode::NOT_FOUND, "Parish not found".to_string()))?;
+    let parish =
+        sqlx::query_as::<_, Parish>("SELECT * FROM parish WHERE id = $1 AND deleted_at IS NULL")
+            .bind(id)
+            .fetch_optional(&state.db)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+            .ok_or((StatusCode::NOT_FOUND, "Parish not found".to_string()))?;
 
     Ok(Json(parish))
 }
@@ -45,7 +51,10 @@ pub async fn create_parish(
     Json(payload): Json<CreateParishRequest>,
 ) -> Result<Json<Parish>, (StatusCode, String)> {
     if auth.role != UserRole::SuperAdmin {
-        return Err((StatusCode::FORBIDDEN, "Only SuperAdmins can create parishes".to_string()));
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Only SuperAdmins can create parishes".to_string(),
+        ));
     }
     let parish = sqlx::query_as::<_, Parish>(
         r#"
@@ -56,11 +65,11 @@ pub async fn create_parish(
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
-        "#
+        "#,
     )
     .bind(payload.diocese_id)
-    .bind(payload.parish_code)
-    .bind(payload.parish_name)
+    .bind(payload.parish_code.clone())
+    .bind(payload.parish_name.clone())
     .bind(payload.patron_saint)
     .bind(payload.priest_name)
     .bind(payload.priest_id)
@@ -72,6 +81,19 @@ pub async fn create_parish(
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
+    // Audit log
+    write_audit_log(
+        &state.db,
+        Some(auth.user_id),
+        Some(parish.id),
+        "INSERT",
+        "parish",
+        Some(parish.id),
+        None,
+        Some(serde_json::json!({"name": payload.parish_name, "code": payload.parish_code})),
+    )
+    .await;
+
     Ok(Json(parish))
 }
 
@@ -82,25 +104,43 @@ pub async fn update_parish(
     Json(payload): Json<UpdateParishRequest>,
 ) -> Result<Json<Parish>, (StatusCode, String)> {
     if auth.role != UserRole::SuperAdmin && auth.role != UserRole::ParishAdmin {
-        return Err((StatusCode::FORBIDDEN, "Unauthorized to update parish".to_string()));
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Unauthorized to update parish".to_string(),
+        ));
     }
-    let mut parish = sqlx::query_as::<_, Parish>(
-        "SELECT * FROM parish WHERE id = $1 AND deleted_at IS NULL"
-    )
-    .bind(id)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-    .ok_or((StatusCode::NOT_FOUND, "Parish not found".to_string()))?;
+    let mut parish =
+        sqlx::query_as::<_, Parish>("SELECT * FROM parish WHERE id = $1 AND deleted_at IS NULL")
+            .bind(id)
+            .fetch_optional(&state.db)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+            .ok_or((StatusCode::NOT_FOUND, "Parish not found".to_string()))?;
 
-    if let Some(name) = payload.parish_name { parish.parish_name = name; }
-    if let Some(saint) = payload.patron_saint { parish.patron_saint = Some(saint); }
-    if let Some(priest) = payload.priest_name { parish.priest_name = Some(priest); }
-    if let Some(pid) = payload.priest_id { parish.priest_id = Some(pid); }
-    if let Some(addr) = payload.physical_address { parish.physical_address = Some(addr); }
-    if let Some(email) = payload.contact_email { parish.contact_email = Some(email); }
-    if let Some(phone) = payload.contact_phone { parish.contact_phone = Some(phone); }
-    if let Some(active) = payload.is_active { parish.is_active = Some(active); }
+    if let Some(name) = payload.parish_name {
+        parish.parish_name = name;
+    }
+    if let Some(saint) = payload.patron_saint {
+        parish.patron_saint = Some(saint);
+    }
+    if let Some(priest) = payload.priest_name {
+        parish.priest_name = Some(priest);
+    }
+    if let Some(pid) = payload.priest_id {
+        parish.priest_id = Some(pid);
+    }
+    if let Some(addr) = payload.physical_address {
+        parish.physical_address = Some(addr);
+    }
+    if let Some(email) = payload.contact_email {
+        parish.contact_email = Some(email);
+    }
+    if let Some(phone) = payload.contact_phone {
+        parish.contact_phone = Some(phone);
+    }
+    if let Some(active) = payload.is_active {
+        parish.is_active = Some(active);
+    }
 
     let updated_parish = sqlx::query_as::<_, Parish>(
         r#"
@@ -117,7 +157,7 @@ pub async fn update_parish(
             updated_at = NOW()
         WHERE id = $9
         RETURNING *
-        "#
+        "#,
     )
     .bind(parish.parish_name)
     .bind(parish.patron_saint)
@@ -132,6 +172,19 @@ pub async fn update_parish(
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
+    // Audit log
+    write_audit_log(
+        &state.db,
+        Some(auth.user_id),
+        Some(id),
+        "UPDATE",
+        "parish",
+        Some(id),
+        None,
+        Some(serde_json::json!({"name": updated_parish.parish_name})),
+    )
+    .await;
+
     Ok(Json(updated_parish))
 }
 
@@ -141,19 +194,37 @@ pub async fn delete_parish(
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
     if auth.role != UserRole::SuperAdmin {
-        return Err((StatusCode::FORBIDDEN, "Only SuperAdmins can delete parishes".to_string()));
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Only SuperAdmins can delete parishes".to_string(),
+        ));
     }
-    let result = sqlx::query(
-        "UPDATE parish SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL"
-    )
-    .bind(id)
-    .execute(&state.db)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let result =
+        sqlx::query("UPDATE parish SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL")
+            .bind(id)
+            .execute(&state.db)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     if result.rows_affected() == 0 {
-        return Err((StatusCode::NOT_FOUND, "Parish not found or already deleted".to_string()));
+        return Err((
+            StatusCode::NOT_FOUND,
+            "Parish not found or already deleted".to_string(),
+        ));
     }
+
+    // Audit log
+    write_audit_log(
+        &state.db,
+        Some(auth.user_id),
+        Some(id),
+        "DELETE",
+        "parish",
+        Some(id),
+        None,
+        None,
+    )
+    .await;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -165,7 +236,10 @@ pub async fn get_parish_stats(
 ) -> Result<Json<DashboardStats>, (StatusCode, String)> {
     // Check permissions - SuperAdmin can see any parish, others only their own
     if auth.role != UserRole::SuperAdmin && auth.parish_id != Some(parish_id) {
-        return Err((StatusCode::FORBIDDEN, "You don't have permission to view this parish's stats".to_string()));
+        return Err((
+            StatusCode::FORBIDDEN,
+            "You don't have permission to view this parish's stats".to_string(),
+        ));
     }
 
     // Total Members

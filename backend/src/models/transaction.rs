@@ -34,7 +34,7 @@ pub enum TransactionCategory {
     OtherExpense,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, sqlx::Type, Clone)]
 #[sqlx(type_name = "payment_method", rename_all = "SCREAMING_SNAKE_CASE")]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PaymentMethod {

@@ -1,13 +1,19 @@
+use crate::{
+    handlers::audit::write_audit_log,
+    handlers::auth::AuthUser,
+    handlers::rbac,
+    models::transaction::{ExpenseVoucher, IncomeTransaction, PaymentMethod, TransactionCategory},
+    AppState,
+};
 use axum::{
-    extract::{Path, State, Query},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
-use uuid::Uuid;
-use crate::{AppState, models::transaction::{IncomeTransaction, ExpenseVoucher, TransactionCategory, PaymentMethod}, handlers::auth::AuthUser, handlers::rbac};
-use serde::Deserialize;
-use rust_decimal::Decimal;
 use chrono::NaiveDate;
+use rust_decimal::Decimal;
+use serde::Deserialize;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct ListTransactionsQuery {
@@ -83,14 +89,14 @@ pub async fn create_income_transaction(
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
-        "#
+        "#,
     )
     .bind(parish_id)
     .bind(payload.member_id)
     .bind(payload.family_id)
-    .bind(payload.category)
+    .bind(payload.category.clone())
     .bind(payload.amount)
-    .bind(payload.payment_method)
+    .bind(payload.payment_method.clone())
     .bind(payload.transaction_date)
     .bind(payload.description)
     .bind(payload.reference_number)
@@ -98,6 +104,18 @@ pub async fn create_income_transaction(
     .fetch_one(&state.db)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Audit log
+    write_audit_log(
+        &state.db,
+        Some(auth.user_id),
+        Some(parish_id),
+        "INSERT",
+        "income_transaction",
+        Some(transaction.id),
+        None,
+        Some(serde_json::json!({"category": format!("{:?}", payload.category), "amount": payload.amount.to_string(), "payment_method": format!("{:?}", payload.payment_method)})),
+    ).await;
 
     Ok(Json(transaction))
 }
@@ -143,13 +161,13 @@ pub async fn create_expense_voucher(
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
-        "#
+        "#,
     )
     .bind(parish_id)
-    .bind(payload.category)
+    .bind(payload.category.clone())
     .bind(payload.amount)
-    .bind(payload.payment_method)
-    .bind(payload.payee_name)
+    .bind(payload.payment_method.clone())
+    .bind(payload.payee_name.clone())
     .bind(payload.payee_phone)
     .bind(payload.expense_date)
     .bind(payload.description)
@@ -158,6 +176,18 @@ pub async fn create_expense_voucher(
     .fetch_one(&state.db)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Audit log
+    write_audit_log(
+        &state.db,
+        Some(auth.user_id),
+        Some(parish_id),
+        "INSERT",
+        "expense_voucher",
+        Some(voucher.id),
+        None,
+        Some(serde_json::json!({"category": format!("{:?}", payload.category), "amount": payload.amount.to_string(), "payee": payload.payee_name})),
+    ).await;
 
     Ok(Json(voucher))
 }
@@ -168,7 +198,7 @@ pub async fn get_income_transaction(
     Path(id): Path<Uuid>,
 ) -> Result<Json<IncomeTransaction>, (StatusCode, String)> {
     let transaction = sqlx::query_as::<_, IncomeTransaction>(
-        "SELECT * FROM income_transaction WHERE id = $1 AND deleted_at IS NULL"
+        "SELECT * FROM income_transaction WHERE id = $1 AND deleted_at IS NULL",
     )
     .bind(id)
     .fetch_optional(&state.db)
@@ -185,7 +215,7 @@ pub async fn get_expense_voucher(
     Path(id): Path<Uuid>,
 ) -> Result<Json<ExpenseVoucher>, (StatusCode, String)> {
     let voucher = sqlx::query_as::<_, ExpenseVoucher>(
-        "SELECT * FROM expense_voucher WHERE id = $1 AND deleted_at IS NULL"
+        "SELECT * FROM expense_voucher WHERE id = $1 AND deleted_at IS NULL",
     )
     .bind(id)
     .fetch_optional(&state.db)

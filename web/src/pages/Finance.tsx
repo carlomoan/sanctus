@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '../api/client';
 import { Parish, IncomeTransaction, ExpenseVoucher, CreateIncomeRequest, CreateExpenseRequest, Member, UserRole } from '../types';
-import { Plus, Filter, TrendingUp, TrendingDown, Calendar, FileText, Download, Printer, Eye } from 'lucide-react';
+import { Plus, Filter, TrendingUp, TrendingDown, Calendar, FileText, Download, Printer, Eye, Settings } from 'lucide-react';
 import Modal from '../components/Modal';
 import IncomeForm from '../components/IncomeForm';
 import ExpenseForm from '../components/ExpenseForm';
 import DataTable, { Column, BulkAction } from '../components/DataTable';
 import ReceiptPreview from '../components/ReceiptPreview';
+import ReceiptBuilder from '../components/ReceiptBuilder';
 import classNames from 'classnames';
 import { downloadReceipt, printReceipt, ReceiptFormat } from '../utils/receiptPdf';
 import { useAuth } from '../context/AuthContext';
@@ -31,6 +32,8 @@ const Finance = () => {
   const [generatingReceipt, setGeneratingReceipt] = useState<string | null>(null);
   const [previewTransaction, setPreviewTransaction] = useState<IncomeTransaction | null>(null);
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+  const [showReceiptBuilder, setShowReceiptBuilder] = useState(false);
+  const [receiptConfig, setReceiptConfig] = useState<any>(null);
 
   const getSelectedParish = (): Parish | undefined => {
     return parishes.find(p => p.id === selectedParishId);
@@ -45,7 +48,7 @@ const Finance = () => {
       if (income.member_id) {
         try { member = await api.getMember(income.member_id); } catch { /* skip */ }
       }
-      await downloadReceipt({ transaction: income, parish, member, format: receiptFormat });
+      await downloadReceipt({ transaction: income, parish, member, format: receiptFormat, config: receiptConfig });
     } catch (err) {
       console.error('Failed to generate receipt:', err);
       alert('Failed to generate receipt');
@@ -63,7 +66,7 @@ const Finance = () => {
       if (income.member_id) {
         try { member = await api.getMember(income.member_id); } catch { /* skip */ }
       }
-      await printReceipt({ transaction: income, parish, member, format: receiptFormat });
+      await printReceipt({ transaction: income, parish, member, format: receiptFormat, config: receiptConfig });
     } catch (err) {
       console.error('Failed to print receipt:', err);
       alert('Failed to print receipt');
@@ -422,6 +425,13 @@ const Finance = () => {
                 <option value="thermal-58">🧾 Thermal 58mm</option>
                 <option value="a4">📄 A4 Paper</option>
               </select>
+              <button
+                onClick={() => setShowReceiptBuilder(true)}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Customize Receipt Template"
+              >
+                <Settings size={16} />
+              </button>
             </div>
           )}
         </div>
@@ -489,6 +499,38 @@ const Finance = () => {
             member={null} // You can fetch member if needed
           />
         </Modal>
+      )}
+
+      {/* Receipt Builder Modal */}
+      {showReceiptBuilder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-7xl max-h-[90vh] overflow-hidden">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Receipt Builder</h3>
+              <button
+                onClick={() => setShowReceiptBuilder(false)}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 80px)' }}>
+              {previewTransaction && getSelectedParish() ? (
+                <ReceiptBuilder
+                  transaction={previewTransaction}
+                  parish={getSelectedParish()!}
+                  member={null}
+                  onConfigChange={setReceiptConfig}
+                  initialConfig={receiptConfig}
+                />
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  Please select a transaction to customize its receipt template.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

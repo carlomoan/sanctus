@@ -109,5 +109,23 @@
     "accountant": "Comptable",
     "secretary": "Secrétaire",
     "viewer": "Visualisateur"
+  },
+  "attendance": {
+    "title": "Présence",
+    "date": "Date",
+    "checkIn": "Enregistrement",
+    "notes": "Notes",
+    "tracking": "Suivi de Présence",
+    "description": "Suivre la présence des membres et des événements",
+    "present": "Présent",
+    "absent": "Absent",
+    "excused": "Excusé",
+    "totalPresent": "Total Présents",
+    "totalAbsent": "Total Absents",
+    "totalExcused": "Total Excusés",
+    "attendanceRate": "Taux de Présence",
+    "totalRecords": "Total des Enregistrements",
+    "recordAttendance": "Enregistrer la Présence",
+    "editRecord": "Modifier l'Enregistrement"
   }
 }

@@ -13,17 +13,7 @@ use tower_http::services::ServeDir;
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/", get(|| async { "Sanctus Backend Running!" }))
-        .route(
-            "/health",
-            get(
-                |axum::extract::State(s): axum::extract::State<AppState>| async move {
-                    match sqlx::query("SELECT 1").execute(&s.db).await {
-                        Ok(_) => "Database is healthy",
-                        Err(_) => "Database is unhealthy",
-                    }
-                },
-            ),
-        )
+        .route("/health", get(handlers::health::health))
         .route("/auth/login", post(handlers::auth::login))
         .route(
             "/users",
@@ -96,7 +86,7 @@ pub fn build_router(state: AppState) -> Router {
                 .delete(handlers::parish::delete_parish),
         )
         .route(
-            "/api/settings/parishes/:parish_id",
+            "/settings/parishes/:parish_id",
             delete(handlers::setting::reset_parish_settings),
         )
         .route(

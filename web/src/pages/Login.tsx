@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { LogIn, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
+  const { getSetting } = useSettings();
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -11,6 +13,10 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const textColor = getSetting('ui.text_primary') || '#ffffff';
+  const logoUrl = getSetting('ui.logo_url') || '/logos/OCMIS-logo1.png';
+  const appName = getSetting('ui.app_name') || 'OCMIS';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,12 +46,13 @@ const Login = () => {
 
         {/* Logo mark */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-primary-600 shadow-lg
-                          flex items-center justify-center mb-4
-                          ring-4 ring-primary-500/20">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-14 w-14 object-contain mb-4" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+          ) : null}
+          <div className={`w-14 h-14 rounded-2xl bg-primary-600 shadow-lg flex items-center justify-center mb-4 ring-4 ring-primary-500/20 ${logoUrl ? 'hidden' : ''}`}>
             <span className="text-white text-2xl font-bold">✝</span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Sanctus</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{appName}</h1>
           <p className="text-slate-400 text-sm mt-1">Parish Management System</p>
         </div>
 
@@ -79,9 +86,10 @@ const Login = () => {
                   placeholder="admin@parish.org"
                   className="w-full pl-9 pr-3 py-2.5 text-sm
                              bg-white/8 border border-white/10 rounded-lg
-                             text-white placeholder:text-slate-500
+                             placeholder:text-slate-500
                              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
                              transition-colors duration-150"
+                  style={{ color: textColor }}
                 />
               </div>
             </div>
@@ -102,9 +110,10 @@ const Login = () => {
                   placeholder="••••••••"
                   className="w-full pl-9 pr-10 py-2.5 text-sm
                              bg-white/8 border border-white/10 rounded-lg
-                             text-white placeholder:text-slate-500
+                             placeholder:text-slate-500
                              focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
                              transition-colors duration-150"
+                  style={{ color: textColor }}
                 />
                 <button
                   type="button"
@@ -138,7 +147,7 @@ const Login = () => {
         </div>
 
         <p className="text-center text-xs text-slate-500 mt-6">
-          Sanctus Parish Management System &copy; {new Date().getFullYear()}
+          {appName} Parish Management System &copy; {new Date().getFullYear()}
         </p>
       </div>
     </div>

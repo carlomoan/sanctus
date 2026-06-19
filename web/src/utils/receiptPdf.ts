@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import { IncomeTransaction, Parish, Member } from '../types';
+import { ReceiptConfig, defaultReceiptConfigs, generateCustomReceipt } from '../components/CustomReceipt';
 
 export type ReceiptFormat = 'a4' | 'thermal-58' | 'thermal-80';
 
@@ -9,6 +10,7 @@ interface ReceiptData {
   parish: Parish;
   member?: Member | null;
   format: ReceiptFormat;
+  config?: ReceiptConfig;
 }
 
 function formatCurrency(amount: number): string {
@@ -55,8 +57,17 @@ async function generateQRCode(text: string, size: number = 40): Promise<string |
 }
 
 export async function generateReceiptPdf(data: ReceiptData): Promise<jsPDF> {
-  const { transaction, parish, member, format } = data;
+  const { transaction, parish, member, format, config: customConfig } = data;
 
+  // Use provided config or get default config for the format
+  const config = customConfig || defaultReceiptConfigs[format] || defaultReceiptConfigs['thermal-80'];
+
+  // Use the new custom receipt generation system if config is provided
+  if (customConfig) {
+    return await generateCustomReceipt({ transaction, parish, member, config });
+  }
+
+  // Otherwise, use the legacy system for backward compatibility
   let pageWidth: number;
   let pageHeight: number;
   let marginX: number;

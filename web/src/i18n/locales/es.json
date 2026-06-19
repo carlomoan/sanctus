@@ -109,5 +109,23 @@
     "accountant": "Contador",
     "secretary": "Secretario",
     "viewer": "Visualizador"
+  },
+  "attendance": {
+    "title": "Asistencia",
+    "date": "Fecha",
+    "checkIn": "Registro",
+    "notes": "Notas",
+    "tracking": "Seguimiento de Asistencia",
+    "description": "Rastrear la asistencia de miembros y eventos",
+    "present": "Presente",
+    "absent": "Ausente",
+    "excused": "Excusado",
+    "totalPresent": "Total Presentes",
+    "totalAbsent": "Total Ausentes",
+    "totalExcused": "Total Excusados",
+    "attendanceRate": "Tasa de Asistencia",
+    "totalRecords": "Total de Registros",
+    "recordAttendance": "Registrar Asistencia",
+    "editRecord": "Editar Registro"
   }
 }

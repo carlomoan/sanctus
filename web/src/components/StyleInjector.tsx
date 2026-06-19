@@ -139,7 +139,7 @@ export const StyleInjector = () => {
         const appName = settings['ui.app_name'];
         if (appName && appName !== document.title) {
             // Only update if we're on the base title (don't override page-specific titles)
-            if (document.title === 'Sanctus — Parish Management' || document.title === appName) {
+            if (document.title === 'OCMIS — Parish Management' || document.title === appName) {
                 document.title = `${appName} — Parish Management`;
             }
         }
