@@ -265,7 +265,11 @@ export default function Settings() {
       const payload = keysToSave.map(key => {
         const def = SETTING_DEFINITIONS.find(d => d.key === key)!;
         return {
+<<<<<<< HEAD
           parish_id: saveParishId ?? undefined,
+=======
+          parish_id: saveParishId ? saveParishId : undefined,
+>>>>>>> de648241ce7f43a5c56b48754f6e728ddbd79efc
           setting_key: key,
           setting_value: values[key] ?? def.value,
           setting_group: def.group,
